@@ -205,6 +205,11 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   pointer-events: none;
 }
 
+/* The green source PNG has a wider transparent margin on its left side. */
+.mode-card--green .mode-card__balloon {
+  transform: translateX(calc(-50% + clamp(10px, 1.4cqw, 24px)));
+}
+
 .mode-card__copy {
   position: absolute;
   right: 6%;
