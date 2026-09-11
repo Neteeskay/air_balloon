@@ -29,4 +29,7 @@ test('S1-BROWSER login, balance, GREEN/RED levels, stakes, x2, rules, history an
   await expect(game.start()).toBeEnabled();
   await game.start().click();
   await expect(game.multiplier()).toBeVisible();
+  const onboarding = page.getByText('Забрать выигрыш можно после первого уровня');
+  await expect(onboarding).toBeVisible();
+  await expect(onboarding).toBeHidden({ timeout: 5_000 });
 });

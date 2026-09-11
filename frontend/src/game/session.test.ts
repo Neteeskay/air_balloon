@@ -65,9 +65,47 @@ describe('GameSession event ordering', () => {
     await vi.waitFor(() => expect(session.getSnapshot().recovered).toBe(2))
     expect(game.getReplay).toHaveBeenCalledWith(round.id, 10)
     expect(session.getSnapshot().round).toMatchObject({ sequence: 12, currentLevel: 2, currentMultiplier: 1.6, roundScore: 200 })
+    expect(session.getSnapshot().sound).toBeNull()
 
     receive(event(11, 'LEVEL_REACHED', { level: 50, multiplier: 50, pointsToAward: 5000 }))
     expect(session.getSnapshot().round).toMatchObject({ sequence: 12, roundScore: 200 })
+    session.dispose()
+  })
+
+  it('emits one cue for each accepted live level or booster event', async () => {
+    const current: Round = {
+      id: 'round-live', roundId: 'round-live', theme: 'GREEN', betAmount: 100, boosterMultiplier: 2,
+      boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: 9,
+      levelThresholds: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], cashoutAvailable: false,
+      cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', sequence: 10,
+      startedAt: '2026-09-11T00:00:00Z', timestamp: '2026-09-11T00:00:01Z',
+      serverTime: '2026-09-11T00:00:01Z', fairnessCommitment: 'commitment'
+    }
+    const event = (sequence: number, type: string, data: Record<string, unknown>): GameEvent => ({
+      type, roundId: current.id, sequence, eventId: `${current.id}:${sequence}`,
+      timestamp: '2026-09-11T00:00:02Z', serverTime: '2026-09-11T00:00:02Z', data
+    })
+    let receive!: (value: GameEvent) => void
+    const game = {
+      connect: vi.fn(async (onEvent, onConnection) => { receive = onEvent; onConnection('connected'); return () => {} }),
+      getSnapshot: vi.fn(async () => structuredClone(current)), getReplay: vi.fn(),
+      startRound: vi.fn(), cashout: vi.fn(), getFairness: vi.fn(), getResult: vi.fn()
+    } as unknown as GameApi
+    const session = new GameSession(game)
+    await session.recover(current.id)
+    const cues: string[] = []
+    let previous = session.getSnapshot().sound
+    session.subscribe(() => {
+      const cue = session.getSnapshot().sound
+      if (cue && cue !== previous) cues.push(`${cue.type}:${cue.sequence}`)
+      previous = cue
+    })
+
+    const level = event(11, 'LEVEL_REACHED', { level: 1, multiplier: 1.2, pointsToAward: 100 })
+    receive(level); receive(level)
+    receive(event(12, 'BOOSTER_ACTIVATED', { booster: 2, level: 1, afterMultiplier: 2.4, pointsToAward: 200 }))
+
+    expect(cues).toEqual(['LEVEL_REACHED:11', 'BOOSTER_ACTIVATED:12'])
     session.dispose()
   })
 })

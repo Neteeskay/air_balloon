@@ -4,6 +4,15 @@ import { GamePage } from '../../pages/game.page';
 import { LoginPage } from '../../pages/login.page';
 
 test('S4-BROWSER x2 booster activation is rendered with multiplier and points', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as Window & { __airBalloonAudioStarts?: number }).__airBalloonAudioStarts = 0;
+    const original = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args: unknown[]) {
+      const target = window as Window & { __airBalloonAudioStarts?: number };
+      target.__airBalloonAudioStarts = (target.__airBalloonAudioStarts ?? 0) + 1;
+      return (original as (...values: unknown[]) => void).apply(this, args);
+    };
+  });
   const login = new LoginPage(page);
   const game = new GamePage(page);
   await login.open();
@@ -14,4 +23,8 @@ test('S4-BROWSER x2 booster activation is rendered with multiplier and points', 
   await game.start().click();
   await expect(page.getByTestId('booster-state')).toContainText(/active|активирован|×\s*2/i, { timeout: settings.eventTimeoutMs });
   await expect.poll(async () => Number((await page.getByTestId('round-points').textContent())?.replace(/\D/g, '') ?? 0)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => (window as Window & { __airBalloonAudioStarts?: number }).__airBalloonAudioStarts ?? 0)).toBeGreaterThan(1);
+  await page.getByRole('button', { name: /выключить звук/i }).click();
+  await expect(page.getByRole('button', { name: /включить звук/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => localStorage.getItem('air-balloon-sound-muted'))).toBe('true');
 });

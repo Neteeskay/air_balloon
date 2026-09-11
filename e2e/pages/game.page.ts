@@ -30,7 +30,10 @@ export class GamePage {
   }
 
   async requireGameControls(): Promise<void> {
-    if (!(await this.theme('GREEN').count()) || !(await this.start().count())) {
+    try {
+      await expect(this.theme('GREEN')).toBeVisible({ timeout: 10_000 });
+      await expect(this.start()).toBeVisible({ timeout: 10_000 });
+    } catch {
       blocked('WAITING FOR FRONTEND: game controls are not integrated');
     }
   }

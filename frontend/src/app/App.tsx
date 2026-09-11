@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { api as defaultApi } from '../api'
 import type { Api, User } from '../api/types'
 import { message } from '../game/session'
+import { gameAudio } from '../game/sound'
 import { GameHome } from './GameHome'
 
 export default function App({ api = defaultApi }: { api?: Api }) {
@@ -19,7 +20,7 @@ function Login({ api, onLogin, initialError }: { api: Api; onLogin: (u: User) =>
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState(initialError); const [busy, setBusy] = useState(false)
   const signIn = async (event: FormEvent) => {
-    event.preventDefault(); if (busy) return; setBusy(true); setError('')
+    event.preventDefault(); if (busy) return; gameAudio.unlock(); setBusy(true); setError('')
     try { onLogin(await api.auth.login(login, password)) } catch (e) { setError(message(e)) } finally { setBusy(false) }
   }
   return <main className="login-sky">

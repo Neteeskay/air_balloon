@@ -1,9 +1,10 @@
 import type { Connection, GameApi, GameEvent, Round, StartInput } from '../api/types'
 
-export type SessionState = { round: Round | null; connection: Connection; busy: boolean; error: string; recovered: number; notice: string }
+export type SoundCue = { type: 'LEVEL_REACHED' | 'BOOSTER_ACTIVATED'; roundId: string; sequence: number }
+export type SessionState = { round: Round | null; connection: Connection; busy: boolean; error: string; recovered: number; notice: string; sound: SoundCue | null }
 /** Transport state only. No crash, payout, position or score rules are decided here. */
 export class GameSession {
-  private state: SessionState = { round: null, connection: 'connecting', busy: false, error: '', recovered: 0, notice: '' }
+  private state: SessionState = { round: null, connection: 'connecting', busy: false, error: '', recovered: 0, notice: '', sound: null }
   private listeners = new Set<() => void>()
   private stop?: () => void
   private opening?: Promise<void>
@@ -24,33 +25,40 @@ export class GameSession {
     if (previous?.id === round.id && previous.sequence > round.sequence) return
     this.set({ round }); this.remember(round.id)
   }
-  private applyEvent = (e: GameEvent) => {
+  private applyEvent = (e: GameEvent, realtime = false) => {
     const round = this.state.round
     if (!round) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
     if (e.roundId !== round.id || e.sequence <= round.sequence) return
     if (e.sequence !== round.sequence + 1) { this.buffer.push(e); void this.recover(); return }
     const next = { ...round, sequence: e.sequence, timestamp: e.timestamp, serverTime: e.serverTime }
     const d = e.data
+    let notice = ''
+    let sound: SoundCue | null = null
     switch (e.type) {
       case 'ROUND_STARTED': case 'ROUND_FINISHED': this.install(d.round as Round); return
       case 'MULTIPLIER_UPDATE': next.currentMultiplier = Number(d.multiplier); next.currentLevel = Number(d.level); break
       case 'LEVEL_REACHED':
         next.currentLevel = Number(d.level); next.currentMultiplier = Number(d.multiplier)
         next.roundScore += Number(d.pointsToAward); next.cashoutAvailable = !next.cashoutPerformed
-        this.set({ notice: Number(d.pointsToAward) ? `Уровень ${d.level} · +${d.pointsToAward} очков` : `Уровень ${d.level} пройден` }); break
+        notice = Number(d.pointsToAward) ? `Уровень ${d.level} · +${d.pointsToAward} очков` : `Уровень ${d.level} пройден`
+        if (realtime) sound = { type: 'LEVEL_REACHED', roundId: e.roundId, sequence: e.sequence }
+        break
       case 'BOOSTER_ACTIVATED':
         next.boosterActivated = true; next.boosterLevel = Number(d.level); next.currentMultiplier = Number(d.afterMultiplier); next.roundScore += Number(d.pointsToAward)
-        this.set({ notice: `Бустер ×${d.booster} активирован · +${d.pointsToAward} очков` }); break
+        notice = `Бустер ×${d.booster} активирован · +${d.pointsToAward} очков`
+        if (realtime) sound = { type: 'BOOSTER_ACTIVATED', roundId: e.roundId, sequence: e.sequence }
+        break
       case 'CASHOUT_SUCCESS':
         next.cashoutPerformed = true; next.cashoutAvailable = false; next.cashoutMultiplier = Number(d.cashoutMultiplier); next.winAmount = Number(d.winAmount); next.status = 'CASHED_OUT'; break
       case 'CRASH': next.status = 'CRASHED'; next.cashoutAvailable = false; next.crashMultiplier = Number(d.crashMultiplier); break
       default: void this.recover(); return
     }
     this.install(next)
+    if (notice || sound) this.set({ ...(notice ? { notice } : {}), ...(sound ? { sound } : {}) })
   }
   private event = (e: GameEvent) => {
     if (this.syncing) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
-    this.applyEvent(e)
+    this.applyEvent(e, true)
   }
   private async connect() {
     if (this.stop) return
@@ -86,13 +94,14 @@ export class GameSession {
               .filter((event, index, events) => index === 0 || event.sequence !== events[index - 1].sequence)
           }
         }
-        pending.forEach(this.applyEvent)
+        pending.forEach(event => this.applyEvent(event))
         this.set({ connection: 'connected', recovered: this.state.recovered + 1, error: '' })
       } catch (e) { this.set({ connection: 'disconnected', error: message(e) }) }
     })()
     await this.syncing; this.syncing = undefined
     const pending = this.buffer.splice(0).sort((a, b) => a.sequence - b.sequence)
-    pending.forEach(this.event)
+    // Anything accumulated during recovery is replay/snapshot-adjacent and must be silent.
+    pending.forEach(event => this.applyEvent(event))
   }
   start = async (input: StartInput) => {
     if (this.state.busy) return
@@ -115,7 +124,7 @@ export class GameSession {
     catch (e) { const error = message(e); await this.recover(); this.set({ error }) }
     finally { this.set({ busy: false }) }
   }
-  again = () => { if (this.state.round && this.state.round.status !== 'FINISHED') return; this.remember(null); this.buffer = []; this.startKey = ''; this.startInput = ''; this.set({ round: null, error: '', notice: '' }) }
+  again = () => { if (this.state.round && this.state.round.status !== 'FINISHED') return; this.remember(null); this.buffer = []; this.startKey = ''; this.startInput = ''; this.set({ round: null, error: '', notice: '', sound: null }) }
   dispose = () => { this.disposed = true; this.stop?.(); this.stop = undefined; this.listeners.clear() }
 }
 export const message = (e: unknown) => e instanceof Error ? e.message : 'Не удалось выполнить действие. Попробуйте ещё раз.'

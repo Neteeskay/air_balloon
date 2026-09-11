@@ -22,3 +22,13 @@
 .stake-custom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--muted); }.stake-custom input { width: 130px; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; color: #263b36; background: #fbfcf9; }.leaderboard { display: grid; gap: 8px; margin: 12px 0 20px; }.leaderboard > div, .current-player { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }.leaderboard span, .current-player span { color: var(--muted); font-size: 10px; }.current-player { background: var(--soft); border-color: var(--accent); margin-bottom: 15px; }.current-player b { color: var(--accent); }.tournament-card > .connection { display: inline-block; margin-bottom: 16px; }
 .paired-options button { display: grid; gap: 5px; text-align: left; padding: 11px 8px; }.paired-options button strong { font-size: 14px; }.paired-options button span { font-size: 8px; color: var(--muted); }.paired-options button[aria-checked=true] { background: var(--soft); color: var(--accent); border-color: var(--accent); }.paired-options button[aria-checked=true] span { color: var(--accent); }.flight-multiplier > i { position: absolute; opacity: 0; pointer-events: none; }
 .potential-result { display: grid; gap: 5px; margin: 18px auto 0; padding: 12px 16px; max-width: 520px; border-radius: 10px; background: #edf3e9; color: #315e41; }.potential-result span { font-size: 10px; color: var(--muted); }.history-scope { display: flex; gap: 8px; margin: 0 0 18px; }.history-scope button { border: 1px solid var(--border); border-radius: 18px; background: #fff; padding: 7px 12px; font-size: 10px; }.history-scope button[aria-selected=true] { background: var(--soft); border-color: var(--accent); color: var(--accent); }
+
+.sound-toggle { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; padding: 0; border: 1px solid #d5dece; border-radius: 50%; background: #fff; }
+.sound-toggle:hover { background: var(--soft); border-color: var(--accent); }
+.sound-toggle span { font-size: 16px; line-height: 1; }
+.cashout-onboarding { margin-bottom: 8px; padding: 9px 11px; border: 1px solid #c9d8bd; border-radius: 9px; background: #f0f5e9; color: #315e41; font-size: 10px; font-weight: 600; line-height: 1.4; text-align: center; pointer-events: none; animation: toast-in .3s ease-out; }
+
+@media (max-width: 600px) {
+  .sound-toggle { margin-left: auto; }
+  .mode-badge { margin-left: 0; }
+}
