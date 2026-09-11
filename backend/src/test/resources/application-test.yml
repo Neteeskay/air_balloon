@@ -1,0 +1,11 @@
+game:
+  random-mode: FIXED_SEED
+  fixed-seed: 42
+  scheduler-enabled: false
+  config:
+    min-crash-multiplier: 8.42
+    max-crash-multiplier: 8.42
+    green:
+      booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0]
+    red:
+      booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]

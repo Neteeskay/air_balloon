@@ -1,0 +1,35 @@
+server:
+  port: ${BACKEND_PORT:8080}
+spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+      accept-float-as-int: false
+    default-property-inclusion: non_null
+game:
+  random-mode: NORMAL
+  fixed-seed: 42
+  tick-millis: 100
+  scheduler-enabled: true
+  demo-user: 00000000-0000-0000-0000-000000000001
+  demo-balance: 1000.00
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:8080
+  config:
+    min-crash-multiplier: 1.01
+    max-crash-multiplier: 30.00
+    distribution-parameter: 2.0
+    growth-per-second: 0.10
+    min-bet: 1.00
+    max-bet: 1000.00
+    booster-points-per-multiplier: 150
+    green:
+      thresholds: [1.20, 1.50, 2.00, 3.00, 4.00, 6.00, 8.00, 10.00, 12.00]
+      points: [100, 100, 100, 100, 100, 100, 100, 100, 100]
+      booster-weights: [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    red:
+      thresholds: [1.20, 1.50, 2.00, 3.00, 4.00, 5.00, 6.00, 8.00, 10.00, 12.00, 16.00, 20.00]
+      points: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+      booster-weights: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
