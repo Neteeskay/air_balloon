@@ -25,6 +25,7 @@ export class MockBackend {
     catch { this.db = initial() }
   }
   private save() { this.storage.setItem(DATA_KEY, JSON.stringify(this.db)) }
+  private ensureTimer() { if (this.autoTick && !this.timer) this.timer = setInterval(this.tick, 100) }
   private user() { const id = this.storage.getItem(SESSION_KEY); if (!id || !this.db.wallets[id]) throw new Error('Войдите в тестовый профиль.'); return id }
   private owned(id: string) { const r = this.db.rounds[id]; if (!r || r.owner !== this.user()) throw new Error('Раунд не найден для этого профиля.'); return r }
   private requireOnline() { if (!this.online) throw new Error('Соединение потеряно. Восстанавливаем состояние…') }
@@ -54,6 +55,7 @@ export class MockBackend {
     // make delayed timers, reload and injected-clock tests produce identical outcomes.
     const end = r.preset === 'LOSE' ? 80 : r.preset === 'BOOSTER' ? 220 : 180
     const target = Math.min(end, Math.floor((this.now() - Date.parse(v.startedAt)) / 100))
+    const before = r.processed
     while (r.processed < target && v.status !== 'FINISHED') {
       r.processed++
       const base = 1 + r.processed * 0.012
@@ -82,8 +84,15 @@ export class MockBackend {
       }
       this.emit(r, 'MULTIPLIER_UPDATE', { multiplier: v.currentMultiplier, level: v.currentLevel })
     }
+    return r.processed !== before
   }
-  tick = () => { Object.values(this.db.rounds).forEach(r => this.advance(r)); this.save() }
+  tick = () => {
+    let changed = false
+    Object.values(this.db.rounds).forEach(r => { if (r.view.status !== 'FINISHED') changed = this.advance(r) || changed })
+    const active = Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')
+    if (changed) this.save()
+    if (!active && this.timer) { clearInterval(this.timer); this.timer = undefined }
+  }
   dispose = () => { clearInterval(this.timer); clearTimeout(this.reconnectTimer); this.listeners.clear() }
   api: Api = {
     mode: 'mock',
@@ -100,8 +109,8 @@ export class MockBackend {
     economy: { getBalance: async id => { this.tick(); return clone(this.db.wallets[id]) } },
     catalog: { get: async () => clone(mockCatalog) },
     history: { getHistory: async (page = 0) => {
-      this.tick()
-      const items: HistoryItem[] = Object.values(this.db.rounds).filter(r => r.view.status === 'FINISHED').map(({ view: v, owner }) => ({ roundId: v.id, username: owner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, roundScore: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', finishedAt: v.finishedAt! }))
+      this.tick(); const currentUser = this.user()
+      const items: HistoryItem[] = Object.values(this.db.rounds).filter(r => r.owner === currentUser && r.view.status === 'FINISHED').map(({ view: v, owner }) => ({ roundId: v.id, username: owner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, roundScore: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', finishedAt: v.finishedAt! }))
       items.sort((a, b) => b.finishedAt.localeCompare(a.finishedAt) || b.roundId.localeCompare(a.roundId))
       return { items: items.slice(page * 10, (page + 1) * 10), page, size: 10, total: items.length }
     } },
@@ -113,7 +122,7 @@ export class MockBackend {
         this.debit(owner, input.betAmount)
         const id = `demo-${++this.db.counter}`; const date = new Date(this.now()).toISOString()
         const r: StoredRound = { owner, preset: this.preset, processed: 0, events: [], view: { ...input, id, roundId: id, boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: mockCatalog.thresholds[input.theme].length, levelThresholds: [...mockCatalog.thresholds[input.theme]], cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', startedAt: date, timestamp: date, serverTime: date, sequence: 0, fairnessCommitment: 'DEMO · пример commitment, не криптографическое доказательство' } }
-        this.db.rounds[id] = r; this.emit(r, 'ROUND_STARTED', {}); this.save(); return this.publicRound(r)
+        this.db.rounds[id] = r; this.emit(r, 'ROUND_STARTED', {}); this.save(); this.ensureTimer(); return this.publicRound(r)
       },
       cashout: async id => {
         this.requireOnline(); const r = this.owned(id); this.tick(); const v = r.view
@@ -131,7 +140,7 @@ export class MockBackend {
       getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
       connect: async (event, connection) => {
         const listener = { event, connection }; this.listeners.add(listener); connection(this.online ? 'connected' : 'disconnected')
-        if (this.autoTick && !this.timer) this.timer = setInterval(this.tick, 100)
+        if (Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')) this.ensureTimer()
         return () => { this.listeners.delete(listener); if (!this.listeners.size) { clearInterval(this.timer); this.timer = undefined } }
       },
     },

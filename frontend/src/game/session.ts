@@ -15,6 +15,7 @@ export class GameSession {
   getSnapshot = () => this.state
   activate = () => { this.disposed = false }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
+  clearError = () => this.set({ error: '' })
   private set(patch: Partial<SessionState>) { if (this.disposed) return; this.state = { ...this.state, ...patch }; this.listeners.forEach(l => l()) }
   private install(round: Round) {
     const previous = this.state.round
