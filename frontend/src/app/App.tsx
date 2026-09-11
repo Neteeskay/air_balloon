@@ -172,12 +172,22 @@ function App() {
     setTutorialVisible(false)
   }
 
-  const chooseMode = (mode: FlightMode) => {
-    if (tutorialVisible) {
-      if (tutorialStep === 2 && mode === 'RED') setTutorialStep(3)
-      if (tutorialStep === 3 && mode === 'GREEN') completeTutorial()
+  const advanceTutorial = () => {
+    if (tutorialStep === 1) {
+      setTutorialStep(2)
       return
     }
+
+    if (tutorialStep === 2) {
+      setTutorialStep(3)
+      return
+    }
+
+    completeTutorial()
+  }
+
+  const chooseMode = (mode: FlightMode) => {
+    if (tutorialVisible) return
 
     writeStorage(THEME_KEY, mode)
     setSelectedMode(mode)
@@ -185,7 +195,17 @@ function App() {
   }
 
   return (
-    <main className={`flight-mode-page ${tutorialVisible ? 'is-tutorial' : ''}`}>
+    <main
+      className={`flight-mode-page ${tutorialVisible ? 'is-tutorial' : ''}`}
+      tabIndex={tutorialVisible ? 0 : undefined}
+      onClick={tutorialVisible ? advanceTutorial : undefined}
+      onKeyDown={tutorialVisible ? (event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        advanceTutorial()
+      } : undefined}
+    >
       <div className="scene-background" aria-hidden="true" />
       <img className="birds birds--standard" src="/assets/flight-mode/birds-3.png" alt="" draggable="false" />
 
@@ -243,7 +263,7 @@ function App() {
           {tutorialStep === 1 && (
             <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
               <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
-              <button className="tutorial-dialog" type="button" onClick={() => setTutorialStep(2)}>
+              <button className="tutorial-dialog" type="button">
                 <span className="tutorial-number">1</span>
                 <strong>Привет, я Шиншилот!</strong>
                 <span>Я очень люблю шарики.<br />Я научу тебя играть в мою<br />любимую игру.</span>
@@ -274,7 +294,16 @@ function App() {
               </div>
             </div>
           )}
-          <button className="tutorial-skip" type="button" onClick={completeTutorial}>Пропустить обучение <ArrowIcon /></button>
+          <button
+            className="tutorial-skip"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              completeTutorial()
+            }}
+          >
+            Пропустить обучение <ArrowIcon />
+          </button>
           <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 3</span>
         </section>
       )}

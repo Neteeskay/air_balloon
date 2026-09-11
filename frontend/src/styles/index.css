@@ -22,6 +22,8 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   isolation: isolate;
 }
 
+.flight-mode-page.is-tutorial { cursor: pointer; }
+
 .scene-background {
   position: absolute;
   inset: 0;
