@@ -19,5 +19,10 @@ public interface RoundRepository {
     default GameRound createAndDebit(GameRound round, BalanceService balances, RoundCheckpoint checkpoint) {
         return createAndDebit(round, balances);
     }
+    /** Persists a client start key with the debit so retries can recover the same round. */
+    default GameRound createAndDebit(GameRound round, BalanceService balances, RoundCheckpoint checkpoint, UUID startKey) {
+        return createAndDebit(round, balances, checkpoint);
+    }
+    default Optional<GameRound> findByStartKey(UUID userId, UUID startKey) { return Optional.empty(); }
     Optional<GameRound> findById(UUID id);
 }

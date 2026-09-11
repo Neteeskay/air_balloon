@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InMemoryRoundRepository implements RoundRepository {
     private final Map<UUID, GameRound> rounds = new ConcurrentHashMap<>();
     private final Map<UUID, Instant> expiry = new ConcurrentHashMap<>();
+    private final Map<String, UUID> starts = new ConcurrentHashMap<>();
     private final Clock clock;
     private final Duration retention;
     public InMemoryRoundRepository() { this(Clock.systemUTC(), Duration.ofHours(24)); }
@@ -29,6 +30,16 @@ public final class InMemoryRoundRepository implements RoundRepository {
         Instant until = expiry.get(id);
         if (until != null && !clock.instant().isBefore(until)) return Optional.empty();
         return Optional.ofNullable(rounds.get(id));
+    }
+    @Override public GameRound createAndDebit(GameRound round, ru.airballoon.game.application.port.BalanceService balances,
+                                              ru.airballoon.game.domain.RoundCheckpoint checkpoint, UUID startKey) {
+        GameRound saved = RoundRepository.super.createAndDebit(round, balances, checkpoint);
+        if (startKey != null) starts.put(round.userId() + ":" + startKey, round.id());
+        return saved;
+    }
+    @Override public Optional<GameRound> findByStartKey(UUID userId, UUID startKey) {
+        UUID id = starts.get(userId + ":" + startKey);
+        return id == null ? Optional.empty() : findById(id);
     }
     public void cleanup(Instant now) {
         expiry.forEach((id, until) -> {

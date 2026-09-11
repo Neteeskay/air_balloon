@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 import { settings } from '../../helpers/env';
 
-test('S5-API final result exposes outcome, coefficients, points, booster and persisted reward', async ({ request }) => {
+test('RESULT-CONTRACT final result exposes outcome, coefficients, points, booster and persisted reward', async ({ request }) => {
   const api = new ApiClient(request, settings.authHeaders);
   await api.health();
   const round = await api.startRound('RED', settings.stake, 2);
@@ -12,7 +12,8 @@ test('S5-API final result exposes outcome, coefficients, points, booster and per
   expect(['WIN', 'LOSS']).toContain(result.result);
   expect(result.betAmount).toBeDefined();
   expect(result.crashMultiplier).toBeDefined();
+  expect(result.potentialWinAmount).toBeDefined();
   expect(result.score).toBe(final.roundScore);
-  expect(result.reward).toEqual(expect.objectContaining({ roundId: round.id }));
+  expect(result.reward).toEqual(expect.objectContaining({ id: expect.any(String), type: expect.any(String), rarity: expect.any(String) }));
   expect(final.boosterMultiplier).toBe(2);
 });

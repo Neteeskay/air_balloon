@@ -109,12 +109,10 @@ export class MockBackend {
     },
     economy: { getBalance: async id => { this.tick(); return clone(this.db.wallets[id ?? this.user()]) } },
     catalog: { get: async () => clone(mockCatalog) },
-    history: { getHistory: async (page = 0) => {
-      this.tick(); const currentUser = this.user()
-      const items: HistoryItem[] = Object.values(this.db.rounds).filter(r => r.owner === currentUser && r.view.status === 'FINISHED').map(({ view: v, owner }) => ({ roundId: v.id, username: owner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', completedAt: v.finishedAt! }))
-      items.sort((a, b) => b.completedAt.localeCompare(a.completedAt) || b.roundId.localeCompare(a.roundId))
-      return { items: items.slice(page * 10, (page + 1) * 10), page, size: 10, total: items.length }
-    } },
+    history: {
+      getGlobalHistory: async (page = 0) => this.historyPage(page),
+      getPersonalHistory: async (page = 0) => this.historyPage(page, this.user()),
+    },
     game: {
       startRound: async (input: StartInput) => {
         this.requireOnline(); const owner = this.user(); this.tick()
@@ -138,7 +136,7 @@ export class MockBackend {
       getSnapshot: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.publicRound(r) },
       getReplay: async (id, after) => { this.requireOnline(); const r = this.owned(id); this.tick(); const oldest = r.events[0]?.sequence ?? 1; return { roundId: id, events: clone(r.events.filter(e => e.sequence > after)), oldestAvailableSequence: oldest, latestSequence: r.view.sequence, snapshotRequired: after < oldest - 1 || after > r.view.sequence, serverTime: new Date(this.now()).toISOString() } },
       getFairness: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.proof(r) },
-      getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
+      getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, potentialWinAmount: Math.floor(v.betAmount * v.crashMultiplier!), score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
       connect: async (event, connection) => {
         const listener = { event, connection }; this.listeners.add(listener); connection(this.online ? 'connected' : 'disconnected')
         if (Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')) this.ensureTimer()
@@ -160,5 +158,14 @@ export class MockBackend {
         this.reconnectTimer = setTimeout(() => { this.tick(); this.online = true; this.listeners.forEach(l => l.connection('connected')) }, 2500)
       },
     },
+  }
+
+  private historyPage(page: number, owner?: string) {
+    this.tick()
+    const items: HistoryItem[] = Object.values(this.db.rounds)
+      .filter(r => (!owner || r.owner === owner) && r.view.status === 'FINISHED')
+      .map(({ view: v, owner: roundOwner }) => ({ roundId: v.id, username: roundOwner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', completedAt: v.finishedAt! }))
+    items.sort((a, b) => b.completedAt.localeCompare(a.completedAt) || b.roundId.localeCompare(a.roundId))
+    return { items: items.slice(page * 10, (page + 1) * 10), page, size: 10, total: items.length }
   }
 }

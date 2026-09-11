@@ -21,9 +21,10 @@ public class RoundController {
     public RoundController(GameService service, Clock clock) { this.service = service; this.clock = clock; }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public RoundView start(Principal principal, @Valid @RequestBody StartRoundRequest request) {
+    public RoundView start(Principal principal, @Valid @RequestBody StartRoundRequest request,
+                           @RequestHeader(name = "Idempotency-Key", required = false) UUID key) {
         return RoundView.from(service.start(CurrentUser.id(principal), request.theme(),
-                request.betAmount(), request.boosterMultiplier()), clock.instant());
+                request.betAmount(), request.boosterMultiplier(), key), clock.instant());
     }
 
     @GetMapping("/{roundId}")

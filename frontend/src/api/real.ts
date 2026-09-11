@@ -8,6 +8,7 @@ type CatalogDto = {
   stakes: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: { multiplier: number; active: boolean }[]
 }
+type GlobalHistoryPageDto = { items: Array<Record<string, unknown> & { roundScore: number; finishedAt: string }>; page: number; size: number; total: number }
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); this.name = 'ApiError' }
@@ -32,7 +33,9 @@ const user = (state: UserState): User => {
 const stakeOptions = ({ minimum, maximum, decimalPlaces }: CatalogDto['stakes']) => {
   const step = 10 ** -decimalPlaces
   const rounded = (value: number) => Math.max(minimum, Math.min(maximum, Math.round(value / step) * step))
-  return [...new Set([minimum, maximum * .1, maximum * .25, maximum * .5, maximum].map(rounded))].sort((a, b) => a - b)
+  const values = [...new Set([maximum * .1, maximum * .25, maximum * .5, maximum].map(rounded))].sort((a, b) => a - b)
+  if (values.length !== 4) throw new Error('Каталог не позволяет показать ровно четыре связанных варианта ставки и бустера.')
+  return values
 }
 
 const localFairness = async (proof: Fairness): Promise<boolean | undefined> => {
@@ -87,9 +90,15 @@ export function createRealApi(base = ''): Api {
       ])
       return { bonusBalance: balance.bonusBalance, gameScore: state.gameScore }
     } },
-    history: { getHistory: page => request(`/api/current-user/history?page=${page ?? 0}&size=20`) },
+    history: {
+      getGlobalHistory: async page => {
+        const value = await request<GlobalHistoryPageDto>(`/api/history?page=${page ?? 0}&size=20`)
+        return { ...value, items: value.items.map(({ roundScore, finishedAt, ...item }) => ({ ...item, score: roundScore, completedAt: finishedAt })) } as never
+      },
+      getPersonalHistory: page => request(`/api/current-user/history?page=${page ?? 0}&size=20`),
+    },
     game: {
-      startRound: input => request('/api/rounds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
+      startRound: (input, idempotencyKey) => request('/api/rounds', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) }, body: JSON.stringify(input) }),
       cashout: (id, key) => request(`${roundPath(id)}/cashout`, { method: 'POST', headers: { 'Idempotency-Key': key } }),
       getSnapshot: id => request(roundPath(id)),
       getReplay: (id, after) => request(`${roundPath(id)}/events?afterSequence=${after}`),

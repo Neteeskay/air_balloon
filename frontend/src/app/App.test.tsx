@@ -27,6 +27,20 @@ describe('clickable application flow', () => {
     expect(screen.queryByText(/Зафиксировано/i)).not.toBeInTheDocument()
     backend.dispose()
   })
+  it('returns automatically after 10 seconds and preserves the selected theme', async () => {
+    let now = Date.parse('2026-09-11T00:00:00Z')
+    const backend = new MockBackend(localStorage, () => now, false); backend.api.dev!.setPreset('LOSE')
+    render(<App api={backend.api} />); await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: /Red Balloon/i }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Начать полёт/i })); await Promise.resolve(); await Promise.resolve() })
+    now += 8200; await act(async () => { backend.tick(); await Promise.resolve(); await vi.advanceTimersByTimeAsync(1400) })
+    expect(screen.getByTestId('round-result')).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(9999) }); expect(screen.getByTestId('round-result')).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    expect(screen.getByRole('button', { name: /Red Balloon/i })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByTestId('preview-level')).toHaveLength(12)
+    backend.dispose()
+  })
   it('recovers from a transient catalog failure instead of leaving an endless loader', async () => {
     const now = Date.parse('2026-09-11T00:00:00Z'); let attempts = 0
     const backend = new MockBackend(localStorage, () => now, false)

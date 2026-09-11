@@ -9,9 +9,7 @@ import { blocked } from '../../helpers/status';
 test('S2-API successful cashout is fixed, paid once, finishes and enters result/history', async ({ request }) => {
   const api = new ApiClient(request, settings.authHeaders);
   await api.health();
-  const user = (await api.demoUsers()).find((item) => item.username === settings.username);
-  if (!user) blocked(`Demo Login user ${settings.username} is unavailable`);
-  const initial = await api.userState(user!.userId);
+  const initial = await api.currentState();
   const socket = new RoundSocket(settings.wsUrl, settings.authHeaders);
   await socket.connect();
   try {
@@ -30,7 +28,7 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
     expect(first.body.cashoutPerformed).toBe(true);
     const fixed = first.body.cashoutMultiplier;
     const payout = first.body.winAmount;
-    expect(equalDecimal(payout, multiplyMoney(settings.stake, fixed), 2)).toBe(true);
+    expect(decimalToScale(payout, 0)).toBe(decimalToScale(multiplyMoney(settings.stake, fixed), 0));
 
     const retry = await api.cashout(round.id, key);
     expect(retry.response.status()).toBe(200);
@@ -46,7 +44,7 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
     expect(equalDecimal(final.winAmount, payout, 2)).toBe(true);
     expect(decimalToScale(final.currentMultiplier, 4)).toBeGreaterThan(decimalToScale(fixed, 4));
 
-    const current = await api.userState(user!.userId);
+    const current = await api.currentState();
     expect(decimalToScale(current.bonusBalance, 2)).toBe(
       decimalToScale(initial.bonusBalance, 2) - decimalToScale(settings.stake, 2) + decimalToScale(payout, 2)
     );
@@ -54,7 +52,8 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
     expect(result.roundId).toBe(round.id);
     expect(result.result).toBe('WIN');
     expect(equalDecimal(result.winAmount, payout, 2)).toBe(true);
-    expect(historyItems(await api.history()).some((item) => item.roundId === round.id && item.result === 'WIN')).toBe(true);
+    expect(result.potentialWinAmount).toBeGreaterThanOrEqual(result.winAmount);
+    expect(historyItems(await api.personalHistory()).some((item) => item.roundId === round.id && item.result === 'WIN')).toBe(true);
   } finally {
     socket.abort();
   }

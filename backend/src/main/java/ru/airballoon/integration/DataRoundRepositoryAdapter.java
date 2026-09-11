@@ -43,12 +43,20 @@ public class DataRoundRepositoryAdapter implements RoundRepository {
     @Override
     @Transactional
     public GameRound createAndDebit(GameRound round, BalanceService ignored, RoundCheckpoint checkpoint) {
+        return createAndDebit(round, ignored, checkpoint, null);
+    }
+
+    @Override
+    @Transactional
+    public GameRound createAndDebit(GameRound round, BalanceService ignored, RoundCheckpoint checkpoint, UUID startKey) {
         long version = configs.currentVersion();
         var created = toData(round, version, -1, ru.hackathon.airballoon.game.GameRound.Status.CREATED);
         var debited = transactions.createAndDebit(created);
         rounds.save(toData(round, version, debited.version(), ru.hackathon.airballoon.game.GameRound.Status.RUNNING));
         writeSnapshot(round);
         if (checkpoint != null) writeCheckpoint(checkpoint);
+        if (startKey != null) jdbc.update("INSERT INTO round_start_requests(user_id,start_key,round_id) VALUES (?,?,?)",
+                round.userId(), startKey, round.id());
         return round;
     }
 
@@ -65,6 +73,12 @@ public class DataRoundRepositoryAdapter implements RoundRepository {
     public Optional<GameRound> findById(UUID id) {
         return jdbc.query("SELECT snapshot_json::text FROM core_round_snapshots WHERE round_id=?",
                 (rs, row) -> read(rs.getString(1)), id).stream().findFirst();
+    }
+
+    @Override
+    public Optional<GameRound> findByStartKey(UUID userId, UUID startKey) {
+        return jdbc.query("SELECT round_id FROM round_start_requests WHERE user_id=? AND start_key=?",
+                (rs, row) -> rs.getObject(1, UUID.class), userId, startKey).stream().findFirst().flatMap(this::findById);
     }
 
     private ru.hackathon.airballoon.game.GameRound toData(

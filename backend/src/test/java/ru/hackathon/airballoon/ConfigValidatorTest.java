@@ -19,8 +19,10 @@ class ConfigValidatorTest {
     }
     static Stream<Object[]> invalidValues() {
         return Stream.of(
-            new Object[]{"minCrashMultiplier",0},new Object[]{"maxCrashMultiplier",1},
-            new Object[]{"growthRate",0},new Object[]{"alpha",-1},
+            new Object[]{"minCrashMultiplier",0},new Object[]{"minCrashMultiplier",0.9999},
+            new Object[]{"minCrashMultiplier",1.00001},new Object[]{"maxCrashMultiplier",1000001},
+            new Object[]{"growthRate",0},new Object[]{"growthRate",10.0001},new Object[]{"growthRate",0.00011},
+            new Object[]{"alpha",0.009},
             new Object[]{"pointsPerLevel",-1},new Object[]{"pointsPerLevel",1000001},
             new Object[]{"pointsCashoutBonus",-1},new Object[]{"pointsX2Bonus",-1},
             new Object[]{"pointsX3Bonus",-1},new Object[]{"pointsX4Bonus",-1},
@@ -28,7 +30,7 @@ class ConfigValidatorTest {
             new Object[]{"greenBoosterWeights",java.util.List.of(10000)},
             new Object[]{"redBoosterWeights",java.util.Collections.nCopies(12,0)},
             new Object[]{"greenBoosterWeights",java.util.List.of(-1,1251,1250,1250,1250,1250,1250,1250,1250)},
-            new Object[]{"boosterValues",java.util.List.of(1,2,3,0)},
+            new Object[]{"boosterValues",java.util.List.of(1,2,3,0)},new Object[]{"boosterValues",java.util.List.of(1,3,5,8)},
             new Object[]{"updateIntervalMs",1001},new Object[]{"gameName",""},
             new Object[]{"gameType","OTHER"},new Object[]{"fixedSeedEnabled",true});
     }
@@ -39,7 +41,9 @@ class ConfigValidatorTest {
     }
     @Test void validConfigAccepted() throws Exception {
         new ConfigValidator(false).validate(config("pointsPerLevel",500));
-        new ConfigValidator(false).validate(config("boosterValues",java.util.List.of(1,3,5,8)));
+        new ConfigValidator(false).validate(config("boosterValues",java.util.List.of(1,2,3,4)));
+        new ConfigValidator(false).validate(config("minCrashMultiplier",1));
+        new ConfigValidator(false).validate(config("growthRate",0.0001));
     }
     @Test void snapshotListsAreImmutable() throws Exception {
         var c=config("pointsPerLevel",500);

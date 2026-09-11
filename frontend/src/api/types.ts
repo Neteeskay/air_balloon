@@ -21,14 +21,14 @@ export type GameEvent = { type: string; roundId: string; sequence: number; event
 export type Replay = { roundId: string; events: GameEvent[]; oldestAvailableSequence: number; latestSequence: number; snapshotRequired: boolean; serverTime: string }
 export type HistoryItem = { roundId: string; username?: string; theme: Theme; betAmount: number; boosterMultiplier: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; result: 'WIN' | 'LOSS'; completedAt: string; reward?: { id?: string; type: string; rarity: string; createdAt?: string } }
 export type HistoryPage = { items: HistoryItem[]; page: number; size: number; total: number; serverTime?: string }
-export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; reward?: { type: string; rarity: string } }
+export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; potentialWinAmount?: number; score: number; reward?: { type: string; rarity: string } }
 export type StartInput = { theme: Theme; betAmount: number; boosterMultiplier: number }
 export type Tournament = { id: string; name: string; description: string; status: string; startsAt: string; endsAt: string; secondsRemaining: number; serverTime: string; revision: number }
 export type LeaderboardEntry = { position: number; userId: string; username: string; score: number }
 export type Leaderboard = { tournament: Tournament; top3: LeaderboardEntry[]; participants: LeaderboardEntry[]; currentPlayer?: LeaderboardEntry; totalParticipants: number; page: number; size: number; updatedAt: string }
 export type TournamentUpdate = { type: 'LEADERBOARD_UPDATE'; tournamentId: string; revision: number; topPlayers: Omit<LeaderboardEntry, 'username'>[]; changedPlayer?: Omit<LeaderboardEntry, 'username'>; totalParticipants: number; updatedAt: string }
 export interface GameApi {
-  startRound(input: StartInput): Promise<Round>
+  startRound(input: StartInput, idempotencyKey?: string): Promise<Round>
   cashout(id: string, key: string): Promise<Round>
   getSnapshot(id: string): Promise<Round>
   getReplay(id: string, after: number): Promise<Replay>
@@ -41,7 +41,7 @@ export interface Api {
   auth: { demos: (User & { password: string })[]; currentUser(): Promise<User | null>; login(login: string, password: string): Promise<User>; logout(): Promise<void>; onRequired?(listener: () => void): () => void }
   economy: { getBalance(id?: string): Promise<Wallet> }
   catalog: { get(): Promise<Catalog> }
-  history: { getHistory(page?: number): Promise<HistoryPage> }
+  history: { getGlobalHistory(page?: number): Promise<HistoryPage>; getPersonalHistory(page?: number): Promise<HistoryPage> }
   game: GameApi
   tournament: {
     getActive(): Promise<{ active: boolean; tournament?: Tournament }>

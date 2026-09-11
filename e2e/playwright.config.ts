@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
 
 const artifactsRoot = path.resolve(__dirname, '..', 'artifacts', 'acceptance');
-const apiBaseUrl = process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:8080';
+const apiBaseUrl = process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080';
 const frontendBaseUrl = process.env.ACCEPTANCE_FRONTEND_URL ?? 'http://127.0.0.1:5173';
+const authFile = path.resolve(__dirname, '.auth', 'anna.json');
 const timeout = Number(process.env.ACCEPTANCE_TIMEOUT_MS ?? 120_000);
 
 export default defineConfig({
@@ -30,24 +31,57 @@ export default defineConfig({
   projects: [
     { name: 'harness', testMatch: /harness\/.*\.spec\.ts/ },
     {
-      name: 'api',
-      testMatch: /api\/.*\.spec\.ts/,
+      name: 'auth-setup',
+      testMatch: /setup\/auth\.setup\.ts/,
+      teardown: 'acceptance-cleanup',
       use: { baseURL: apiBaseUrl }
     },
     {
+      name: 'acceptance-cleanup',
+      testMatch: /setup\/cleanup\.setup\.ts/,
+      use: { baseURL: apiBaseUrl }
+    },
+    {
+      name: 'api',
+      testMatch: /api\/.*\.spec\.ts/,
+      dependencies: ['auth-setup'],
+      use: { baseURL: apiBaseUrl, storageState: authFile }
+    },
+    {
       name: 'browser',
-      testMatch: /browser\/.*\.spec\.ts/,
+      testMatch: /browser\/(?!matrix\.).*\.spec\.ts/,
+      dependencies: ['auth-setup'],
       use: { ...devices['Desktop Chrome'], baseURL: frontendBaseUrl }
+    },
+    {
+      name: 'chromium',
+      testMatch: /browser\/matrix\.spec\.ts/,
+      dependencies: ['auth-setup'],
+      use: { ...devices['Desktop Chrome'], baseURL: frontendBaseUrl }
+    },
+    {
+      name: 'firefox',
+      testMatch: /browser\/matrix\.spec\.ts/,
+      dependencies: ['auth-setup'],
+      use: { ...devices['Desktop Firefox'], baseURL: frontendBaseUrl }
+    },
+    {
+      name: 'webkit',
+      testMatch: /browser\/matrix\.spec\.ts/,
+      dependencies: ['auth-setup'],
+      use: { ...devices['Desktop Safari'], baseURL: frontendBaseUrl }
     },
     {
       name: 'persistence-prepare',
       testMatch: /persistence\/prepare\.spec\.ts/,
-      use: { baseURL: apiBaseUrl }
+      dependencies: ['auth-setup'],
+      use: { baseURL: apiBaseUrl, storageState: authFile }
     },
     {
       name: 'persistence-verify',
       testMatch: /persistence\/verify\.spec\.ts/,
-      use: { baseURL: apiBaseUrl }
+      dependencies: ['auth-setup'],
+      use: { baseURL: apiBaseUrl, storageState: authFile }
     }
   ]
 });

@@ -10,24 +10,23 @@ export class GamePage {
   }
 
   stake(value: string): Locator {
-    return this.page.getByRole('button', { name: new RegExp(`(^|\\D)${escapeRegex(value)}([,.]00)?(\\D|$)`) }).first();
+    return this.page.getByTestId('flight-option').filter({ hasText: new RegExp(`(^|\\D)${escapeRegex(value)}([,.]00)?(\\D|$)`) }).first();
   }
 
   booster(value: number): Locator {
-    return this.page.getByRole('button', { name: new RegExp(`(?:×|x)\\s*${value}`, 'i') }).first();
+    return this.page.getByTestId('flight-option').filter({ hasText: new RegExp(`(?:×|x)\\s*${value}`, 'i') }).first();
   }
 
   start(): Locator { return this.page.getByRole('button', { name: /начать|start/i }); }
   cashout(): Locator { return this.page.getByRole('button', { name: /забрать|cash\s*out/i }); }
   playAgain(): Locator { return this.page.getByRole('button', { name: /играть снова|play again/i }); }
   rules(): Locator { return this.page.getByRole('button', { name: /правила|rules/i }); }
-  history(): Locator { return this.page.getByRole('heading', { name: /история|history/i }).or(this.page.getByRole('region', { name: /история|history/i })).first(); }
+  history(): Locator { return this.page.getByRole('button', { name: /^история$/i }).or(this.page.getByRole('region', { name: /история|history/i })).first(); }
   multiplier(): Locator { return this.page.getByTestId('multiplier'); }
   result(): Locator { return this.page.getByTestId('round-result').or(this.page.getByRole('dialog', { name: /результат|result/i })).first(); }
 
   levels(): Locator {
-    const semantic = this.page.getByRole('list', { name: /уровни|levels/i }).getByRole('listitem');
-    return this.page.locator('[data-level]').or(semantic);
+    return this.page.getByTestId('preview-level');
   }
 
   async requireGameControls(): Promise<void> {

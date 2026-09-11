@@ -61,12 +61,11 @@ test.describe.serial('Scenario 4 — booster', () => {
         if (!snapshot.boosterActivated && snapshot.cashoutAvailable) candidate = snapshot;
       }
       if (!candidate) blocked('No round with a booster level after Level 1 was produced in five attempts');
-      const scoreAtCashout = candidate!.roundScore;
       const cashout = await api.cashout(candidate!.id);
       expect(cashout.response.status()).toBe(200);
       const final = await api.waitForSnapshot(candidate!.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs);
       expect(final.boosterActivated).toBe(false);
-      expect(final.roundScore).toBe(scoreAtCashout);
+      expect(final.roundScore).toBe(cashout.body.roundScore);
       expect(socket.allForRound(candidate!.id).filter((event) => event.type === 'BOOSTER_ACTIVATED')).toHaveLength(0);
     } finally {
       socket.abort();

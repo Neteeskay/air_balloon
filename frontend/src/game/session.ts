@@ -11,6 +11,8 @@ export class GameSession {
   private buffer: GameEvent[] = []
   private disposed = false
   private cashoutKey = ''
+  private startKey = ''
+  private startInput = ''
   constructor(private game: GameApi, private remember: (id: string | null) => void = () => {}) {}
   getSnapshot = () => this.state
   activate = () => { this.disposed = false }
@@ -97,7 +99,9 @@ export class GameSession {
     this.set({ busy: true, error: '', notice: '' })
     try {
       await this.connect()
-      const round = await this.game.startRound(input)
+      const serialized = JSON.stringify(input)
+      if (serialized !== this.startInput) { this.startInput = serialized; this.startKey = crypto.randomUUID() }
+      const round = await this.game.startRound(input, this.startKey)
       this.cashoutKey = crypto.randomUUID(); this.install(round)
       this.buffer.splice(0).sort((a, b) => a.sequence - b.sequence).forEach(this.event)
     } catch (e) { this.set({ error: `${message(e)} Повтор старта не выполняется автоматически.` }) }
@@ -111,7 +115,7 @@ export class GameSession {
     catch (e) { const error = message(e); await this.recover(); this.set({ error }) }
     finally { this.set({ busy: false }) }
   }
-  again = () => { if (this.state.round && this.state.round.status !== 'FINISHED') return; this.remember(null); this.buffer = []; this.set({ round: null, error: '', notice: '' }) }
+  again = () => { if (this.state.round && this.state.round.status !== 'FINISHED') return; this.remember(null); this.buffer = []; this.startKey = ''; this.startInput = ''; this.set({ round: null, error: '', notice: '' }) }
   dispose = () => { this.disposed = true; this.stop?.(); this.stop = undefined; this.listeners.clear() }
 }
 export const message = (e: unknown) => e instanceof Error ? e.message : 'Не удалось выполнить действие. Попробуйте ещё раз.'

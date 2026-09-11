@@ -13,13 +13,19 @@ test('S1-BROWSER login, balance, GREEN/RED levels, stakes, x2, rules, history an
   await expect(page.getByText(/бонусный баланс|balance/i).first()).toBeVisible();
   await game.selectTheme('GREEN', 9);
   await game.selectTheme('RED', 12);
-  if (!(await game.stake(settings.stake).count()) || !(await game.booster(2).count())) {
-    blocked('WAITING FOR FRONTEND: stake or booster controls are not integrated');
+  const options = page.getByTestId('flight-option');
+  await expect(options).toHaveCount(4);
+  expect(await options.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-booster')))).toEqual(['1', '2', '3', '4']);
+  for (let index = 0; index < 4; index += 1) {
+    expect(await options.nth(index).getAttribute('data-stake')).toMatch(/^\d+(\.\d+)?$/);
   }
-  await game.stake(settings.stake).click();
   await game.booster(2).click();
-  await expect(game.rules()).toBeVisible();
-  await expect(game.history()).toBeVisible();
+  await game.rules().click();
+  await expect(page.getByRole('dialog', { name: /как устроен полёт/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Закрыть' }).click();
+  await game.history().click();
+  await expect(page.getByRole('heading', { name: 'История всех игроков' })).toBeVisible();
+  await page.getByRole('button', { name: /к игре/i }).click();
   await expect(game.start()).toBeEnabled();
   await game.start().click();
   await expect(game.multiplier()).toBeVisible();

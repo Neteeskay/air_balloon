@@ -12,10 +12,11 @@ test('S3-BROWSER no cashout ends in loss and history update', async ({ page }) =
   await login.login(settings.username, settings.password);
   await game.requireGameControls();
   await game.selectTheme('GREEN', 9);
-  await game.stake(settings.stake).click();
   await game.booster(2).click();
   await game.start().click();
+  const roundId = await page.getByTestId('round-id').textContent();
   await result.expectVisible();
   await expect(game.result()).toContainText(/проигрыш|lose|loss/i);
-  await expect(game.history()).toContainText(/проигрыш|lose|loss/i);
+  await game.history().click();
+  await expect(page.locator(`[data-testid="history-row"][data-round-id="${roundId}"]`)).toContainText(/lose|loss/i);
 });

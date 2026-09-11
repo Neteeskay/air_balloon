@@ -8,17 +8,16 @@ import { blocked } from '../../helpers/status';
 test('PERSISTENCE-PREPARE stores completed-round checkpoint before backend restart', async ({ request }) => {
   const api = new ApiClient(request, settings.authHeaders);
   await api.health();
-  const user = (await api.demoUsers()).find((item) => item.username === settings.username);
-  if (!user) blocked(`Demo Login user ${settings.username} is unavailable`);
+  const user = await api.me();
   const round = await api.startRound('GREEN', settings.stake, 2);
   const final = await api.waitForSnapshot(round.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs);
-  const state = await api.userState(user!.userId);
+  const state = await api.currentState();
   const result = await api.result(round.id);
   expect(historyItems(await api.history()).some((item) => item.roundId === round.id)).toBe(true);
   const checkpoint: Record<string, unknown> = {
     createdAt: new Date().toISOString(),
-    userId: user!.userId,
-    username: user!.username,
+    userId: user.userId,
+    username: user.username,
     balance: String(state.bonusBalance),
     gameScore: String(state.gameScore),
     roundId: round.id,

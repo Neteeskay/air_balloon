@@ -16,6 +16,26 @@ import static ru.airballoon.game.domain.GameEvent.Type.*;
 
 @Timeout(15)
 class ConcurrencyTest {
+    @Test void oneStartKeyCreatesOneRoundAndOneDebitAcrossConcurrentRetries() throws Exception {
+        var f = new Fixture(); UUID key = UUID.randomUUID();
+        var results = concurrent(
+                () -> f.service.start(f.user, Theme.GREEN, dec("100.00"), 2, key),
+                () -> f.service.start(f.user, Theme.GREEN, dec("100.00"), 2, key));
+        assertThat(results).extracting(GameRound::id).containsOnly(results.getFirst().id());
+        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("900.00");
+        assertThat(f.count(ROUND_STARTED)).isEqualTo(1);
+    }
+
+    @Test void reusingStartKeyWithDifferentInputIsRejectedWithoutAnotherDebit() {
+        var f = new Fixture(); UUID key = UUID.randomUUID();
+        f.service.start(f.user, Theme.GREEN, dec("100.00"), 2, key);
+        assertThatThrownBy(() -> f.service.start(f.user, Theme.RED, dec("100.00"), 2, key))
+                .isInstanceOfSatisfying(GameException.class,
+                        error -> assertThat(error.code()).isEqualTo(GameError.INVALID_REQUEST));
+        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("900.00");
+        assertThat(f.count(ROUND_STARTED)).isEqualTo(1);
+    }
+
     @Test void cashoutOneMillisecondBeforeCrashWinsEvenWithConcurrentTick() throws Exception {
         var f = new Fixture(config("2", 3)); var r = f.start(1); f.clock.atMillis(9999);
         concurrent(() -> attempt(() -> f.service.cashout(f.user, r.id())), () -> attempt(() -> f.service.tick(r.id())));

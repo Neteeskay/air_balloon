@@ -1,4 +1,6 @@
 import WebSocket, { type RawData } from 'ws';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { RoundEvent } from './api-client';
 import { blocked } from './status';
 
@@ -22,7 +24,7 @@ export class RoundSocket {
   async connect(timeoutMs = 10_000): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('WebSocket connection timeout')), timeoutMs);
-      const socket = new WebSocket(this.url, { headers: this.headers, origin: process.env.ACCEPTANCE_WS_ORIGIN });
+      const socket = new WebSocket(this.url, { headers: { ...sessionHeaders(), ...this.headers }, origin: process.env.ACCEPTANCE_WS_ORIGIN });
       this.socket = socket;
       socket.on('message', (raw: RawData) => this.onMessage(raw.toString()));
       socket.once('error', (error: Error) => {
@@ -88,4 +90,12 @@ export class RoundSocket {
       pending.resolve(event);
     }
   }
+}
+
+function sessionHeaders(): Record<string, string> {
+  try {
+    const state = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '.auth', 'anna.json'), 'utf8')) as { cookies?: Array<{ name: string; value: string }> };
+    const cookie = state.cookies?.map(item => `${item.name}=${item.value}`).join('; ');
+    return cookie ? { Cookie: cookie } : {};
+  } catch { return {}; }
 }

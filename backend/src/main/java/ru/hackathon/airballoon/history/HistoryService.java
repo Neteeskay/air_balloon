@@ -23,7 +23,7 @@ public class HistoryService {
     public record PersonalPage(List<PersonalEntry> items,int page,int size,long total,Instant serverTime) {}
     public record RewardView(UUID id,String type,String rarity,Instant createdAt) {}
     public record Result(UUID roundId,String result,long betAmount,BigDecimal cashoutMultiplier,
-                         BigDecimal crashMultiplier,long winAmount,long score,long configVersion,RewardView reward,
+                         BigDecimal crashMultiplier,long winAmount,long potentialWinAmount,long score,long configVersion,RewardView reward,
                          Instant completedAt,Instant serverTime) {}
     private final JdbcTemplate jdbc;
     private final RoundRepository rounds;
@@ -88,8 +88,10 @@ public class HistoryService {
         if (r.finishedAt()==null) throw BusinessException.conflict("ROUND_NOT_FINISHED","Раунд ещё не завершён");
         Reward reward=rewards.findByRound(r.id()).orElseThrow(()->BusinessException.conflict(
                 "REWARD_NOT_READY","Раунд завершён без награды: используйте finishAndReward"));
+        long potentialWinAmount=BigDecimal.valueOf(r.betAmount()).multiply(r.crashMultiplier())
+            .setScale(0,java.math.RoundingMode.DOWN).longValueExact();
         return new Result(r.id(),r.cashoutAt()!=null?"WIN":"LOSS",r.betAmount(),r.cashoutMultiplier(),
-            r.crashMultiplier(),r.winAmount(),r.roundScore(),r.configVersion(),
+            r.crashMultiplier(),r.winAmount(),potentialWinAmount,r.roundScore(),r.configVersion(),
             new RewardView(reward.id(),reward.type(),reward.rarity(),reward.createdAt()),r.finishedAt(),clock.instant());
     }
 

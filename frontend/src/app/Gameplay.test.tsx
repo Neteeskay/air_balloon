@@ -17,6 +17,15 @@ describe('game components', () => {
     fireEvent.click(screen.getByRole('button', { name: /Red Balloon/i }))
     expect(screen.getAllByTestId('preview-level')).toHaveLength(12)
   })
+  it('offers exactly four paired stake and booster choices', () => {
+    const stake = vi.fn(); const booster = vi.fn()
+    render(<Setup theme="GREEN" onTheme={() => {}} catalog={mockCatalog} stake={100} onStake={stake} booster={1} onBooster={booster} balance={5000} busy={false} onStart={() => {}} onRules={() => {}} onHistory={() => {}} />)
+    expect(screen.getAllByTestId('flight-option')).toHaveLength(4)
+    fireEvent.click(screen.getByRole('radio', { name: /250.*×2/i }))
+    expect(stake).toHaveBeenCalledWith(250); expect(booster).toHaveBeenCalledWith(2)
+    expect(screen.queryByLabelText('Точная ставка')).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Бустер' })).not.toBeInTheDocument()
+  })
   it('keeps cashout visible but disabled before level one', () => {
     render(<Flight round={round()} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)
     expect(screen.getByRole('button', { name: /Забрать/i })).toBeDisabled()
@@ -27,7 +36,7 @@ describe('game components', () => {
   })
   it('disables unaffordable bets and blocks start for an unaffordable selected stake', () => {
     render(<Setup theme="GREEN" onTheme={() => {}} catalog={mockCatalog} stake={100} onStake={() => {}} booster={1} onBooster={() => {}} balance={50} busy={false} onStart={() => {}} onRules={() => {}} onHistory={() => {}} />)
-    expect(screen.getByRole('button', { name: '100' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /100.*×1/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /Начать полёт/i })).toBeDisabled()
     expect(screen.getByText(/Недостаточно бонусов/i)).toBeInTheDocument()
   })

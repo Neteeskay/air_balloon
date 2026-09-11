@@ -7,10 +7,10 @@
     "self-check": "playwright test --project=harness",
     "api": "playwright test --project=api",
     "browser": "playwright test --project=browser",
-    "acceptance": "playwright test --project=api --project=browser",
+    "acceptance": "playwright test --project=api --project=browser --project=chromium --project=firefox --project=webkit",
     "persistence:prepare": "playwright test --project=persistence-prepare",
     "persistence:verify": "playwright test --project=persistence-verify",
-    "install:browsers": "playwright install chromium"
+    "install:browsers": "playwright install chromium firefox webkit"
   },
   "devDependencies": {
     "@playwright/test": "1.55.0",

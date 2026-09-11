@@ -1,4 +1,5 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { blocked } from './status';
 
 export type UserState = {
@@ -75,14 +76,31 @@ export class ApiClient {
     return this.requiredJson<UserState[]>(response, 'Demo Login user API is not integrated');
   }
 
+  async login(username: string, password: string): Promise<UserState> {
+    const response = await this.request.post('/api/auth/demo-login', { headers: this.headers, data: { username, password } });
+    return this.requiredJson<UserState>(response, 'REAL demo login is unavailable');
+  }
+
+  async me(): Promise<UserState> {
+    return this.requiredJson<UserState>(await this.request.get('/api/auth/me', { headers: this.headers }), 'Current-user auth is unavailable');
+  }
+
+  async currentState(): Promise<UserState> {
+    return this.requiredJson<UserState>(await this.request.get('/api/current-user/state', { headers: this.headers }), 'Current-user state is unavailable');
+  }
+
+  async catalog(): Promise<any> {
+    return this.requiredJson<any>(await this.request.get('/api/game/catalog', { headers: this.headers }), 'Catalog is unavailable');
+  }
+
   async userState(userId: string): Promise<UserState> {
     const response = await this.request.get(`/api/users/${userId}/state`, { headers: this.headers });
     return this.requiredJson<UserState>(response, 'Persistent user/economy API is not integrated');
   }
 
-  async startRound(theme: 'GREEN' | 'RED', betAmount: string, boosterMultiplier: number): Promise<RoundView> {
+  async startRound(theme: 'GREEN' | 'RED', betAmount: string, boosterMultiplier: number, idempotencyKey = randomUUID()): Promise<RoundView> {
     const response = await this.request.post('/api/rounds', {
-      headers: this.headers,
+      headers: { ...this.headers, 'Idempotency-Key': idempotencyKey },
       data: { theme, betAmount, boosterMultiplier }
     });
     return this.requiredJson<RoundView>(response, 'Game Core start-round API is not integrated', 201);
@@ -116,6 +134,11 @@ export class ApiClient {
   async history(page = 0, size = 100): Promise<any> {
     const response = await this.request.get('/api/history', { headers: this.headers, params: { page, size } });
     return this.requiredJson<any>(response, 'Persistent history API is not integrated');
+  }
+
+  async personalHistory(page = 0, size = 100): Promise<any> {
+    const response = await this.request.get('/api/current-user/history', { headers: this.headers, params: { page, size } });
+    return this.requiredJson<any>(response, 'Personal history API is not integrated');
   }
 
   async result(roundId: string): Promise<any> {

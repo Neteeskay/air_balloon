@@ -2,6 +2,17 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../../helpers/api-client';
 import { settings } from '../../helpers/env';
 import { verifyFairness, type FairnessProof } from '../../helpers/fairness';
+import { randomUUID } from 'node:crypto';
+import { decimalToScale } from '../../helpers/decimal';
+
+test('START-IDEMPOTENCY 100 simultaneous retries create one round and one debit', async ({ request }) => {
+  const api = new ApiClient(request, settings.authHeaders);
+  const before = await api.currentState(); const key = randomUUID();
+  const rounds = await Promise.all(Array.from({ length: 100 }, () => api.startRound('GREEN', settings.stake, 2, key)));
+  expect(new Set(rounds.map((round) => round.id)).size).toBe(1);
+  const after = await api.currentState();
+  expect(decimalToScale(after.bonusBalance, 2)).toBe(decimalToScale(before.bonusBalance, 2) - decimalToScale(settings.stake, 2));
+});
 
 test('RELIABILITY 100 parallel rounds produce unique round IDs and commitments', async ({ request }) => {
   test.setTimeout(Math.max(180_000, settings.eventTimeoutMs));

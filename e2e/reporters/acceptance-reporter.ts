@@ -19,7 +19,7 @@ export default class AcceptanceReporter implements Reporter {
     fs.writeFileSync(path.join(this.outputDir, 'run-metadata.json'), JSON.stringify({
       startedAt: new Date().toISOString(),
       workers: config.workers,
-      apiUrl: process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:8080',
+      apiUrl: process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080',
       frontendUrl: process.env.ACCEPTANCE_FRONTEND_URL ?? 'http://127.0.0.1:5173'
     }, null, 2));
   }

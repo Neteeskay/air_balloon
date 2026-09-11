@@ -40,7 +40,7 @@ describe('deterministic mock adapters', () => {
     expect((await backend.api.economy.getBalance('anna')).bonusBalance).toBe(balanceAfterCashout)
     now += 16500; backend.tick(); expect((await backend.api.game.getSnapshot(r.id)).cashoutMultiplier).toBe(fixedMultiplier)
     expect((await backend.api.game.getResult(r.id)).result).toBe('WIN')
-    expect((await backend.api.history.getHistory()).items[0].result).toBe('WIN')
+    expect((await backend.api.history.getPersonalHistory()).items[0].result).toBe('WIN')
   })
   it('returns LOSE when crash happens without cashout', async () => {
     backend.api.dev!.setPreset('LOSE')
@@ -53,10 +53,10 @@ describe('deterministic mock adapters', () => {
     await backend.api.game.startRound({ theme: 'GREEN', betAmount: 100, boosterMultiplier: 1 })
     now += 8100; backend.tick()
     storage.setItem(SESSION_KEY, 'maks')
-    expect((await backend.api.history.getHistory()).items).toHaveLength(0)
+    expect((await backend.api.history.getPersonalHistory()).items).toHaveLength(0)
     const maksRound = await backend.api.game.startRound({ theme: 'RED', betAmount: 100, boosterMultiplier: 1 })
     now += 8100; backend.tick()
-    const history = await backend.api.history.getHistory()
+    const history = await backend.api.history.getPersonalHistory()
     expect(history.items).toHaveLength(1); expect(history.items[0].roundId).toBe(maksRound.id); expect(history.items[0].username).toBe('maks')
   })
   it('does not persist the database again while all rounds are idle', async () => {

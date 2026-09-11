@@ -28,7 +28,7 @@ describe('real backend adapter', () => {
       .mockResolvedValueOnce(json({ items: [], page: 0, size: 20, total: 0 }))
     vi.stubGlobal('fetch', fetch); const api = createRealApi()
     await expect(api.economy.getBalance()).resolves.toEqual({ bonusBalance: 4321, gameScore: 700 })
-    await api.history.getHistory()
+    await api.history.getPersonalHistory()
     expect(fetch.mock.calls.map(call => call[0])).toEqual(['/api/current-user/balance', '/api/current-user/state', '/api/current-user/history?page=0&size=20'])
   })
 

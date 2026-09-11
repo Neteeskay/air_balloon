@@ -30,6 +30,7 @@ public final class GameService {
     private final RoundEventStore eventStore;
     private final ActiveRoundStateStore checkpoints;
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
+    private final Map<String, ReentrantLock> startLocks = new ConcurrentHashMap<>();
 
     /** Compatibility constructor; server wiring injects replaceable store ports. */
     public GameService(RoundEngine engine, GameConfigProvider configs, RoundRepository repository,
@@ -49,7 +50,32 @@ public final class GameService {
     }
 
     public GameRound start(UUID userId, Theme theme, BigDecimal bet, int booster) {
+        return start(userId, theme, bet, booster, null);
+    }
+
+    public GameRound start(UUID userId, Theme theme, BigDecimal bet, int booster, UUID startKey) {
         requireUser(userId);
+        if (startKey == null) return startNew(userId, theme, bet, booster, null);
+        String lockId = userId + ":" + startKey;
+        ReentrantLock lock = startLocks.computeIfAbsent(lockId, ignored -> new ReentrantLock());
+        lock.lock();
+        try {
+            Optional<GameRound> existing = repository.findByStartKey(userId, startKey);
+            if (existing.isPresent()) {
+                GameRound round = existing.get();
+                if (round.theme() != theme || round.betAmount().compareTo(bet) != 0
+                        || round.boosterMultiplier() != booster)
+                    throw new GameException(GameError.INVALID_REQUEST, "Idempotency-Key was already used with another start request");
+                return round;
+            }
+            return startNew(userId, theme, bet, booster, startKey);
+        } finally {
+            lock.unlock();
+            startLocks.remove(lockId, lock);
+        }
+    }
+
+    private GameRound startNew(UUID userId, Theme theme, BigDecimal bet, int booster, UUID startKey) {
         GameConfig config = configs.getCurrentConfig();
         engine.validateStart(theme, bet, booster, config);
         UUID id = UUID.randomUUID();
@@ -57,7 +83,7 @@ public final class GameService {
         RoundTransition start = engine.start(id, userId, theme, bet, booster, seed, config, clock.instant());
         RoundCheckpoint initial = new RoundCheckpoint(RoundCheckpoint.VERSION, start.round(),
                 start.events(), null, null);
-        GameRound durableStart = repository.createAndDebit(start.round(), balances, initial);
+        GameRound durableStart = repository.createAndDebit(start.round(), balances, initial, startKey);
         Session s = new Session(durableStart);
         s.lock.lock();
         try {
