@@ -27,7 +27,7 @@ export function createScrollParallax(config: ScrollParallaxConfig) {
           trigger,
           start: 'top bottom',
           end: 'bottom top',
-          scrub: 1,
+          scrub: 0.5, // Slightly smoother
         },
       });
       animations.push(anim);
@@ -44,18 +44,19 @@ export function createScrollParallax(config: ScrollParallaxConfig) {
           trigger,
           start: 'top bottom',
           end: 'bottom top',
-          scrub: 1,
+          scrub: 0.8,
         },
       });
       animations.push(anim);
     });
   }
 
-  // Foreground clouds - fastest movement
+  // Foreground clouds - fastest movement (pass by camera)
   if (layers.foreground) {
     layers.foreground.forEach((cloud) => {
       const anim = gsap.to(cloud, {
         y: () => -window.innerHeight * PARALLAX_LAYERS.foreground,
+        scale: '+=0.3', // Scale up as they pass
         ease: 'none',
         scrollTrigger: {
           trigger,
@@ -68,17 +69,19 @@ export function createScrollParallax(config: ScrollParallaxConfig) {
     });
   }
 
-  // Balloons - medium-fast movement
+  // Balloons - medium-fast movement with slight sway
   if (layers.balloons) {
-    layers.balloons.forEach((balloon) => {
+    layers.balloons.forEach((balloon, index) => {
+      const sway = (index % 2 === 0 ? 1 : -1) * 30;
       const anim = gsap.to(balloon, {
         y: () => -window.innerHeight * PARALLAX_LAYERS.balloons,
+        x: `+=${sway}`,
         ease: 'none',
         scrollTrigger: {
           trigger,
           start: 'top bottom',
           end: 'bottom top',
-          scrub: 1,
+          scrub: 0.9,
         },
       });
       animations.push(anim);

@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useRef } from 'react';
-import { createFloatingAnimation } from '../animations/floating';
+import { createBalloonPath } from '../animations/balloonPath';
 import { SPRITES } from '../config/sprites';
 import type { BalloonColor } from '../config/sprites';
 
@@ -10,6 +10,11 @@ export interface Balloon {
   y: number; // % от высоты viewport
   scale: number;
   floatDelay?: number;
+  pathConfig?: {
+    xOffset?: number;
+    yOffset?: number;
+    rotation?: number;
+  };
 }
 
 export interface BalloonLayerProps {
@@ -26,11 +31,15 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
       .map((el, index) => {
         const balloon = balloons[index];
         if (!balloon) return null;
-        return createFloatingAnimation(el, {
+
+        return createBalloonPath(el, {
           delay: balloon.floatDelay || Math.random() * 2,
+          xOffset: balloon.pathConfig?.xOffset,
+          yOffset: balloon.pathConfig?.yOffset,
+          rotation: balloon.pathConfig?.rotation,
         });
       })
-      .filter((anim): anim is ReturnType<typeof createFloatingAnimation> => anim !== null);
+      .filter((anim): anim is ReturnType<typeof createBalloonPath> => anim !== null);
 
     return () => {
       animations.forEach((anim) => anim.kill());

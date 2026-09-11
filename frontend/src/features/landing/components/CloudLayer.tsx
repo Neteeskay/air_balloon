@@ -1,12 +1,13 @@
 import { CSSProperties } from 'react';
 import { CLOUD_DEPTH, type CloudDepth } from '../animations/cloudDepth';
+import { SPRITES } from '../config/sprites';
 
 export interface Cloud {
   id: string;
   x: number; // % от ширины viewport
   y: number; // % от высоты viewport
   scale: number;
-  size: 'large' | 'medium' | 'small';
+  cloudNum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 }
 
 export interface CloudLayerProps {
@@ -34,9 +35,9 @@ export function CloudLayer({ depth, clouds, className = '' }: CloudLayerProps) {
         return (
           <img
             key={cloud.id}
-            src={`/sprites/cloud-${cloud.size === 'large' ? '1' : cloud.size === 'medium' ? '2' : '3'}.svg`}
+            src={SPRITES.clouds[cloud.cloudNum]}
             alt=""
-            className={`cloud cloud--${cloud.size}`}
+            className={`cloud cloud--${cloud.cloudNum}`}
             style={style}
           />
         );
