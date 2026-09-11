@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 type FlightMode = 'RED' | 'GREEN'
-type TutorialStep = 1 | 2 | 3
+type TutorialStep = 1 | 2 | 3 | 4
 
 const ONBOARDING_KEY_PREFIX = 'air-balloon-flight-mode-onboarding-complete:'
 const THEME_KEY = 'air-balloon-theme'
@@ -120,6 +120,11 @@ function ModeCard({ mode, title, levels, description, balloon, selected, tutoria
   const activeTutorial = tutorialStep === (mode === 'RED' ? 2 : 3)
   return (
     <article className={`mode-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
+      {activeTutorial && (
+        <span className={`mode-card__step-number mode-card__step-number--${mode.toLowerCase()}`} aria-hidden="true">
+          {mode === 'RED' ? '1' : '2'}
+        </span>
+      )}
       <img className="mode-card__balloon" src={balloon} alt="" draggable="false" />
       <div className="mode-card__copy">
         <h2>{title}</h2>
@@ -180,6 +185,11 @@ function App() {
 
     if (tutorialStep === 2) {
       setTutorialStep(3)
+      return
+    }
+
+    if (tutorialStep === 3) {
+      setTutorialStep(4)
       return
     }
 
@@ -249,7 +259,10 @@ function App() {
         />
       </section>
 
-      <section className="rating-card" aria-label="Рейтинг участников">
+      <section className={`rating-card ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`} aria-label="Рейтинг участников">
+        {tutorialVisible && tutorialStep === 4 && (
+          <span className="rating-card__step-number" aria-hidden="true">3</span>
+        )}
         <span className="rating-card__trophy"><TrophyIcon /></span>
         <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
         <span className="rating-card__days"><ClockIcon />25 дней</span>
@@ -257,12 +270,11 @@ function App() {
       </section>
 
       {tutorialVisible && (
-        <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 3`}>
+        <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 4`}>
           {tutorialStep === 1 && (
             <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
               <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
               <button className="tutorial-dialog" type="button">
-                <span className="tutorial-number">1</span>
                 <strong>Привет, я Шиншилот!</strong>
                 <span>Я очень люблю шарики.<br />Я научу тебя играть в мою<br />любимую игру.</span>
               </button>
@@ -274,7 +286,6 @@ function App() {
                 <path pathLength="1" d="M330 775 C350 520 480 365 655 325" />
               </svg>
               <div className="tutorial-tip tutorial-tip--red">
-                <span className="tutorial-number">2</span>
                 <strong>Красный шар — 12 уровней.</strong>
                 <span>Более рискованный режим.</span>
               </div>
@@ -286,9 +297,16 @@ function App() {
                 <path pathLength="1" d="M1265 325 C1440 365 1568 520 1590 775" />
               </svg>
               <div className="tutorial-tip tutorial-tip--green">
-                <span className="tutorial-number">3</span>
                 <strong>Зелёный шар — 9 уровней.</strong>
                 <span>Более спокойный режим.</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 4 && (
+            <div className="tutorial-step tutorial-step--four" key="tutorial-step-4">
+              <div className="tutorial-tip tutorial-tip--rating">
+                <strong>Рейтинг участников</strong>
+                <span>Успей заработать больше всех очков<br />и получай награды!</span>
               </div>
             </div>
           )}
@@ -302,7 +320,7 @@ function App() {
           >
             Пропустить обучение <ArrowIcon />
           </button>
-          <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 3</span>
+          <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 4</span>
         </section>
       )}
       </div>

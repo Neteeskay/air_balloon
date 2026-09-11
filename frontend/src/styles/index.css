@@ -162,10 +162,33 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
-.mode-card.is-tutorial-target {
+.mode-card.is-tutorial-target,
+.rating-card.is-tutorial-target {
   animation: tutorialTarget 1.8s ease-in-out infinite alternate;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2);
 }
+
+.rating-card.is-tutorial-target { --accent: #e69600; }
+
+.mode-card__step-number,
+.rating-card__step-number {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: clamp(44px, 3.7cqw, 70px);
+  aspect-ratio: 1;
+  border: 4px solid white;
+  border-radius: 50%;
+  color: white;
+  box-shadow: 0 3px 10px rgba(31, 62, 89, .25);
+  font-size: clamp(23px, 1.8cqw, 35px);
+  font-weight: 900;
+}
+
+.mode-card__step-number--red { top: -26px; right: -26px; background: #e01725; }
+.mode-card__step-number--green { top: -26px; left: -26px; background: #0ca546; }
+.rating-card__step-number { top: -26px; left: 28px; background: #e69600; }
 
 .mode-card__balloon {
   position: absolute;
@@ -287,21 +310,6 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   pointer-events: auto;
 }
 
-.tutorial-number {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  width: clamp(44px, 3.7cqw, 70px);
-  aspect-ratio: 1;
-  border: 4px solid white;
-  border-radius: 50%;
-  color: white;
-  background: #ffbd00;
-  box-shadow: 0 3px 10px rgba(113,73,0,.25);
-  font-size: clamp(23px, 1.8cqw, 35px);
-  font-weight: 900;
-}
-
 .tutorial-dialog {
   bottom: 3.5%;
   left: 7.5%;
@@ -316,15 +324,19 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   animation: tutorialBubble 360ms 120ms ease-out both;
 }
 
-.tutorial-dialog .tutorial-number { top: -38px; left: -18px; }
 .tutorial-dialog strong { font-size: clamp(20px, 1.5cqw, 29px); }
 .tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05cqw, 20px); line-height: 1.3; }
 .tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
 .tutorial-tip strong { font-size: clamp(16px, 1.05cqw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92cqw, 18px); }
 .tutorial-tip--red { top: 20.5%; left: 12.5%; color: #9b1420; }
 .tutorial-tip--green { top: 20.5%; right: 12.5%; color: #147039; }
-.tutorial-tip--red .tutorial-number { right: -58px; bottom: -52px; background: #e01725; }
-.tutorial-tip--green .tutorial-number { bottom: -52px; left: -58px; background: #0ca546; }
+.tutorial-tip--rating {
+  top: 68%;
+  left: 74%;
+  min-width: clamp(300px, 24cqw, 460px);
+  color: #805000;
+  text-align: center;
+}
 
 .tutorial-skip {
   position: absolute;
