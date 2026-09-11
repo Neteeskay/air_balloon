@@ -299,15 +299,6 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 .tutorial-step { position: absolute; inset: 0; animation: tutorialStepEnter 700ms cubic-bezier(.2,.75,.28,1) both; will-change: opacity, transform; }
-.tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
-.tutorial-arcs path {
-  fill: none;
-  stroke: rgba(255,255,255,.92);
-  stroke-width: 9;
-  stroke-linecap: round;
-  stroke-dasharray: .018 .022;
-  animation: tutorialLine 700ms ease-out both;
-}
 .chinchillot {
   position: absolute;
   bottom: -5%;
@@ -328,18 +319,34 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   pointer-events: auto;
 }
 
+.tutorial-dialog::after,
+.tutorial-tip::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 12px solid transparent;
+  filter: drop-shadow(0 3px 2px rgba(22,74,104,.12));
+}
+
 .tutorial-dialog {
-  bottom: 3.5%;
+  bottom: 42%;
   left: 7.5%;
   z-index: 6;
   display: grid;
   width: clamp(330px, 23cqw, 440px);
   padding: clamp(20px, 1.4cqw, 27px) clamp(24px, 1.8cqw, 35px);
-  border: 0;
-  border-radius: 44% 44% 40% 40% / 30% 30% 42% 42%;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 24px;
   text-align: left;
   cursor: pointer;
   animation: tutorialBubble 360ms 120ms ease-out both;
+}
+
+.tutorial-dialog::after {
+  bottom: -22px;
+  left: 20%;
+  border-top-color: rgba(255,255,255,.97);
 }
 
 .tutorial-dialog strong { font-size: clamp(20px, 1.5cqw, 29px); }
@@ -347,16 +354,19 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 540ms 120ms cubic-bezier(.2,.75,.28,1) both; }
 .tutorial-tip strong { font-size: clamp(16px, 1.05cqw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92cqw, 18px); }
 .tutorial-tip--red { top: 20.5%; left: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #9b1420; }
+.tutorial-tip--red::after { bottom: -22px; right: 19%; border-top-color: #e01725; }
 .tutorial-tip--green { top: 20.5%; right: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #147039; }
+.tutorial-tip--green::after { bottom: -22px; left: 19%; border-top-color: #0ca546; }
 .tutorial-tip--trophy {
-  top: 43%;
+  top: 75%;
   left: 1%;
   min-width: 0;
   width: clamp(300px, 24cqw, 460px);
   color: #805000;
 }
+.tutorial-tip--trophy::after { top: 62%; right: -22px; border-left-color: #e69600; }
 .tutorial-tip--rating {
-  top: 68%;
+  top: 74%;
   right: 0;
   left: auto;
   min-width: 0;
@@ -364,6 +374,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   color: #805000;
   text-align: center;
 }
+.tutorial-tip--rating::after { top: 62%; left: -22px; border-right-color: #e69600; }
 
 .tutorial-skip {
   position: absolute;
@@ -430,11 +441,6 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 @keyframes tutorialBubble {
   from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.985); }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@keyframes tutorialLine {
-  from { stroke-dashoffset: 1; opacity: 0; }
-  to { stroke-dashoffset: 0; opacity: 1; }
 }
 
 @keyframes tutorialTargetCard {

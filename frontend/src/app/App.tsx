@@ -279,9 +279,6 @@ function App() {
           )}
           {tutorialStep === 2 && (
             <div className="tutorial-step tutorial-step--two" key="tutorial-step-2">
-              <svg className="tutorial-arcs" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
-                <path pathLength="1" d="M330 775 C350 520 480 365 655 325" />
-              </svg>
               <div className="tutorial-tip tutorial-tip--red">
                 <strong>Красный шар — для тех, кто любит риск!</strong>
                 <span>Здесь тебя ждут <b>12 уровней</b> и более сложный маршрут.<br />Выбирай его, если хочешь больше испытаний.</span>
@@ -290,9 +287,6 @@ function App() {
           )}
           {tutorialStep === 3 && (
             <div className="tutorial-step tutorial-step--three" key="tutorial-step-3">
-              <svg className="tutorial-arcs" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
-                <path pathLength="1" d="M1265 325 C1440 365 1568 520 1590 775" />
-              </svg>
               <div className="tutorial-tip tutorial-tip--green">
                 <strong>Зелёный шар — для спокойного полёта</strong>
                 <span>Здесь <b>9 уровней</b> и более простой маршрут.<br />Отличный вариант, если хочешь сначала освоиться.</span>
