@@ -56,32 +56,7 @@ section {
    Cloud Intro Section
    ======================================== */
 
-.cloud-intro {
-  background: linear-gradient(
-    to bottom,
-    var(--sky-dark) 0%,
-    var(--sky-top) 40%,
-    var(--sky-middle) 100%
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.cloud-intro__layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.intro-clouds-fg,
-.intro-clouds-mid,
-.intro-clouds-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
+/* Removed - integrated into single landing page */
 
 .cloud-layer {
   position: absolute;
@@ -125,40 +100,65 @@ section {
 }
 
 /* ========================================
-   Hero Section
+   Landing Page - Single Continuous Scene
    ======================================== */
 
-.hero {
+.landing-page {
+  position: relative;
+  width: 100%;
+  min-height: 300vh; /* Достаточно места для скролла */
   background: linear-gradient(
     to bottom,
-    var(--sky-middle) 0%,
-    var(--sky-bottom) 50%,
+    var(--sky-dark) 0%,
+    var(--sky-top) 20%,
+    var(--sky-middle) 50%,
+    var(--sky-bottom) 80%,
     var(--sky-light) 100%
   );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  position: relative;
+  overflow: hidden;
 }
 
-.hero-clouds-bg,
-.hero-clouds-mid,
-.hero-clouds-fg {
-  position: absolute;
+.landing-page__overlay {
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 50;
+  will-change: opacity;
 }
 
-.hero__content {
-  position: relative;
-  z-index: 5;
+/* Cloud layers */
+.intro-clouds,
+.bg-clouds,
+.mid-clouds,
+.fg-clouds {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.balloon-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Hero Content - видим сразу */
+.hero-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
   text-align: center;
   max-width: 900px;
+  width: 90%;
   padding: 2rem 1rem;
+  will-change: transform, opacity;
 }
 
-.hero__title {
+.hero-content__title {
   font-size: clamp(3.5rem, 10vw, 7rem);
   font-weight: 900;
   color: var(--text-light);
@@ -171,7 +171,7 @@ section {
   letter-spacing: -0.03em;
 }
 
-.hero__subtitle {
+.hero-content__subtitle {
   font-size: clamp(1.5rem, 3.5vw, 2.5rem);
   color: var(--text-light);
   margin: 0 0 1.5rem;
@@ -182,7 +182,7 @@ section {
     0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.hero__description {
+.hero-content__description {
   font-size: clamp(1.125rem, 2.5vw, 1.5rem);
   color: var(--text-light);
   margin: 0 0 2.5rem;
@@ -195,47 +195,36 @@ section {
   margin-right: auto;
 }
 
-.hero__cta {
+.hero-content__cta {
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
   padding: 1.25rem 3.5rem;
   min-width: 240px;
 }
 
-/* ========================================
-   Final Section
-   ======================================== */
-
-.final {
-  background: linear-gradient(
-    to bottom,
-    var(--sky-bottom) 0%,
-    var(--sky-light) 50%,
-    #f0f8ff 100%
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  min-height: 100vh;
-  position: relative;
-}
-
-.final-clouds-bg,
-.final-clouds-mid {
+/* Final Area */
+.final-area {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
   pointer-events: none;
 }
 
-.final__content {
-  position: relative;
-  z-index: 5;
+/* Final Content - внизу страницы */
+.final-content {
+  position: absolute;
+  bottom: 10vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   text-align: center;
   max-width: 800px;
+  width: 90%;
   padding: 2rem 1rem;
 }
 
-.final__title {
+.final-content__title {
   font-size: clamp(2.75rem, 7vw, 5rem);
   font-weight: 800;
   color: var(--text-light);
@@ -247,7 +236,7 @@ section {
   letter-spacing: -0.02em;
 }
 
-.final__subtitle {
+.final-content__subtitle {
   font-size: clamp(1.25rem, 3vw, 1.75rem);
   color: var(--text-light);
   margin: 0 0 2.5rem;
@@ -260,19 +249,19 @@ section {
   margin-right: auto;
 }
 
-.final__cta {
+.final-content__cta {
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
   padding: 1.25rem 3.5rem;
   min-width: 240px;
   margin-bottom: 4rem;
 }
 
-.final__footer {
+.final-content__footer {
   padding-top: 2.5rem;
   margin-top: 2.5rem;
 }
 
-.final__footer p {
+.final-content__footer p {
   margin: 0;
   font-size: 0.9375rem;
   color: var(--text-light);
