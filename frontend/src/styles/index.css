@@ -159,6 +159,20 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   border-radius: clamp(25px, 2cqw, 38px);
   background: linear-gradient(180deg, rgba(227,246,255,.92) 0%, rgba(255,255,255,.97) 72%);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 60%), 0 0 34px color-mix(in srgb, var(--accent), transparent 45%), 0 20px 42px rgba(16,76,110,.2);
+  animation: cardRise 760ms cubic-bezier(.2,.75,.28,1) both;
+}
+
+.mode-card::after,
+.rating-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background: linear-gradient(112deg, transparent 32%, rgba(255,255,255,.32) 48%, transparent 64%);
+  background-size: 220% 100%;
+  animation: cardSheen 7s ease-in-out 1.4s infinite;
+  pointer-events: none;
 }
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
@@ -186,6 +200,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   box-shadow: 0 3px 10px rgba(31, 62, 89, .25);
   font-size: clamp(23px, 1.8cqw, 35px);
   font-weight: 900;
+  animation: badgePulse 2.2s ease-in-out infinite;
 }
 
 .mode-card__step-number--red { top: -26px; right: -26px; background: #e01725; }
@@ -193,13 +208,15 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .rating-card__step-number { top: -26px; left: 28px; background: #e69600; }
 
 .mode-card__balloon {
+  --balloon-x: -50%;
   position: absolute;
   top: -8%;
   left: 50%;
   z-index: 1;
   width: auto;
   height: 68%;
-  transform: translateX(-50%);
+  transform: translateX(var(--balloon-x));
+  animation: balloonFloat 6s ease-in-out infinite;
   object-fit: contain;
   user-select: none;
   pointer-events: none;
@@ -207,7 +224,8 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 /* The green source PNG has a wider transparent margin on its left side. */
 .mode-card--green .mode-card__balloon {
-  transform: translateX(calc(-50% + clamp(10px, 1.4cqw, 24px)));
+  --balloon-x: calc(-50% + clamp(10px, 1.4cqw, 24px));
+  animation-delay: -1.8s;
 }
 
 .mode-card__copy {
@@ -277,6 +295,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   background: rgba(220, 242, 251, .93);
   box-shadow: 0 13px 30px rgba(15,82,123,.17), inset 0 1px 0 white;
   transform: translateX(-50%);
+  animation: ratingCardRise 820ms 100ms cubic-bezier(.2,.75,.28,1) both;
 }
 
 .rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5cqw, 94px); padding: 4px; color: #e69600; }
@@ -303,7 +322,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   left: -1.5%;
   z-index: 4;
   width: clamp(350px, 28cqw, 535px);
-  animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both;
+  animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both, chinchillotFloat 5.5s ease-in-out 520ms infinite;
   pointer-events: none;
   user-select: none;
 }
@@ -378,6 +397,36 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 @keyframes chinchillotEnter {
   from { opacity: 0; transform: translate3d(-26px, 20px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes chinchillotFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -7px, 0) rotate(-.6deg); }
+}
+
+@keyframes balloonFloat {
+  0%, 100% { transform: translate(var(--balloon-x), 0); }
+  50% { transform: translate(var(--balloon-x), -6px); }
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes ratingCardRise {
+  from { opacity: 0; transform: translate(-50%, 18px) scale(.985); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes cardSheen {
+  0%, 24% { background-position: 180% 0; }
+  52%, 100% { background-position: -80% 0; }
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
 }
 
 @keyframes tutorialStepEnter {
