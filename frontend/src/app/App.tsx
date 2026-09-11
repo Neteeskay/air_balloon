@@ -114,6 +114,8 @@ function App() {
       <div className="scene-background" aria-hidden="true" />
       <img className="birds birds--standard" src="/assets/flight-mode/birds-3.png" alt="" draggable="false" />
 
+      <div className="flight-stage">
+
       <header className="flight-header">
         <img className="flight-logo" src="/assets/flight-mode/logo.png" alt="Воздушный шар" draggable="false" />
         <h1>Выбери режим полёта</h1>
@@ -163,30 +165,45 @@ function App() {
         <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 3`}>
           <div className="tutorial-sign tutorial-sign--left">Большие<br />приключения<br />начинаются<br />здесь ♡</div>
           <div className="tutorial-sign tutorial-sign--right">ВЫШЕ<br />ЯРЧЕ<br />ДАЛЬШЕ<br />♡</div>
-          <svg className="tutorial-arcs" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M330 775 C350 520 480 365 655 325" />
-            <path d="M1265 325 C1440 365 1568 520 1590 775" />
-          </svg>
-          <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
-          <button className={`tutorial-dialog ${tutorialStep === 1 ? 'is-active' : ''}`} type="button" onClick={() => tutorialStep === 1 && setTutorialStep(2)}>
-            <span className="tutorial-number">1</span>
-            <strong>Привет, я Шиншилот!</strong>
-            <span>Я очень люблю шарики.<br />Я научу тебя играть в мою<br />любимую игру.</span>
-          </button>
-          <div className={`tutorial-tip tutorial-tip--red ${tutorialStep === 2 ? 'is-active' : ''}`}>
-            <span className="tutorial-number">2</span>
-            <strong>Красный шар — 12 уровней.</strong>
-            <span>Более рискованный режим.</span>
-          </div>
-          <div className={`tutorial-tip tutorial-tip--green ${tutorialStep === 3 ? 'is-active' : ''}`}>
-            <span className="tutorial-number">3</span>
-            <strong>Зелёный шар — 9 уровней.</strong>
-            <span>Более спокойный режим.</span>
-          </div>
+          {tutorialStep === 1 && (
+            <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
+              <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
+              <button className="tutorial-dialog" type="button" onClick={() => setTutorialStep(2)}>
+                <span className="tutorial-number">1</span>
+                <strong>Привет, я Шиншилот!</strong>
+                <span>Я очень люблю шарики.<br />Я научу тебя играть в мою<br />любимую игру.</span>
+              </button>
+            </div>
+          )}
+          {tutorialStep === 2 && (
+            <div className="tutorial-step tutorial-step--two" key="tutorial-step-2">
+              <svg className="tutorial-arcs" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
+                <path pathLength="1" d="M330 775 C350 520 480 365 655 325" />
+              </svg>
+              <div className="tutorial-tip tutorial-tip--red">
+                <span className="tutorial-number">2</span>
+                <strong>Красный шар — 12 уровней.</strong>
+                <span>Более рискованный режим.</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 3 && (
+            <div className="tutorial-step tutorial-step--three" key="tutorial-step-3">
+              <svg className="tutorial-arcs" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
+                <path pathLength="1" d="M1265 325 C1440 365 1568 520 1590 775" />
+              </svg>
+              <div className="tutorial-tip tutorial-tip--green">
+                <span className="tutorial-number">3</span>
+                <strong>Зелёный шар — 9 уровней.</strong>
+                <span>Более спокойный режим.</span>
+              </div>
+            </div>
+          )}
           <button className="tutorial-skip" type="button" onClick={completeTutorial}>Пропустить обучение <ArrowIcon /></button>
           <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 3</span>
         </section>
       )}
+      </div>
     </main>
   )
 }

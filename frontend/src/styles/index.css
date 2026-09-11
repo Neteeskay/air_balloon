@@ -37,6 +37,15 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   pointer-events: none;
 }
 
+.flight-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: min(100%, 1920px);
+  height: 100%;
+  margin-inline: auto;
+}
+
 .birds {
   position: absolute;
   inset: 0;
@@ -145,7 +154,10 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
-.mode-card.is-tutorial-target { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2); }
+.mode-card.is-tutorial-target {
+  animation: tutorialTarget 1.8s ease-in-out infinite alternate;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2);
+}
 
 .mode-card__balloon {
   position: absolute;
@@ -237,6 +249,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .rating-card > svg { width: 1.55rem; height: 1.55rem; }
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.tutorial-step { position: absolute; inset: 0; }
 .tutorial-sign {
   position: absolute;
   z-index: 2;
@@ -259,8 +272,24 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .tutorial-sign--left { top: 35%; left: -10px; min-width: clamp(150px, 12vw, 230px); }
 .tutorial-sign--right { top: 61%; right: -8px; min-width: clamp(115px, 8.8vw, 170px); transform: rotate(3deg); }
 .tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
-.tutorial-arcs path { fill: none; stroke: rgba(255,255,255,.92); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 20 24; }
-.chinchillot { position: absolute; bottom: -5%; left: -1.5%; z-index: 4; width: clamp(350px, 28vw, 535px); pointer-events: none; user-select: none; }
+.tutorial-arcs path {
+  fill: none;
+  stroke: rgba(255,255,255,.92);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: .018 .022;
+  animation: tutorialLine 700ms ease-out both;
+}
+.chinchillot {
+  position: absolute;
+  bottom: -5%;
+  left: -1.5%;
+  z-index: 4;
+  width: clamp(350px, 28vw, 535px);
+  animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both;
+  pointer-events: none;
+  user-select: none;
+}
 
 .tutorial-dialog, .tutorial-tip {
   position: absolute;
@@ -297,18 +326,18 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   border-radius: 44% 44% 40% 40% / 30% 30% 42% 42%;
   text-align: left;
   cursor: pointer;
+  animation: tutorialBubble 360ms 120ms ease-out both;
 }
 
 .tutorial-dialog .tutorial-number { top: -38px; left: -18px; }
 .tutorial-dialog strong { font-size: clamp(20px, 1.5vw, 29px); }
 .tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05vw, 20px); line-height: 1.3; }
-.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18vw, 345px); padding: 16px 24px; border-radius: 22px; }
+.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18vw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
 .tutorial-tip strong { font-size: clamp(16px, 1.05vw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92vw, 18px); }
 .tutorial-tip--red { top: 20.5%; left: 12.5%; color: #9b1420; }
 .tutorial-tip--green { top: 20.5%; right: 12.5%; color: #147039; }
 .tutorial-tip--red .tutorial-number { right: -58px; bottom: -52px; background: #e01725; }
 .tutorial-tip--green .tutorial-number { bottom: -52px; left: -58px; background: #0ca546; }
-.tutorial-tip:not(.is-active), .tutorial-dialog:not(.is-active) { opacity: .88; }
 
 .tutorial-skip {
   position: absolute;
@@ -331,6 +360,26 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
+@keyframes chinchillotEnter {
+  from { opacity: 0; transform: translate3d(-26px, 20px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes tutorialBubble {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes tutorialLine {
+  from { stroke-dashoffset: 1; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes tutorialTarget {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.045); }
+}
+
 @media (max-width: 1100px) {
   .flight-mode-page { min-width: 960px; }
   .user-panel { right: 1.5%; }
@@ -339,5 +388,5 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }
