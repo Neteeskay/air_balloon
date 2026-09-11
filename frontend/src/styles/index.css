@@ -176,15 +176,14 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
-.mode-card.is-tutorial-target,
-.rating-card.is-tutorial-target,
-.rating-card__trophy.is-tutorial-target {
-  animation: tutorialTarget 1.8s ease-in-out infinite alternate;
+.mode-card.is-tutorial-target {
+  animation: tutorialTargetCard 1.1s ease-in-out infinite alternate;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2);
 }
 
 .rating-card.is-tutorial-target { --accent: #e69600; }
-.rating-card__trophy.is-tutorial-target { --accent: #e69600; border-radius: 24px; filter: drop-shadow(0 0 14px rgba(230, 150, 0, .55)); }
+.rating-card.is-tutorial-target { animation: tutorialTargetRating 1.1s ease-in-out infinite alternate; }
+.rating-card__trophy.is-tutorial-target { --accent: #e69600; border-radius: 24px; animation: tutorialTargetTrophy 1.1s ease-in-out infinite alternate; filter: drop-shadow(0 0 14px rgba(230, 150, 0, .55)); }
 
 .mode-card__step-number,
 .rating-card__step-number {
@@ -200,7 +199,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   box-shadow: 0 3px 10px rgba(31, 62, 89, .25);
   font-size: clamp(23px, 1.8cqw, 35px);
   font-weight: 900;
-  animation: badgePulse 2.2s ease-in-out infinite;
+  animation: badgePulse 1.5s ease-in-out infinite;
 }
 
 .mode-card__step-number--red { top: -26px; right: -26px; background: #e01725; }
@@ -216,7 +215,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   width: auto;
   height: 68%;
   transform: translateX(var(--balloon-x));
-  animation: balloonFloat 6s ease-in-out infinite;
+  animation: balloonFloat 4.8s ease-in-out infinite;
   object-fit: contain;
   user-select: none;
   pointer-events: none;
@@ -272,6 +271,20 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   font-size: clamp(17px, 1.18cqw, 23px);
   font-weight: 900;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.mode-card__button::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: -42%;
+  width: 24%;
+  transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: buttonShine 3.8s ease-in-out 1.6s infinite;
+  pointer-events: none;
 }
 
 .mode-card__button svg { width: 1.25em; height: 1.25em; }
@@ -306,7 +319,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .rating-card > svg { width: 1.55rem; height: 1.55rem; }
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
-.tutorial-step { position: absolute; inset: 0; animation: tutorialStepEnter 520ms cubic-bezier(.2,.75,.28,1) both; will-change: opacity, transform; }
+.tutorial-step { position: absolute; inset: 0; animation: tutorialStepEnter 700ms cubic-bezier(.2,.75,.28,1) both; will-change: opacity, transform; }
 .tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
 .tutorial-arcs path {
   fill: none;
@@ -322,7 +335,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   left: -1.5%;
   z-index: 4;
   width: clamp(350px, 28cqw, 535px);
-  animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both, chinchillotFloat 5.5s ease-in-out 520ms infinite;
+  animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both, chinchillotFloat 4.5s ease-in-out 520ms infinite;
   pointer-events: none;
   user-select: none;
 }
@@ -352,7 +365,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .tutorial-dialog strong { font-size: clamp(20px, 1.5cqw, 29px); }
 .tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05cqw, 20px); line-height: 1.3; }
-.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
+.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 540ms 120ms cubic-bezier(.2,.75,.28,1) both; }
 .tutorial-tip strong { font-size: clamp(16px, 1.05cqw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92cqw, 18px); }
 .tutorial-tip--red { top: 20.5%; left: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #9b1420; }
 .tutorial-tip--green { top: 20.5%; right: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #147039; }
@@ -401,12 +414,12 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 @keyframes chinchillotFloat {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-  50% { transform: translate3d(0, -7px, 0) rotate(-.6deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(-1deg); }
 }
 
 @keyframes balloonFloat {
-  0%, 100% { transform: translate(var(--balloon-x), 0); }
-  50% { transform: translate(var(--balloon-x), -6px); }
+  0%, 100% { transform: translate(var(--balloon-x), 0) rotate(-.7deg); }
+  50% { transform: translate(var(--balloon-x), -12px) rotate(.7deg); }
 }
 
 @keyframes cardRise {
@@ -429,6 +442,12 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   50% { transform: scale(1.07); }
 }
 
+@keyframes buttonShine {
+  0%, 30% { left: -42%; opacity: 0; }
+  40% { opacity: 1; }
+  68%, 100% { left: 125%; opacity: 0; }
+}
+
 @keyframes tutorialStepEnter {
   from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.985); }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
@@ -444,9 +463,19 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   to { stroke-dashoffset: 0; opacity: 1; }
 }
 
-@keyframes tutorialTarget {
-  from { filter: brightness(1); }
-  to { filter: brightness(1.045); }
+@keyframes tutorialTargetCard {
+  from { filter: brightness(1); transform: translateY(0) scale(1); }
+  to { filter: brightness(1.08); transform: translateY(-6px) scale(1.018); }
+}
+
+@keyframes tutorialTargetRating {
+  from { filter: brightness(1); transform: translate(-50%, 0) scale(1); }
+  to { filter: brightness(1.08); transform: translate(-50%, -5px) scale(1.018); }
+}
+
+@keyframes tutorialTargetTrophy {
+  from { filter: drop-shadow(0 0 10px rgba(230, 150, 0, .38)) scale(1); }
+  to { filter: drop-shadow(0 0 22px rgba(230, 150, 0, .85)) scale(1.08); }
 }
 
 @media (max-width: 1100px) {
@@ -456,5 +485,5 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto !important; }
 }
