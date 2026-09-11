@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute } from '../features/admin/auth/ProtectedRoute';
 import { AdminLayout } from '../features/admin/components/AdminLayout';
 import { AuditPage } from '../features/admin/pages/AuditPage';
@@ -9,9 +9,10 @@ import { LoginPage } from '../features/admin/pages/LoginPage';
 import { NotFoundPage } from '../features/admin/pages/NotFoundPage';
 import { VersionDetailPage } from '../features/admin/pages/VersionDetailPage';
 import { VersionsPage } from '../features/admin/pages/VersionsPage';
+import { LandingPage } from '../features/landing/pages/LandingPage';
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/admin" replace /> },
+  { path: '/', element: <LandingPage /> },
   { path: '/admin/login', element: <LoginPage /> },
   {
     element: <ProtectedRoute />,

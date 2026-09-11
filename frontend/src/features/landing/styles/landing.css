@@ -1,0 +1,408 @@
+/* ========================================
+   Landing Page Styles
+   ======================================== */
+
+/* CSS Variables */
+:root {
+  /* Sky colors - dynamic gradient */
+  --sky-dark: #5a7a9e;
+  --sky-top: #6fa3d8;
+  --sky-middle: #a8d5f5;
+  --sky-bottom: #d4ebfc;
+  --sky-light: #e8f5ff;
+
+  /* Cloud colors */
+  --cloud-white: #ffffff;
+  --cloud-shadow: rgba(0, 0, 0, 0.08);
+
+  /* Text */
+  --text-dark: #1a2332;
+  --text-light: #ffffff;
+
+  /* Accent */
+  --accent-blue: #4a90e2;
+  --accent-red: #e74c3c;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --shadow-balloon: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ========================================
+   Scroll Container
+   ======================================== */
+
+.scroll-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   Section Base Styles
+   ======================================== */
+
+section {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ========================================
+   Cloud Intro Section
+   ======================================== */
+
+.cloud-intro {
+  background: linear-gradient(
+    to bottom,
+    var(--sky-dark) 0%,
+    var(--sky-top) 40%,
+    var(--sky-middle) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.cloud-intro__layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.intro-clouds-fg,
+.intro-clouds-mid,
+.intro-clouds-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cloud-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cloud {
+  max-width: 400px;
+  height: auto;
+  user-select: none;
+  transition: filter 0.3s ease;
+}
+
+.cloud--large {
+  max-width: 400px;
+}
+
+.cloud--medium {
+  max-width: 300px;
+}
+
+.cloud--small {
+  max-width: 200px;
+}
+
+/* ========================================
+   Hero Section
+   ======================================== */
+
+.hero {
+  background: linear-gradient(
+    to bottom,
+    var(--sky-middle) 0%,
+    var(--sky-bottom) 50%,
+    var(--sky-light) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+}
+
+.hero-clouds-bg,
+.hero-clouds-mid,
+.hero-clouds-fg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  max-width: 800px;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 32px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.hero__title {
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  color: var(--text-dark);
+  margin: 0 0 1rem;
+  line-height: 1.1;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.02em;
+}
+
+.hero__subtitle {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  color: var(--text-dark);
+  margin: 0 0 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hero__description {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--text-dark);
+  margin: 0 0 2rem;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+.hero__cta {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  padding: 1rem 3rem;
+  min-width: 200px;
+}
+
+/* ========================================
+   Final Section
+   ======================================== */
+
+.final {
+  background: linear-gradient(
+    to bottom,
+    var(--sky-bottom) 0%,
+    var(--sky-light) 50%,
+    #f0f8ff 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 100vh;
+  position: relative;
+}
+
+.final-clouds-bg,
+.final-clouds-mid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.final__content {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  max-width: 700px;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 32px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.final__title {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 1rem;
+  line-height: 1.2;
+}
+
+.final__subtitle {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  color: var(--text-dark);
+  margin: 0 0 2rem;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+.final__cta {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  padding: 1rem 3rem;
+  min-width: 200px;
+  margin-bottom: 3rem;
+}
+
+.final__footer {
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.final__footer p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-dark);
+  opacity: 0.6;
+}
+
+/* ========================================
+   Balloon Styles
+   ======================================== */
+
+.balloon-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.balloon {
+  max-width: 140px;
+  height: auto;
+  user-select: none;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
+  transition: filter 0.3s ease;
+}
+
+.balloon:hover {
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3));
+}
+
+/* ========================================
+   Button Styles
+   ======================================== */
+
+.button {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+  font-family: inherit;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, var(--accent-blue), #357abd);
+  color: var(--text-light);
+}
+
+.button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, #357abd, var(--accent-blue));
+}
+
+.button--primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+/* Tablet */
+@media (max-width: 1199px) {
+  .hero__content,
+  .final__content {
+    padding: 2rem;
+  }
+
+  .cloud--large {
+    max-width: 300px;
+  }
+
+  .cloud--medium {
+    max-width: 250px;
+  }
+
+  .balloon {
+    max-width: 100px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .hero,
+  .final {
+    padding: 1rem;
+  }
+
+  .hero__content,
+  .final__content {
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .hero__cta,
+  .final__cta {
+    padding: 0.875rem 2rem;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .cloud--large {
+    max-width: 250px;
+  }
+
+  .cloud--medium {
+    max-width: 180px;
+  }
+
+  .cloud--small {
+    max-width: 120px;
+  }
+
+  .balloon {
+    max-width: 80px;
+  }
+
+  /* Hide some balloons on mobile for performance */
+  .balloon:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 390px) {
+  .hero__content,
+  .final__content {
+    padding: 1.25rem;
+  }
+
+  .button {
+    font-size: 0.9375rem;
+  }
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.button:focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 3px;
+}
