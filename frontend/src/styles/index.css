@@ -258,27 +258,6 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 .tutorial-step { position: absolute; inset: 0; }
-.tutorial-sign {
-  position: absolute;
-  z-index: 2;
-  padding: clamp(13px, 1.1cqw, 21px) clamp(17px, 1.35cqw, 26px);
-  border: 3px solid #654022;
-  border-radius: 4px;
-  color: #f3e4d0;
-  background: linear-gradient(96deg, #6c4528, #93623b 48%, #694023);
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 7px 14px rgba(42,24,12,.32);
-  font-size: clamp(14px, 1.05cqw, 20px);
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: center;
-  text-shadow: 0 2px 1px #4d2e1c;
-  transform: rotate(-4deg);
-  pointer-events: none;
-}
-.tutorial-sign::before, .tutorial-sign::after { content: ''; position: absolute; top: -42px; width: 8px; height: 47px; border-radius: 4px; background: #654022; z-index: -1; }
-.tutorial-sign::before { left: 20%; }.tutorial-sign::after { right: 20%; }
-.tutorial-sign--left { top: 35%; left: -10px; min-width: clamp(150px, 12cqw, 230px); }
-.tutorial-sign--right { top: 61%; right: -8px; min-width: clamp(115px, 8.8cqw, 170px); transform: rotate(3deg); }
 .tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
 .tutorial-arcs path {
   fill: none;

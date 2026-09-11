@@ -258,8 +258,6 @@ function App() {
 
       {tutorialVisible && (
         <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 3`}>
-          <div className="tutorial-sign tutorial-sign--left">Большие<br />приключения<br />начинаются<br />здесь ♡</div>
-          <div className="tutorial-sign tutorial-sign--right">ВЫШЕ<br />ЯРЧЕ<br />ДАЛЬШЕ<br />♡</div>
           {tutorialStep === 1 && (
             <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
               <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
