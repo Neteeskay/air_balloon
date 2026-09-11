@@ -12,6 +12,7 @@ export interface BalloonPathConfig {
 /**
  * Creates smooth, realistic floating animation for hot air balloons
  * Balloons rise slowly from bottom to top with gentle wave motion
+ * Infinite loop - when balloon exits top, it reappears at bottom
  */
 export function createBalloonPath(
   element: HTMLElement,
@@ -22,16 +23,16 @@ export function createBalloonPath(
     yOffset = config.yOffset || (15 + Math.random() * 10), // Вертикальное смещение
     xOffset = config.xOffset || ((Math.random() - 0.5) * 30), // Горизонтальное волнистое движение
     rotation = config.rotation || ((Math.random() - 0.5) * 6), // -3 to +3 degrees
-    delay = config.delay || Math.random() * 2,
+    delay = 0, // Убираем delay - шары должны сразу быть видны
     scaleVariation = 0.01 + Math.random() * 0.02, // Едва заметное изменение масштаба
   } = config;
 
   const tl = gsap.timeline({
-    repeat: -1,
+    repeat: -1, // Бесконечный цикл
     delay,
   });
 
-  // Плавное волнистое движение снизу вверх (без yoyo - только вверх)
+  // Плавное волнистое движение снизу вверх
   tl.to(element, {
     y: yOffset * 0.3,
     x: xOffset * 0.2,

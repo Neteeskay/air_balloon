@@ -34,42 +34,29 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
         if (!balloon) return null;
 
         const animation = createBalloonPath(el, {
-          delay: balloon.floatDelay || Math.random() * 2,
+          delay: 0, // Убираем delay - шары сразу видны
           xOffset: balloon.pathConfig?.xOffset,
           yOffset: balloon.pathConfig?.yOffset,
           rotation: balloon.pathConfig?.rotation,
         });
 
-        // Отслеживаем позицию шара и плавно скрываем когда он вылетает за границу
+        // Когда шар вылетает сверху, телепортируем его вниз
         const checkBounds = () => {
           const rect = el.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          const viewportWidth = window.innerWidth;
 
-          // Шар вылетел за верхнюю границу
-          if (rect.bottom < -100) {
-            gsap.to(el, { opacity: 0, duration: 1, ease: 'power2.out' });
-          }
-          // Шар вылетел за нижнюю границу
-          else if (rect.top > viewportHeight + 100) {
-            gsap.to(el, { opacity: 0, duration: 1, ease: 'power2.out' });
-          }
-          // Шар вылетел за левую границу
-          else if (rect.right < -100) {
-            gsap.to(el, { opacity: 0, duration: 1, ease: 'power2.out' });
-          }
-          // Шар вылетел за правую границу
-          else if (rect.left > viewportWidth + 100) {
-            gsap.to(el, { opacity: 0, duration: 1, ease: 'power2.out' });
-          }
-          // Шар в пределах видимости (с запасом)
-          else {
-            gsap.to(el, { opacity: 1, duration: 0.5, ease: 'power2.in' });
+          // Шар вылетел за верхнюю границу - возвращаем вниз
+          if (rect.bottom < -200) {
+            // Сбрасываем трансформы GSAP и возвращаем на стартовую позицию
+            gsap.set(el, {
+              y: 0,
+              x: 0,
+              rotation: 0,
+            });
           }
         };
 
-        // Проверяем границы каждые 500ms
-        const interval = setInterval(checkBounds, 500);
+        // Проверяем границы каждые 2 секунды
+        const interval = setInterval(checkBounds, 2000);
 
         return { animation, interval };
       })
@@ -91,8 +78,8 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
           left: `${balloon.x}%`,
           top: `${balloon.y}%`,
           transform: `scale(${balloon.scale})`,
-          willChange: 'transform, opacity',
-          opacity: 1,
+          willChange: 'transform',
+          opacity: 1, // Всегда видны
         };
 
         return (
