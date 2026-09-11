@@ -1,10 +1,52 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 type FlightMode = 'RED' | 'GREEN'
 type TutorialStep = 1 | 2 | 3
 
-const ONBOARDING_KEY = 'air-balloon-flight-mode-onboarding-complete'
+const ONBOARDING_KEY_PREFIX = 'air-balloon-flight-mode-onboarding-complete:'
 const THEME_KEY = 'air-balloon-theme'
+
+type CurrentUser = {
+  userId: string
+  displayName: string
+}
+
+function onboardingKey(userId: string) {
+  return `${ONBOARDING_KEY_PREFIX}${userId}`
+}
+
+async function loadCurrentUser(signal: AbortSignal): Promise<CurrentUser | null> {
+  if (import.meta.env.DEV) {
+    const params = new URLSearchParams(window.location.search)
+    const devUserId = params.get('devUserId')?.trim()
+
+    if (devUserId) {
+      return {
+        userId: devUserId,
+        displayName: params.get('devDisplayName')?.trim() || 'Игрок123',
+      }
+    }
+  }
+
+  const response = await fetch('/api/auth/me', {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+
+  if (response.status === 401 || response.status === 403) return null
+  if (!response.ok) throw new Error(`Unable to load current user: ${response.status}`)
+
+  const user = await response.json() as Partial<CurrentUser>
+  if (typeof user.userId !== 'string' || !user.userId.trim()) return null
+
+  return {
+    userId: user.userId,
+    displayName: typeof user.displayName === 'string' && user.displayName.trim()
+      ? user.displayName
+      : 'Игрок123',
+  }
+}
 
 function readStorage(key: string) {
   try {
@@ -85,15 +127,35 @@ function ModeCard({ mode, title, levels, description, balloon, selected, tutoria
 }
 
 function App() {
-  const [tutorialVisible, setTutorialVisible] = useState(() => readStorage(ONBOARDING_KEY) !== 'true')
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [tutorialVisible, setTutorialVisible] = useState(false)
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(1)
   const [selectedMode, setSelectedMode] = useState<FlightMode | null>(() => {
     const mode = readStorage(THEME_KEY)
     return mode === 'RED' || mode === 'GREEN' ? mode : null
   })
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    loadCurrentUser(controller.signal)
+      .then((user) => {
+        if (!user) return
+        setCurrentUser(user)
+        setTutorialStep(1)
+        setTutorialVisible(readStorage(onboardingKey(user.userId)) !== 'true')
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        console.error('Failed to resolve the authenticated user', error)
+      })
+
+    return () => controller.abort()
+  }, [])
+
   const completeTutorial = () => {
-    writeStorage(ONBOARDING_KEY, 'true')
+    if (!currentUser) return
+    writeStorage(onboardingKey(currentUser.userId), 'true')
     setTutorialVisible(false)
   }
 
@@ -124,9 +186,9 @@ function App() {
           : 'Красный шар — для любителей риска. Зелёный шар — для спокойного полёта.'}</p>
       </header>
 
-      <div className="user-panel" aria-label="Профиль Игрок123">
+      <div className="user-panel" aria-label={`Профиль ${currentUser?.displayName ?? 'Игрок123'}`}>
         <span className="user-panel__avatar"><UserIcon /></span>
-        <strong>Игрок123</strong>
+        <strong>{currentUser?.displayName ?? 'Игрок123'}</strong>
         <span className="user-panel__divider" />
         <button type="button" aria-label="Настройки"><SettingsIcon /></button>
       </div>
