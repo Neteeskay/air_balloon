@@ -1,12 +1,27 @@
-# Frontend
+# Воздушный шар — экран входа
 
-Здесь создаётся React + TypeScript + Vite приложение.
+Frontend экрана авторизации на React + TypeScript + Vite. Сейчас работает на мок-данных, без backend.
 
-Рекомендуемые зоны ответственности:
+## Запуск
 
-- `src/features/betting/` — выбор темы, ставки и бустера
-- `src/features/game/` — полёт шара, уровни, коэффициент, cashout
-- `src/features/results/` — итог раунда
-- `src/features/history/` — история игр
-- `src/services/` — REST/WebSocket клиенты
-- `src/types/` — общие TypeScript-типы
+```bash
+npm install
+npm run dev
+```
+
+Открыть адрес, который покажет Vite (обычно `http://localhost:5173`).
+
+## Проверка мок-входа
+
+- `demo` / `demo123`
+- `demo@airballoon.ru` / `demo123`
+
+## Где заменить мок на backend
+
+`src/services/mockAuth.ts` — единственная точка, которую нужно заменить реальным API-вызовом. UI менять не требуется.
+
+## Основные файлы
+
+- `src/pages/LoginPage.tsx` — страница и логика формы.
+- `src/styles/login.css` — адаптивный дизайн экрана.
+- `src/assets/` — изображения из предоставленного архива и перекрашенные в золотой SVG-иконки.
