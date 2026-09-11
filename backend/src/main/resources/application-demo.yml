@@ -8,3 +8,5 @@ game:
       booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0]
     red:
       booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+app:
+  allow-fixed-seed: true

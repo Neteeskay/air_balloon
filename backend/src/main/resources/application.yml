@@ -1,6 +1,17 @@
 server:
   port: ${BACKEND_PORT:8080}
+  error:
+    include-message: never
 spring:
+  application:
+    name: air-balloon
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/air_balloon}
+    username: ${POSTGRES_USER:air_balloon}
+    password: ${POSTGRES_PASSWORD:change_me}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 10000
   jackson:
     deserialization:
       fail-on-unknown-properties: true
@@ -38,3 +49,11 @@ game:
       thresholds: [1.20, 1.50, 2.00, 3.00, 4.00, 5.00, 6.00, 8.00, 10.00, 12.00, 16.00, 20.00]
       points: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
       booster-weights: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+app:
+  admin-token: ${ADMIN_TOKEN:}
+  allow-fixed-seed: false

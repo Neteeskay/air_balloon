@@ -1,12 +1,37 @@
 # Frontend
 
-Здесь создаётся React + TypeScript + Vite приложение.
+React + TypeScript + Vite интерфейс игры «Воздушный Шар».
 
-Рекомендуемые зоны ответственности:
+## Локальный запуск
 
-- `src/features/betting/` — выбор темы, ставки и бустера
-- `src/features/game/` — полёт шара, уровни, коэффициент, cashout
-- `src/features/results/` — итог раунда
-- `src/features/history/` — история игр
-- `src/services/` — REST/WebSocket клиенты
-- `src/types/` — общие TypeScript-типы
+```bash
+npm install
+npm run dev
+```
+
+Откройте адрес, который выведет Vite (по умолчанию `http://localhost:5173`).
+
+## Запуск в Docker
+
+Из корня репозитория:
+
+```bash
+docker compose up --build frontend
+```
+
+Интерфейс будет доступен по адресу `http://localhost:5173`. Изменить внешний порт можно через переменную `FRONTEND_PORT` в `.env`.
+
+## Демо-доступы
+
+| Пользователь | Логин | Пароль | Баланс |
+| --- | --- | --- | --- |
+| Анна Ветрова | `anna` | `balloon1` | 5 000 бонусов |
+| Максим Орлов | `maks` | `balloon2` | 5 000 бонусов |
+| Лиза Соколова | `liza` | `balloon3` | 5 000 бонусов |
+
+Вход, сессия и отображение баланса пока имитируются на клиенте. Выбранный профиль
+сохраняется в `localStorage`; выход удаляет только эту локальную сессию.
+Серверные профили доступны через GET /api/demo/users и GET /api/users/{id}/state.
+Их подключение к экрану выполняется при интеграции.
+Compose также поднимает backend и PostgreSQL; Nginx проксирует /api/ в backend.
+Vite-dev проксирует /api/ в http://127.0.0.1:8080.

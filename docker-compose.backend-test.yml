@@ -1,0 +1,30 @@
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: balloon_test
+      POSTGRES_USER: balloon_test
+      POSTGRES_PASSWORD: test-only
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U balloon_test -d balloon_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  backend-test:
+    image: maven:3.9-eclipse-temurin-21
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - maven_test_cache:/root/.m2
+    environment:
+      DB_URL: jdbc:postgresql://postgres-test:5432/balloon_test
+      POSTGRES_USER: balloon_test
+      POSTGRES_PASSWORD: test-only
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    command: ["mvn", "-B", "test"]
+volumes:
+  maven_test_cache:

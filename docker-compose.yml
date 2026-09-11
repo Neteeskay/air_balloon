@@ -1,4 +1,36 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-air_balloon}
+      POSTGRES_USER: ${POSTGRES_USER:-air_balloon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-local-demo-admin}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -6,9 +38,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-air_balloon}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-air_balloon} -d ${POSTGRES_DB:-air_balloon}"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
 
 volumes:
   postgres_data:
