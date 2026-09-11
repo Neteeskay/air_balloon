@@ -28,3 +28,5 @@ backend/build/
 # Misc
 coverage/
 tmp/
+e2e/node_modules/
+artifacts/acceptance/

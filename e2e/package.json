@@ -1,0 +1,22 @@
+{
+  "name": "air-balloon-acceptance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Black-box acceptance and browser E2E suite for air_balloon",
+  "scripts": {
+    "self-check": "playwright test --project=harness",
+    "api": "playwright test --project=api",
+    "browser": "playwright test --project=browser",
+    "acceptance": "playwright test --project=api --project=browser",
+    "persistence:prepare": "playwright test --project=persistence-prepare",
+    "persistence:verify": "playwright test --project=persistence-verify",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "@types/node": "22.18.1",
+    "@types/ws": "8.18.1",
+    "typescript": "5.9.2",
+    "ws": "8.18.3"
+  }
+}
