@@ -95,8 +95,10 @@ GET /api/rounds/{roundId}/events?afterSequence=15
 
 ## Recovery-контракт Backend №2
 
-Порт `ActiveRoundStateStore`: `saveCheckpoint`, `load`, `markFinished`, `cleanup`.
-Текущий адаптер `InMemoryActiveRoundStateStore`. `RoundCheckpoint.version=1`
+Порт `ActiveRoundStateStore`: `saveCheckpoint`, `load`, `activeRoundIds`,
+`markFinished`, `cleanup`. В `test/dev` используется `InMemoryActiveRoundStateStore`,
+а общий backend хранит checkpoints и replay JSONB в PostgreSQL.
+`RoundCheckpoint.version=1`
 фиксирует модель состояния/алгоритмов этой версии. Включает:
 
 - Полный immutable `GameRound`: roundId/owner, seed, исходный commitment, crash,
@@ -127,12 +129,12 @@ ROUND_FINISHED. Одна партия может включать несколь
    временем. Пройти пропущенные границы; после downtime раунд может сразу FINISH.
 5. Подтвердить эффекты и освободить session при FINISHED.
 
-Для durable implementation необходимо сохранять checkpoint **до** подтверждения
+Durable implementation сохраняет checkpoint **до** подтверждения
 побочных эффектов, а high-water event — **до** realtime-публикации. Удалять active
 tail нельзя. Persistent адаптеры должны сохранять согласованный checkpoint/outbox
 и high-water, поддерживать монотонные upsert и одного владельца раунда. Только
 замены RoundRepository на PostgreSQL недостаточно. Backend №2 организует поиск
-recoverable roundId при старте и вызывает recover до/при запуске ticker.
+recoverable roundId при старте и вызывает recover до запуска очередного ticker.
 
 `BalanceService.creditWin` остаётся идемпотентным по roundId; `RewardService` — тоже.
 Ответ адаптера может потеряться после commit: эффект будет повторно вызван, но
@@ -190,7 +192,10 @@ Actuator в проекте отсутствует, monitoring stack не доб�
 
 ## Ограничения и доказательства
 
-Memory-адаптеры теряют данные при настоящем завершении JVM. Recovery tests
+Memory-адаптеры теряют данные при настоящем завершении JVM. PostgreSQL adapters
+`PostgresActiveRoundStateStore` и `PostgresRoundEventStore` переживают рестарт;
+startup runner перечисляет активные roundId и восстанавливает их без клиентского GET.
+Recovery tests
 имитируют замену процесса новой service instance с сохранившимися stores и
 проверяют JSON round-trip checkpoint; это проверка контракта/алгоритма, не durable
 хранилище. Старый owner должен быть остановлен до восстановления. Межпроцессного

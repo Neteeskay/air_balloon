@@ -54,9 +54,11 @@ public final class GameService {
         engine.validateStart(theme, bet, booster, config);
         UUID id = UUID.randomUUID();
         long seed = seeds.nextSeed();
-        balances.debitBet(userId, id, bet.setScale(2));
         RoundTransition start = engine.start(id, userId, theme, bet, booster, seed, config, clock.instant());
-        Session s = new Session(start.round());
+        RoundCheckpoint initial = new RoundCheckpoint(RoundCheckpoint.VERSION, start.round(),
+                start.events(), null, null);
+        GameRound durableStart = repository.createAndDebit(start.round(), balances, initial);
+        Session s = new Session(durableStart);
         s.lock.lock();
         try {
             sessions.put(id, s);
@@ -110,6 +112,17 @@ public final class GameService {
 
     /** Owner-process startup may enumerate durable checkpoint IDs and call this method. */
     public GameRound recover(UUID userId, UUID roundId) { return get(userId, roundId); }
+    public void recoverActiveRounds(BiConsumer<UUID, RuntimeException> onFailure) {
+        for (UUID id : checkpoints.activeRoundIds()) {
+            try {
+                RoundCheckpoint cp = checkpoints.load(id).orElse(null);
+                if (cp != null && cp.round().status() != RoundStatus.FINISHED)
+                    recover(cp.round().userId(), id);
+            } catch (RuntimeException ex) {
+                onFailure.accept(id, ex);
+            }
+        }
+    }
     public void tick(UUID roundId) {
         Session s = sessions.get(roundId);
         if (s == null) return;

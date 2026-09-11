@@ -2,14 +2,27 @@ package ru.airballoon.game.domain;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 /** Immutable snapshot; changes from a provider only affect new rounds. */
 public record GameConfig(
         BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
         double distributionParameter, BigDecimal growthPerSecond,
         BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
+        Long boosterPointsX2, Long boosterPointsX3, Long boosterPointsX4,
+        Integer economyScale,
         ThemeConfig green, ThemeConfig red) {
 
+    /** Backward-compatible form used by the standalone engine configuration. */
+    public GameConfig(BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
+                      double distributionParameter, BigDecimal growthPerSecond,
+                      BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
+                      ThemeConfig green, ThemeConfig red) {
+        this(minCrashMultiplier, maxCrashMultiplier, distributionParameter, growthPerSecond,
+                minBet, maxBet, boosterPointsPerMultiplier, null, null, null, null, green, red);
+    }
+
+    @ConstructorBinding
     public GameConfig {
         require(minCrashMultiplier != null && maxCrashMultiplier != null
                 && minCrashMultiplier.compareTo(BigDecimal.ONE) >= 0
@@ -28,12 +41,37 @@ public record GameConfig(
                 && minBet.scale() <= 2 && maxBet.scale() <= 2, "Invalid bet bounds or money precision");
         require(boosterPointsPerMultiplier >= 0 && boosterPointsPerMultiplier <= 1000000000,
                 "Invalid booster points");
+        require((boosterPointsX2 == null && boosterPointsX3 == null && boosterPointsX4 == null)
+                        || (validPoints(boosterPointsX2) && validPoints(boosterPointsX3)
+                        && validPoints(boosterPointsX4)),
+                "Explicit x2/x3/x4 booster points must be provided together and be valid");
+        require(economyScale == null || economyScale >= 0 && economyScale <= 2,
+                "Economy scale must be between zero and two");
         require(green != null && red != null, "Both theme configs are required");
         require(green.thresholds().size() == Theme.GREEN.levels(), "GREEN needs exactly 9 levels");
         require(red.thresholds().size() == Theme.RED.levels(), "RED needs exactly 12 levels");
     }
 
     public ThemeConfig forTheme(Theme theme) { return theme == Theme.GREEN ? green : red; }
+
+    /** Explicit database values win; legacy configs retain their original extra-points formula. */
+    public long boosterPoints(int multiplier) {
+        if (boosterPointsX2 != null) {
+            return switch (multiplier) {
+                case 2 -> boosterPointsX2;
+                case 3 -> boosterPointsX3;
+                case 4 -> boosterPointsX4;
+                default -> 0;
+            };
+        }
+        return boosterPointsPerMultiplier * (multiplier - 1L);
+    }
+
+    public int effectiveEconomyScale() { return economyScale == null ? 2 : economyScale; }
+
+    private static boolean validPoints(Long value) {
+        return value != null && value >= 0 && value <= 1000000000;
+    }
 
     static void require(boolean valid, String message) {
         if (!valid) throw new GameException(GameError.INVALID_GAME_CONFIG, message);

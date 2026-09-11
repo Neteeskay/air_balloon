@@ -2,6 +2,7 @@ package ru.airballoon.game.infrastructure.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,6 +69,13 @@ public class EngineConfiguration {
 
     @Bean @ConditionalOnProperty(name = "game.scheduler-enabled", havingValue = "true", matchIfMissing = true)
     GameTicker gameTicker(GameService service) { return new GameTicker(service); }
+
+    @Bean
+    ApplicationRunner activeRoundRecovery(GameService service) {
+        Logger log = LoggerFactory.getLogger("ru.airballoon.game.recovery");
+        return ignored -> service.recoverActiveRounds((id, ex) ->
+                log.error("Round {} startup recovery failed", id, ex));
+    }
 
     public static final class GameTicker implements AutoCloseable {
         private static final Logger log = LoggerFactory.getLogger(GameTicker.class);

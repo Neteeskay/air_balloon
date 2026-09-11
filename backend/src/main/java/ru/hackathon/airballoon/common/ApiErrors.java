@@ -6,8 +6,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiErrors {
     public record Error(String code, String message, Instant timestamp) {}
     @ExceptionHandler(BusinessException.class)

@@ -9,9 +9,14 @@
 JSON, даты UTC ISO-8601, идентификаторы UUID, бонусы/очки long.
 Для значений > Number.MAX_SAFE_INTEGER frontend должен учитывать точность JS.
 
-Аутентификация: trusted servlet Principal, имя — UUID пользователя. В `dev/demo/test`
-автоматически используется demo UUID `00000000-0000-0000-0000-000000000001`.
-Вне этих профилей нужен authentication-слой Backend №2. `userId` в JSON не принимается.
+Аутентификация: trusted servlet Principal, имя — UUID пользователя. В `test/dev`
+доступен технический principal для тестов движка. Профиль `demo` использует
+`POST /api/auth/demo-login` и серверную cookie-сессию; этот же UUID читает balance,
+запускает раунд и проходит WebSocket handshake. `userId` в JSON не принимается.
+
+Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
+`GET /api/auth/me` возвращает текущее состояние пользователя,
+`DELETE /api/auth/session` завершает сессию.
 
 ### Start
 
@@ -22,7 +27,9 @@ JSON, даты UTC ISO-8601, идентификаторы UUID, бонусы/о�
 ```
 
 Только GREEN/RED, booster 1/2/3/4, ставка с максимум двумя десятичными знаками в
-пределах GameConfig. Неизвестные поля запрещены. Ответ — RoundView:
+пределах GameConfig. В PostgreSQL-контуре бонусы целочисленные, поэтому ставка
+с дробной частью отклоняется; winAmount вычисляется движком с округлением вниз
+до целого бонуса. Неизвестные поля запрещены. Ответ — RoundView:
 
 ```json
 {
@@ -162,7 +169,8 @@ Frontend интерполирует между значениями, FPS не в
 `(roundId,sequence)`. После reconnect: открыть socket, буферизовать события,
 получить GET snapshot, отбросить события `sequence <= snapshot.sequence`,
 применить остальные по порядку. Разрыв sequence требует replay или нового snapshot.
-Replay ограничен по размеру и TTL и не переживает рестарт JVM с memory adapters.
+Replay ограничен по размеру и TTL. В `test/dev` memory adapters не переживают
+рестарт JVM; в PostgreSQL-контуре tail и checkpoints сохраняются между рестартами.
 Подробный протокол, retention и контракты: [reconnect-recovery.md](reconnect-recovery.md).
 
 UserState: userId, username, displayName, bonusBalance, gameScore, createdAt, updatedAt.

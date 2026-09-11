@@ -7,7 +7,7 @@
 - Frontend: React + TypeScript + Vite
 - Backend: Java 21 + Spring Boot 3.5.16 + Spring JDBC
 - Database: PostgreSQL 17 + Flyway
-- Realtime: WebSocket (планируется в Game Engine)
+- Realtime: native WebSocket с replay/checkpoint recovery
 - Infrastructure: Docker Compose + Nginx
 
 ## Структура
@@ -28,7 +28,8 @@ Frontend: http://127.0.0.1:5173, backend: http://127.0.0.1:8080.
 Переменные портов и demo-токен admin приведены в .env.example.
 Миграции и PostgreSQL запускаются автоматически.
 В demo-профиле создаются anna, maks, liza с 5000 бонусами.
-Frontend-вход пока имитируется; серверные профили доступны через /api/demo/users.
+Frontend использует серверную demo-сессию (`anna/balloon1`, `maks/balloon2`,
+`liza/balloon3`); тот же UUID применяется в Game Engine и PostgreSQL economy.
 
 Тесты: `docker compose -f docker-compose.backend-test.yml -p balloon-economy-test run --rm backend-test`.
 

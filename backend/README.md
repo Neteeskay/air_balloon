@@ -2,9 +2,8 @@
 
 Java 21 + Spring Boot 3.5.16 + Spring JDBC + PostgreSQL 17 + Flyway.
 
-Реализован Backend №2: пользователи, баланс, журнал транзакций, очки,
-сохранение раундов, история, награды и версионируемая конфигурация.
-Game Engine / WebSocket относятся к Backend №1.
+Единый backend объединяет Game Engine/WebSocket с PostgreSQL-модулями пользователей,
+баланса, транзакций, очков, истории, наград и версионируемой конфигурации.
 
 ## Запуск
 
@@ -24,9 +23,8 @@ Java 21, Spring Boot 3.5.16, Maven Wrapper 3.9.11. Исходный пакет:
 
 Для Linux/macOS: `sh mvnw -B verify` и
 `sh mvnw spring-boot:run -Dspring-boot.run.profiles=demo`.
-`demo` воспроизводит x3 на 2.00→6.00, crash=8.42; `dev` использует случайный seed.
-В этих профилях есть тестовый пользователь с балансом 1000 и in-memory адаптеры.
-Без dev/demo/test необходимо подключить реальные реализации портов и Principal.
+`test/dev` используют in-memory adapters движка. `demo` использует PostgreSQL,
+фиксированный seed и серверный session login; NORMAL mode предназначен для production.
 
 REST: `POST /api/rounds`, `GET /api/rounds/{id}`, `POST /api/rounds/{id}/cashout`.
 Native JSON WebSocket: `/ws/rounds`, автоматически только события текущего пользователя.
@@ -55,6 +53,9 @@ API: http://127.0.0.1:8080; health: /actuator/health.
 GET /api/demo/users возвращает anna, maks и liza, изначально по 5000 бонусов.
 Демо-данные создаются только при SPRING_PROFILES_ACTIVE=demo.
 Повторный запуск сохраняет потраченный баланс и накопленные очки.
+Логин: `POST /api/auth/demo-login`; cookie этой сессии одновременно авторизует
+REST и WebSocket. В интегрированном контуре бонусы целочисленные: ставки и payout
+имеют scale 0, а выплата округляется вниз авторитетно в Game Engine.
 
 С Maven 3.9 и Java 21, при отдельно запущенном PostgreSQL:
 

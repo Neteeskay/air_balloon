@@ -21,8 +21,9 @@ public final class RoundEngine {
         if (theme == null) throw new GameException(GameError.INVALID_THEME, "Theme must be GREEN or RED");
         if (booster < 1 || booster > 4) throw new GameException(GameError.INVALID_BOOSTER, "Booster must be 1, 2, 3 or 4");
         if (config == null) throw new GameException(GameError.INVALID_GAME_CONFIG, "Game config is unavailable");
-        if (bet == null || bet.scale() > 2 || bet.compareTo(config.minBet()) < 0 || bet.compareTo(config.maxBet()) > 0)
-            throw new GameException(GameError.INVALID_BET, "Bet is outside configured bounds or has more than two decimals");
+        if (bet == null || bet.scale() > config.effectiveEconomyScale()
+                || bet.compareTo(config.minBet()) < 0 || bet.compareTo(config.maxBet()) > 0)
+            throw new GameException(GameError.INVALID_BET, "Bet is outside configured bounds or has unsupported precision");
     }
 
     public RoundTransition start(UUID id, UUID userId, Theme theme, BigDecimal bet, int booster,
@@ -63,7 +64,7 @@ public final class RoundEngine {
                 BigDecimal before = f.multiplier;
                 f.multiplier = before.multiply(BigDecimal.valueOf(round.boosterMultiplier()));
                 f.boosted = true;
-                long extra = round.config().boosterPointsPerMultiplier() * (round.boosterMultiplier() - 1L);
+                long extra = round.config().boosterPoints(round.boosterMultiplier());
                 f.score += extra;
                 f.emit(GameEvent.Type.BOOSTER_ACTIVATED, Map.of("booster", round.boosterMultiplier(),
                         "level", f.level, "beforeMultiplier", before, "afterMultiplier", f.multiplier,
@@ -102,7 +103,8 @@ public final class RoundEngine {
         f.updated = later(f.updated, now.truncatedTo(ChronoUnit.MILLIS));
         f.status = states.transition(f.status, RoundStatus.CASHED_OUT);
         f.cashoutMultiplier = f.multiplier;
-        f.win = round.betAmount().multiply(f.cashoutMultiplier).setScale(2, RoundingMode.DOWN);
+        f.win = round.betAmount().multiply(f.cashoutMultiplier)
+                .setScale(round.config().effectiveEconomyScale(), RoundingMode.DOWN);
         f.cashoutAt = f.updated;
         f.emit(GameEvent.Type.CASHOUT_SUCCESS, Map.of("cashoutMultiplier", f.cashoutMultiplier,
                 "multiplier", f.cashoutMultiplier, "winAmount", f.win));

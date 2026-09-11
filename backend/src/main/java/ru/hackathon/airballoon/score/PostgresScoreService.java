@@ -38,7 +38,7 @@ public class PostgresScoreService implements ScoreService {
             case "CASHOUT" -> r.cashoutAt()!=null && points==c.pointsCashoutBonus();
             default -> false;
         };
-        if (!valid || r.status()==GameRound.Status.CREATED || r.status()==GameRound.Status.FINISHED || points<0)
+        if (!valid || r.status()==GameRound.Status.CREATED || points<0)
             throw BusinessException.invalid("INVALID_SCORE_EVENT","Событие или очки не соответствуют сохранённому раунду и его конфигурации");
         if (jdbc.queryForObject("SELECT count(*) FROM economy_transactions WHERE round_id=? AND type='BET_DEBIT'",Long.class,roundId)==0)
             throw BusinessException.conflict("BET_NOT_DEBITED","Ставка ещё не списана");

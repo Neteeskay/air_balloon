@@ -1,3 +1,8 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
 game:
   random-mode: FIXED_SEED
   fixed-seed: 42

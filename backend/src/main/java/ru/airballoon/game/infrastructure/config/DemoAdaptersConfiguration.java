@@ -20,7 +20,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
-@Profile({"dev", "demo", "test"})
+@Profile({"dev", "test"})
 public class DemoAdaptersConfiguration {
     public DemoAdaptersConfiguration(Environment environment) { EngineConfiguration.requireDemoProfile(environment); }
 

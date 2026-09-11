@@ -8,7 +8,7 @@ RUN mvn -B -DskipTests package
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S balloon && adduser -S balloon -G balloon
-COPY --from=build /app/target/air-balloon-0.1.0.jar app.jar
+COPY --from=build /app/target/air-balloon.jar app.jar
 USER balloon
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

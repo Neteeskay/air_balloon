@@ -10,25 +10,32 @@ type DemoUser = {
   bonusBalance: number
 }
 
+type AuthenticatedUser = {
+  userId: string
+  username: string
+  displayName: string
+  bonusBalance: number
+  gameScore: number
+}
+
 const demoUsers: DemoUser[] = [
   { id: 'anna', name: 'Анна Ветрова', login: 'anna', password: 'balloon1', initials: 'АВ', color: '#fb5c55', bonusBalance: 5000 },
   { id: 'maks', name: 'Максим Орлов', login: 'maks', password: 'balloon2', initials: 'МО', color: '#4a9bff', bonusBalance: 5000 },
   { id: 'liza', name: 'Лиза Соколова', login: 'liza', password: 'balloon3', initials: 'ЛС', color: '#58bf83', bonusBalance: 5000 },
 ]
 
-const storageKey = 'air-balloon-demo-user'
-
 function App() {
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<DemoUser | null>(null)
+  const [user, setUser] = useState<AuthenticatedUser | null>(null)
 
   useEffect(() => {
-    const savedId = localStorage.getItem(storageKey)
-    const savedUser = demoUsers.find((item) => item.id === savedId)
-    if (savedUser) setUser(savedUser)
+    fetch('/api/auth/me', { credentials: 'same-origin' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((profile) => { if (profile) setUser(profile) })
+      .catch(() => undefined)
   }, [])
 
   const chooseDemo = (demo: DemoUser) => {
@@ -38,20 +45,24 @@ function App() {
     setError('')
   }
 
-  const signIn = (event: FormEvent) => {
+  const signIn = async (event: FormEvent) => {
     event.preventDefault()
-    const found = demoUsers.find((item) => item.login === login.trim() && item.password === password)
-    if (!found) {
+    const response = await fetch('/api/auth/demo-login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: login.trim(), password }),
+    }).catch(() => null)
+    if (!response?.ok) {
       setError('Проверьте логин и пароль или выберите демо-профиль ниже.')
       return
     }
-    localStorage.setItem(storageKey, found.id)
-    setUser(found)
+    setUser(await response.json())
     setError('')
   }
 
-  const signOut = () => {
-    localStorage.removeItem(storageKey)
+  const signOut = async () => {
+    await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => undefined)
     setUser(null)
     setSelectedId(null)
     setLogin('')
@@ -73,10 +84,10 @@ function App() {
         </section>
         <aside className="profile-panel" aria-label="Профиль пользователя">
           <div className="profile-panel__top"><span>ПРОФИЛЬ</span><button className="logout" type="button" onClick={signOut}>Выйти</button></div>
-          <div className="profile-photo" style={{ '--profile-color': user.color } as CSSProperties} aria-label="Заглушка фотографии профиля">
-            <span>{user.initials}</span>
+          <div className="profile-photo" style={{ '--profile-color': demoUsers.find((item) => item.login === user.username)?.color ?? '#4a9bff' } as CSSProperties} aria-label="Заглушка фотографии профиля">
+            <span>{demoUsers.find((item) => item.login === user.username)?.initials ?? user.displayName.slice(0, 2)}</span>
           </div>
-          <div className="profile-name"><h2>{user.name}</h2><p>@{user.login}</p></div>
+          <div className="profile-name"><h2>{user.displayName}</h2><p>@{user.username}</p></div>
           <div className="profile-balance"><span>Бонусный баланс</span><strong>{user.bonusBalance.toLocaleString('ru-RU')}</strong><small>бонусов</small></div>
           <div className="profile-note"><span className="status-dot" />Тестовый профиль</div>
         </aside>
