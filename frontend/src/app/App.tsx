@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 type FlightMode = 'RED' | 'GREEN'
-type TutorialStep = 1 | 2 | 3 | 4
+type TutorialStep = 1 | 2 | 3 | 4 | 5
 
 const ONBOARDING_KEY_PREFIX = 'air-balloon-flight-mode-onboarding-complete:'
 const THEME_KEY = 'air-balloon-theme'
@@ -193,6 +193,11 @@ function App() {
       return
     }
 
+    if (tutorialStep === 4) {
+      setTutorialStep(5)
+      return
+    }
+
     completeTutorial()
   }
 
@@ -259,24 +264,27 @@ function App() {
         />
       </section>
 
-      <section className={`rating-card ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`} aria-label="Рейтинг участников">
+      <section className={`rating-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`} aria-label="Рейтинг участников">
         {tutorialVisible && tutorialStep === 4 && (
-          <span className="rating-card__step-number" aria-hidden="true">3</span>
+          <span className="rating-card__step-number rating-card__step-number--trophy" aria-hidden="true">3</span>
         )}
-        <span className="rating-card__trophy"><TrophyIcon /></span>
+        {tutorialVisible && tutorialStep === 5 && (
+          <span className="rating-card__step-number rating-card__step-number--rating" aria-hidden="true">4</span>
+        )}
+        <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}><TrophyIcon /></span>
         <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
         <span className="rating-card__days"><ClockIcon />25 дней</span>
         <ArrowIcon />
       </section>
 
       {tutorialVisible && (
-        <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 4`}>
+        <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 5`}>
           {tutorialStep === 1 && (
             <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
               <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
               <button className="tutorial-dialog" type="button">
-                <strong>Привет, я Шиншилот!</strong>
-                <span>Я очень люблю шарики.<br />Я научу тебя играть в мою<br />любимую игру.</span>
+                <strong>Привет! Я Шиншилот 🐭</strong>
+                <span>Я быстро покажу тебе, что здесь к чему.<br />Начнём с выбора воздушного шара!</span>
               </button>
             </div>
           )}
@@ -286,8 +294,8 @@ function App() {
                 <path pathLength="1" d="M330 775 C350 520 480 365 655 325" />
               </svg>
               <div className="tutorial-tip tutorial-tip--red">
-                <strong>Красный шар — 12 уровней.</strong>
-                <span>Более рискованный режим.</span>
+                <strong>Красный шар — для тех, кто любит риск! 🔴</strong>
+                <span>Здесь тебя ждут <b>12 уровней</b> и более сложный маршрут.<br />Выбирай его, если хочешь больше испытаний.</span>
               </div>
             </div>
           )}
@@ -297,16 +305,24 @@ function App() {
                 <path pathLength="1" d="M1265 325 C1440 365 1568 520 1590 775" />
               </svg>
               <div className="tutorial-tip tutorial-tip--green">
-                <strong>Зелёный шар — 9 уровней.</strong>
-                <span>Более спокойный режим.</span>
+                <strong>Зелёный шар — для спокойного полёта 🟢</strong>
+                <span>Здесь <b>9 уровней</b> и более простой маршрут.<br />Отличный вариант, если хочешь сначала освоиться.</span>
               </div>
             </div>
           )}
           {tutorialStep === 4 && (
             <div className="tutorial-step tutorial-step--four" key="tutorial-step-4">
+              <div className="tutorial-tip tutorial-tip--trophy">
+                <strong>А вот и твоя цель — кубок! 🏆</strong>
+                <span>Зарабатывай очки во время игры и старайся подняться как можно выше.<br />Чем лучше играешь — тем ближе награда!</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 5 && (
+            <div className="tutorial-step tutorial-step--five" key="tutorial-step-5">
               <div className="tutorial-tip tutorial-tip--rating">
-                <strong>Рейтинг участников</strong>
-                <span>Успей заработать больше всех очков<br />и получай награды!</span>
+                <strong>Здесь находится рейтинг игроков.</strong>
+                <span>В нём видно, кто набрал больше всего очков за текущий период.<br />До конца рейтинга осталось <b>25 дней</b>, так что успей подняться выше!</span>
               </div>
             </div>
           )}
@@ -320,7 +336,7 @@ function App() {
           >
             Пропустить обучение <ArrowIcon />
           </button>
-          <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 4</span>
+          <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 5</span>
         </section>
       )}
       </div>

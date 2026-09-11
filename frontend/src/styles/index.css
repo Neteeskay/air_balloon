@@ -163,12 +163,14 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
 .mode-card.is-tutorial-target,
-.rating-card.is-tutorial-target {
+.rating-card.is-tutorial-target,
+.rating-card__trophy.is-tutorial-target {
   animation: tutorialTarget 1.8s ease-in-out infinite alternate;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2);
 }
 
 .rating-card.is-tutorial-target { --accent: #e69600; }
+.rating-card__trophy.is-tutorial-target { --accent: #e69600; border-radius: 24px; filter: drop-shadow(0 0 14px rgba(230, 150, 0, .55)); }
 
 .mode-card__step-number,
 .rating-card__step-number {
@@ -272,7 +274,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   transform: translateX(-50%);
 }
 
-.rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5cqw, 94px); color: #e69600; }
+.rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5cqw, 94px); padding: 4px; color: #e69600; }
 .trophy-icon { width: 100%; height: auto; stroke-width: 1.7; fill: #ffc43b; stroke: #c67a00; }
 .rating-card h2 { margin: 0; font-size: clamp(18px, 1.32cqw, 25px); font-weight: 900; }
 .rating-card p { margin: .22rem 0 0; color: #425d82; font-size: clamp(12px, .8cqw, 16px); font-weight: 600; line-height: 1.25; }
@@ -280,7 +282,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .rating-card > svg { width: 1.55rem; height: 1.55rem; }
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
-.tutorial-step { position: absolute; inset: 0; }
+.tutorial-step { position: absolute; inset: 0; animation: tutorialStepEnter 520ms cubic-bezier(.2,.75,.28,1) both; will-change: opacity, transform; }
 .tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
 .tutorial-arcs path {
   fill: none;
@@ -328,12 +330,21 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05cqw, 20px); line-height: 1.3; }
 .tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
 .tutorial-tip strong { font-size: clamp(16px, 1.05cqw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92cqw, 18px); }
-.tutorial-tip--red { top: 20.5%; left: 12.5%; color: #9b1420; }
-.tutorial-tip--green { top: 20.5%; right: 12.5%; color: #147039; }
+.tutorial-tip--red { top: 20.5%; left: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #9b1420; }
+.tutorial-tip--green { top: 20.5%; right: 12.5%; min-width: 0; width: clamp(340px, 30cqw, 560px); color: #147039; }
+.tutorial-tip--trophy {
+  top: 43%;
+  left: 1%;
+  min-width: 0;
+  width: clamp(300px, 24cqw, 460px);
+  color: #805000;
+}
 .tutorial-tip--rating {
   top: 68%;
-  left: 74%;
-  min-width: clamp(300px, 24cqw, 460px);
+  right: 0;
+  left: auto;
+  min-width: 0;
+  width: clamp(300px, 26cqw, 500px);
   color: #805000;
   text-align: center;
 }
@@ -362,6 +373,11 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 @keyframes chinchillotEnter {
   from { opacity: 0; transform: translate3d(-26px, 20px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes tutorialStepEnter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes tutorialBubble {
