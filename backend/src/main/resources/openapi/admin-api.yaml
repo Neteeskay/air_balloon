@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: Air Balloon Admin Backend API
+  version: 1.0.0
+  description: Versioned administrative configuration and authoritative game integration for «Воздушный Шар».
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /api/admin/auth/login:
+    post:
+      security: []
+      summary: Authenticate an administrator and issue an opaque bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+            example: {username: admin, password: admin}
+      responses:
+        '200': {description: Authenticated}
+        '400': {description: Invalid request}
+        '401': {description: Invalid credentials}
+  /api/admin/auth/logout:
+    post:
+      summary: Revoke the current administrator token
+      responses:
+        '204': {description: Revoked}
+        '401': {description: Authentication required}
+  /api/admin/config/current:
+    get:
+      summary: Return the single ACTIVE configuration
+      responses:
+        '200': {description: Current configuration, headers: {ETag: {schema: {type: string}}}}
+        '401': {description: Authentication required}
+        '403': {description: ADMIN role required}
+  /api/admin/config/metadata:
+    get:
+      summary: Return configuration parameter metadata for a separate admin frontend
+      responses:
+        '200': {description: Parameter metadata}
+  /api/admin/config/validate:
+    post:
+      summary: Validate a candidate configuration without creating a version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/GameConfigurationWriteRequest'}
+      responses:
+        '200': {description: Valid}
+        '400': {description: Validation error}
+        '409': {description: Version conflict}
+  /api/admin/config:
+    post:
+      summary: Create an immutable DRAFT configuration version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/GameConfigurationWriteRequest'}
+      responses:
+        '201': {description: DRAFT created}
+        '400': {description: Validation error}
+        '409': {description: Stale base revision}
+  /api/admin/config/{id}/activate:
+    post:
+      summary: Transactionally make a DRAFT version ACTIVE and archive the previous ACTIVE version
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Activated}
+        '404': {description: Version not found}
+        '409': {description: Invalid lifecycle state or stale base revision}
+  /api/admin/config/versions:
+    get:
+      summary: Paginated immutable version history
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: size, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+      responses:
+        '200': {description: Version page}
+  /api/admin/config/versions/{id}:
+    get:
+      summary: Get one historical configuration version
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Version detail}
+        '404': {description: Version not found}
+  /api/admin/config/versions/{id}/rollback:
+    post:
+      summary: Create and activate a new version copied from a historical version
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '201': {description: Replacement version created and activated}
+        '404': {description: Source version not found}
+  /api/admin/config/versions/{fromId}/diff/{toId}:
+    get:
+      summary: Return changed business fields between two versions
+      parameters:
+        - {name: fromId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: toId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Diff}
+  /api/admin/audit:
+    get:
+      summary: Paginated audit log with optional action/admin/version/date filters
+      parameters:
+        - {name: action, in: query, schema: {type: string}}
+        - {name: administrator, in: query, schema: {type: string}}
+        - {name: version, in: query, schema: {type: string, format: uuid}}
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+        - {name: page, in: query, schema: {type: integer, default: 0}}
+        - {name: size, in: query, schema: {type: integer, default: 50}}
+      responses:
+        '200': {description: Audit page}
+  /api/game/rounds:
+    post:
+      summary: Start a server-authoritative round using the current ACTIVE configuration snapshot/version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [theme, boosterTier, bet]
+              properties:
+                theme: {type: string, enum: [GREEN, RED]}
+                boosterTier: {type: integer, minimum: 1, maximum: 4}
+                bet: {type: number, minimum: 0.01}
+      responses:
+        '201': {description: Round created. Crash point is intentionally not accepted from or exposed to the client.}
+  /api/game/rounds/{id}:
+    get:
+      summary: Read a round without exposing its precommitted crash point
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Round state and immutable configuration version reference}
+        '404': {description: Round not found or not owned by caller}
+  /api/game/rounds/{id}/state:
+    get:
+      summary: Poll server-calculated current multiplier; reveal crash point only after terminal state
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Authoritative round state}
+        '404': {description: Round not found or not owned by caller}
+  /api/game/rounds/{id}/levels/{level}:
+    post:
+      summary: Record a server-authorized level crossing and calculate points from the round configuration version
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: level, in: path, required: true, schema: {type: integer, minimum: 1, maximum: 12}}
+      responses:
+        '200': {description: Server-calculated awarded points}
+  /api/game/rounds/{id}/cashout:
+    post:
+      summary: Cash out using a multiplier calculated only from server time/state
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Server-calculated cashout result}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username: {type: string}
+        password: {type: string, format: password}
+    GameConfigurationWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [gameId, gameName, gameType, isActive, revision, crash, boosters, points]
+      properties:
+        gameId: {type: string, example: air-balloon}
+        gameName: {type: string, example: Воздушный Шар}
+        gameType: {type: string, enum: [CRASH]}
+        isActive: {type: boolean}
+        revision: {type: integer, format: int64, description: Base ACTIVE revision used for stale-write protection}
+        crash: {type: object}
+        boosters: {type: object}
+        points: {type: object}
+    Error:
+      type: object
+      required: [timestamp, status, code, message, fieldErrors, traceId]
+      properties:
+        timestamp: {type: string, format: date-time}
+        status: {type: integer}
+        code: {type: string}
+        message: {type: string}
+        fieldErrors: {type: array, items: {type: object}}
+        traceId: {type: string}
+        currentVersion: {type: integer, format: int64}
