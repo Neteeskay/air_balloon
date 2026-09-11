@@ -120,11 +120,6 @@ function ModeCard({ mode, title, levels, description, balloon, selected, tutoria
   const activeTutorial = tutorialStep === (mode === 'RED' ? 2 : 3)
   return (
     <article className={`mode-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
-      {activeTutorial && (
-        <span className={`mode-card__step-number mode-card__step-number--${mode.toLowerCase()}`} aria-hidden="true">
-          {mode === 'RED' ? '1' : '2'}
-        </span>
-      )}
       <img className="mode-card__balloon" src={balloon} alt="" draggable="false" />
       <div className="mode-card__copy">
         <h2>{title}</h2>
@@ -265,12 +260,6 @@ function App() {
       </section>
 
       <section className={`rating-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`} aria-label="Рейтинг участников">
-        {tutorialVisible && tutorialStep === 4 && (
-          <span className="rating-card__step-number rating-card__step-number--trophy" aria-hidden="true">3</span>
-        )}
-        {tutorialVisible && tutorialStep === 5 && (
-          <span className="rating-card__step-number rating-card__step-number--rating" aria-hidden="true">4</span>
-        )}
         <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}><TrophyIcon /></span>
         <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
         <span className="rating-card__days"><ClockIcon />25 дней</span>
@@ -294,7 +283,7 @@ function App() {
                 <path pathLength="1" d="M330 775 C350 520 480 365 655 325" />
               </svg>
               <div className="tutorial-tip tutorial-tip--red">
-                <strong>Красный шар — для тех, кто любит риск! 🔴</strong>
+                <strong>Красный шар — для тех, кто любит риск!</strong>
                 <span>Здесь тебя ждут <b>12 уровней</b> и более сложный маршрут.<br />Выбирай его, если хочешь больше испытаний.</span>
               </div>
             </div>
@@ -305,7 +294,7 @@ function App() {
                 <path pathLength="1" d="M1265 325 C1440 365 1568 520 1590 775" />
               </svg>
               <div className="tutorial-tip tutorial-tip--green">
-                <strong>Зелёный шар — для спокойного полёта 🟢</strong>
+                <strong>Зелёный шар — для спокойного полёта</strong>
                 <span>Здесь <b>9 уровней</b> и более простой маршрут.<br />Отличный вариант, если хочешь сначала освоиться.</span>
               </div>
             </div>
