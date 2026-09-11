@@ -10,8 +10,13 @@ import org.springframework.context.annotation.Profile;
 @Profile("!test & !dev")
 @ComponentScan(
         basePackages = "ru.hackathon.airballoon",
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = ru.hackathon.airballoon.AirBalloonApplication.class))
+        excludeFilters = {
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = ru.hackathon.airballoon.AirBalloonApplication.class),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX,
+                        pattern = "ru\\.hackathon\\.airballoon\\.support\\..*")
+        })
 public class CorePersistenceConfiguration {
 }

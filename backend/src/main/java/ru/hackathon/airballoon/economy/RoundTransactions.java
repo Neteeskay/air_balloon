@@ -21,6 +21,7 @@ public class RoundTransactions {
     }
     @Transactional
     public GameRound createAndDebit(GameRound created) {
+        balances.lockUser(created.userId());
         GameRound saved=rounds.save(created);
         balances.debitBet(saved.userId(),saved.id(),saved.betAmount());
         return saved;

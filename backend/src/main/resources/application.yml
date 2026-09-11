@@ -6,12 +6,14 @@ spring:
   application:
     name: air-balloon
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/air_balloon}
+    url: ${DB_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/air_balloon}}
     username: ${POSTGRES_USER:air_balloon}
     password: ${POSTGRES_PASSWORD:change_me}
     hikari:
       maximum-pool-size: 10
       connection-timeout: 10000
+  flyway:
+    locations: classpath:db/migration
   jackson:
     deserialization:
       fail-on-unknown-properties: true
@@ -57,3 +59,8 @@ management:
 app:
   admin-token: ${ADMIN_TOKEN:}
   allow-fixed-seed: false
+tournament:
+  mask-other-player-names: true
+  live-top-size: 20
+  standalone-websocket-enabled: true
+  demo-tournament-simulation-enabled: false

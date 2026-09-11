@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-11",
+  "branch": "integration/backend-tournament",
+  "backend": {
+    "surefire": {"total": 294, "passed": 294, "failed": 0, "errors": 0, "skipped": 0},
+    "failsafe": {"total": 74, "passed": 74, "failed": 0, "errors": 0, "skipped": 0},
+    "total": {"total": 368, "passed": 368, "failed": 0, "errors": 0, "skipped": 0}
+  },
+  "backend3Original": {"total": 37, "passed": 37},
+  "formerlyBlocked": {"total": 18, "passed": 18},
+  "coreTournamentIntegration": {"total": 5, "passed": 5},
+  "frontendBuild": "PASS",
+  "migrations": {"fresh": "PASS", "upgradeFromV4": "PASS"},
+  "docker": {
+    "status": "BLOCKED",
+    "reason": "Host exposes only a Windows-container daemon; Linux daemon, WSL distribution and Docker Compose plugin are absent."
+  }
+}

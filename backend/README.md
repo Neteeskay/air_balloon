@@ -85,3 +85,24 @@ RewardService; короткие атомарные сценарии — RoundTra
 [Подробная документация](../docs/backend-data-economy.md):
 схема БД, гарантии, конфигурация, порядок вызовов и ограничения.
 [REST-контракт](../docs/API_CONTRACT.md).
+
+## Tournament / Backend №3
+
+Tournament работает внутри того же Spring Boot процесса и PostgreSQL, но сохраняет
+отдельный realtime-канал STOMP `/ws`. REST endpoints: `GET /api/tournaments/active`,
+`GET /api/tournaments/{id}/leaderboard` и
+`POST /api/tournaments/{id}/participants/me`. UUID игрока берётся исключительно из
+той же server-side demo session, что используется Game Engine.
+
+Leaderboard получает только итоговый authoritative `users.game_score` через
+интеграционный `PlayerScoreSource`; начисление level, booster и cashout points
+остаётся в Core. Детали, reconnect и acceptance описаны в
+[tournament.md](../docs/tournament.md) и
+[backend-tournament-integration.md](../docs/backend-tournament-integration.md).
+
+Полная проверка с Tournament integration tests и строгой acceptance:
+
+```powershell
+.\mvnw.cmd verify
+.\mvnw.cmd verify -Pacceptance
+```

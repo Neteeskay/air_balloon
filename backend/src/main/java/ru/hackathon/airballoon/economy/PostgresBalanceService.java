@@ -18,6 +18,11 @@ public class PostgresBalanceService implements BalanceService {
     }
     public long getBalance(UUID userId) { return users.getState(userId).bonusBalance(); }
     @Transactional
+    public void lockUser(UUID userId) {
+        if (jdbc.queryForList("SELECT id FROM users WHERE id=? FOR UPDATE", UUID.class, userId).isEmpty())
+            throw BusinessException.missing("USER_NOT_FOUND");
+    }
+    @Transactional
     public BalanceChange debitBet(UUID userId, UUID roundId, long amount) { return change(userId,roundId,amount,true); }
     @Transactional
     public BalanceChange creditWin(UUID userId, UUID roundId, long amount) { return change(userId,roundId,amount,false); }

@@ -12,7 +12,7 @@ import ru.hackathon.airballoon.reward.*;
 
 @Service
 public class HistoryService {
-    public record Entry(UUID roundId,String username,String theme,long betAmount,int boosterTier,int boosterMultiplier,
+    public record Entry(UUID roundId,UUID userId,String username,String theme,long betAmount,int boosterTier,int boosterMultiplier,
                         BigDecimal cashoutMultiplier,BigDecimal crashMultiplier,long winAmount,long roundScore,
                         String result,Instant finishedAt) {}
     public record Page(List<Entry> items,int page,int size,long total) {}
@@ -32,7 +32,8 @@ public class HistoryService {
             FROM game_rounds r JOIN users u ON u.id=r.user_id
             JOIN game_config_versions cfg ON cfg.version=r.config_version
             WHERE r.finished_at IS NOT NULL ORDER BY r.finished_at DESC,r.id LIMIT ? OFFSET ?
-            """,(rs,n)->new Entry(rs.getObject("id",UUID.class),rs.getString("username"),rs.getString("theme"),
+            """,(rs,n)->new Entry(rs.getObject("id",UUID.class),rs.getObject("user_id",UUID.class),
+                rs.getString("username"),rs.getString("theme"),
                 rs.getLong("bet_amount"),rs.getInt("booster_tier"),rs.getInt("booster_value"),rs.getBigDecimal("cashout_multiplier"),
                 rs.getBigDecimal("crash_multiplier"),rs.getLong("win_amount"),rs.getLong("round_score"),
                 rs.getTimestamp("cashout_at")!=null?"WIN":"LOSS",rs.getTimestamp("finished_at").toInstant()),size,(long)page*size);

@@ -9,9 +9,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import ru.airballoon.game.application.GameService;
 import ru.airballoon.game.domain.Theme;
 import ru.airballoon.game.infrastructure.memory.FakeBalanceService;
-import java.net.URI;
-import java.net.http.*;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.*;
@@ -27,9 +24,10 @@ class RealtimeIT extends IntegrationSupport {
 
     @Test void realWebSocketDeliversFullLifecycleInOrderAndKeepsUsersIsolated() throws Exception {
         clock.atMillis(0); UUID user = UUID.randomUUID(); UUID other = UUID.randomUUID();
-        try (HttpClient http = HttpClient.newHttpClient()) {
+        {
             var ownerEvents = new SocketListener(); var otherEvents = new SocketListener();
-            WebSocket owner = connect(http, user, ownerEvents); WebSocket stranger = connect(http, other, otherEvents);
+            TestNativeWebSocket owner = connect(user, ownerEvents);
+            TestNativeWebSocket stranger = connect(other, otherEvents);
             try {
                 assertThat(ownerEvents.next().path("type").asText()).isEqualTo("CONNECTION_READY");
                 assertThat(otherEvents.next().path("type").asText()).isEqualTo("CONNECTION_READY");
@@ -64,44 +62,35 @@ class RealtimeIT extends IntegrationSupport {
     }
 
     @Test void clientCannotInjectGameEventsThroughWebSocket() throws Exception {
-        try (var http = HttpClient.newHttpClient()) {
-            var listener = new SocketListener(); var socket = connect(http, UUID.randomUUID(), listener);
+        {
+            var listener = new SocketListener(); var socket = connect(UUID.randomUUID(), listener);
             try {
                 listener.next();
-                socket.sendText("{\"type\":\"CASHOUT_SUCCESS\",\"winAmount\":999999}", true).get(3, TimeUnit.SECONDS);
+                socket.sendText("{\"type\":\"CASHOUT_SUCCESS\",\"winAmount\":999999}");
                 assertThat(listener.closed.get(5, TimeUnit.SECONDS)).isEqualTo(1008);
             } finally { socket.abort(); }
         }
     }
 
     @Test void invalidPrincipalAndCrossOriginWebSocketAreRejected() {
-        try (var http = HttpClient.newHttpClient()) {
-            assertThatThrownBy(() -> http.newWebSocketBuilder().header("X-Test-User", "not-a-user")
-                    .buildAsync(URI.create("ws://localhost:" + port + "/ws/rounds"), new SocketListener()).get(5, TimeUnit.SECONDS))
-                    .hasCauseInstanceOf(WebSocketHandshakeException.class);
-            assertThatThrownBy(() -> http.newWebSocketBuilder().header("Origin", "https://untrusted.example")
-                    .buildAsync(URI.create("ws://localhost:" + port + "/ws/rounds"), new SocketListener()).get(5, TimeUnit.SECONDS))
-                    .hasCauseInstanceOf(WebSocketHandshakeException.class);
+        {
+            assertThatThrownBy(() -> TestNativeWebSocket.connect(port,
+                    Map.of("X-Test-User", "not-a-user"), new SocketListener()));
+            assertThatThrownBy(() -> TestNativeWebSocket.connect(port,
+                    Map.of("Origin", "https://untrusted.example"), new SocketListener()));
         }
     }
 
-    private WebSocket connect(HttpClient client, UUID user, SocketListener listener) throws Exception {
-        return client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(5)).header("X-Test-User", user.toString())
-                .buildAsync(URI.create("ws://localhost:" + port + "/ws/rounds"), listener).get(5, TimeUnit.SECONDS);
+    private TestNativeWebSocket connect(UUID user, SocketListener listener) throws Exception {
+        return TestNativeWebSocket.connect(port, Map.of("X-Test-User", user.toString()), listener);
     }
 
-    private final class SocketListener implements WebSocket.Listener {
+    private final class SocketListener implements TestNativeWebSocket.Listener {
         final BlockingQueue<String> messages = new LinkedBlockingQueue<>();
         final CompletableFuture<Integer> closed = new CompletableFuture<>();
-        final StringBuilder fragments = new StringBuilder();
-        @Override public void onOpen(WebSocket webSocket) { webSocket.request(1); }
-        @Override public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            fragments.append(data);
-            if (last) { messages.add(fragments.toString()); fragments.setLength(0); }
-            webSocket.request(1); return null;
-        }
-        @Override public CompletionStage<?> onClose(WebSocket socket, int status, String reason) { closed.complete(status); return null; }
-        @Override public void onError(WebSocket socket, Throwable error) { closed.completeExceptionally(error); }
+        @Override public void onText(String data) { messages.add(data); }
+        @Override public void onClose(int status) { closed.complete(status); }
+        @Override public void onError(Throwable error) { closed.completeExceptionally(error); }
         JsonNode next() throws Exception {
             String message = messages.poll(5, TimeUnit.SECONDS);
             assertThat(message).as("Expected a WebSocket message").isNotNull();

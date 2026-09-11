@@ -228,13 +228,50 @@ reward: id, roundId, userId, type, rarity, createdAt.
 Повтор debit/credit/score/reward с теми же параметрами возвращает успех,
 с другой суммой/очками — IDEMPOTENCY_CONFLICT.
 
-## Frontend и Game Engine
+## Tournament HTTP API
 
-Nginx проксирует /api/ в backend:8080; Vite — в 127.0.0.1:8080.
-Frontend-вход и баланс пока имитируются на клиенте. Для подключения серверных
-профилей сопоставьте login с username из /api/demo/users и читайте state по UUID.
-Публичный read-only user API не является системой авторизации.
+Tournament использует тот же authenticated UUID `Principal`, что Game Engine.
+Клиент не передаёт `userId` ни в query, ни в body, ни в заголовке.
 
-Game Engine/WebSocket контракт ещё не опубликован Backend №1.
-Перед интеграцией согласуйте API старта/cashout и realtime events,
-сохраняя атомарные границы из RoundTransactions.
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/tournaments/active` | `200 {active:false}` или `{active:true,tournament}` |
+| GET | `/api/tournaments/{id}/leaderboard?page=0&size=50` | `{tournament,top3,participants,currentPlayer,totalParticipants,page,size,updatedAt}` |
+| POST | `/api/tournaments/{id}/participants/me` | `204`; UUID и score читаются сервером из session/Core |
+
+Tournament: `id,name,description,status,startsAt,endsAt,secondsRemaining,serverTime,revision`.
+Leaderboard entry: `position,userId,username,score`. Top-3 и `currentPlayer` не
+зависят от выбранной страницы; размер страницы — 1–100. Имена других участников
+маскируются, имя текущего игрока возвращается без маскирования.
+
+Tournament errors: `{code,message}`. Коды: `INVALID_ARGUMENT`,
+`INVALID_PAGINATION`, `AUTHENTICATION_REQUIRED`, `TOURNAMENT_NOT_FOUND`,
+`PLAYER_NOT_FOUND`, `TOURNAMENT_NOT_ACTIVE`, `SCORE_SOURCE_UNAVAILABLE`.
+
+## Tournament WebSocket
+
+STOMP endpoint: `/ws`; topic:
+`/topic/tournaments/{tournamentId}/leaderboard`. Это отдельный канал от native
+Game WebSocket `/ws/rounds`. Handshake использует ту же HTTP session и UUID
+`Principal`; клиентские SEND запрещены.
+
+`LEADERBOARD_UPDATE` содержит `type`, `tournamentId`, `revision`, `topPlayers`,
+`changedPlayer`, `totalParticipants`, `updatedAt`; broadcast не содержит имён.
+Reconnect: подписаться, выполнить HTTP GET snapshot, отбросить frames с
+`revision <= snapshot.revision`, затем применять большие revision; при gap
+повторить GET. Countdown считается по `endsAt` и `serverTime`.
+
+## Internal score adapter
+
+`PlayerScoreSource.find(UUID)` читает canonical `users.id`, `display_name`,
+`game_score` и устойчивую `score_version`. После атомарного authoritative score
+update Core публикуется `ScoreChanged(PlayerScore)`. Tournament не пересчитывает
+level, booster или cashout points; duplicate/retry отсекается версией и уникальным
+идентификатором score event.
+
+## Frontend binding
+
+Nginx проксирует `/api/`, `/ws` и `/ws/rounds` в единый backend. Frontend
+использует cookie session после `/api/auth/demo-login`; canonical UUID не
+передаётся клиентом как доверенный header. Game и Tournament работают поверх
+одного Principal, одной PostgreSQL и одного authoritative score.

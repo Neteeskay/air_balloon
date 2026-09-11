@@ -1,20 +1,29 @@
 package ru.hackathon.airballoon.score;
 
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.hackathon.airballoon.common.BusinessException;
 import ru.hackathon.airballoon.config.GameConfigProvider;
 import ru.hackathon.airballoon.game.*;
+import ru.hackathon.airballoon.tournament.port.PlayerScore;
+import ru.hackathon.airballoon.tournament.port.ScoreChanged;
 
 @Service
 public class PostgresScoreService implements ScoreService {
     private final JdbcTemplate jdbc;
     private final RoundRepository rounds;
     private final GameConfigProvider configs;
-    public PostgresScoreService(JdbcTemplate jdbc, RoundRepository rounds, GameConfigProvider configs) {
-        this.jdbc=jdbc; this.rounds=rounds; this.configs=configs;
+    private final ApplicationEventPublisher events;
+    private final Clock clock;
+    public PostgresScoreService(JdbcTemplate jdbc, RoundRepository rounds, GameConfigProvider configs,
+                                ApplicationEventPublisher events, Clock clock) {
+        this.jdbc=jdbc; this.rounds=rounds; this.configs=configs; this.events=events; this.clock=clock;
     }
     @Transactional
     public ScoreChange awardLevelPoints(UUID userId,UUID roundId,int level,long points) { return award(userId,roundId,"LEVEL",level,points); }
@@ -47,8 +56,18 @@ public class PostgresScoreService implements ScoreService {
         try { after=Math.addExact(before,points); }
         catch (ArithmeticException e) { throw BusinessException.conflict("SCORE_LIMIT","Превышен предел очков"); }
         UUID id=UUID.randomUUID();
+        Instant changedAt=clock.instant();
         jdbc.update("INSERT INTO score_events(id,user_id,round_id,type,event_key,points) VALUES (?,?,?,?,?,?)",id,userId,roundId,type,key,points);
-        jdbc.update("UPDATE users SET game_score=?,updated_at=now() WHERE id=?",after,userId);
+        jdbc.update("""
+                UPDATE users SET game_score=?,game_score_version=game_score_version+1,updated_at=?
+                WHERE id=?
+                """,after,Timestamp.from(changedAt),userId);
+        PlayerScore snapshot=jdbc.queryForObject("""
+                SELECT id,display_name,game_score,game_score_version FROM users WHERE id=?
+                """,(rs,n)->new PlayerScore(rs.getObject("id",UUID.class),rs.getString("display_name"),
+                rs.getLong("game_score"),rs.getLong("game_score_version"),
+                changedAt),userId);
+        events.publishEvent(new ScoreChanged(snapshot));
         return new ScoreChange(id,points,false);
     }
 }
