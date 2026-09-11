@@ -109,9 +109,9 @@ section {
   min-height: 300vh; /* Достаточно места для скролла */
   background-image: url('/img/back.png');
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-attachment: scroll; /* Фон прокручивается вместе со страницей */
   overflow: hidden;
 }
 
