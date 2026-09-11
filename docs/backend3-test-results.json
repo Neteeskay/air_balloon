@@ -1,0 +1,389 @@
+{
+  "generatedAtUtc": "2026-09-11T11:21:21.8291881Z",
+  "finalRunCompletedAtUtc": "2026-09-11T11:18:29.5986844Z",
+  "baselineCommit": "9db3b3c",
+  "java": "21.0.9",
+  "springBoot": "3.5.16",
+  "postgresql": "17.6 (native Windows, loopback, dedicated temporary cluster)",
+  "testcontainers": {
+    "configured": true,
+    "executed": false,
+    "reason": "Docker unavailable; explicit TEST_DATABASE_URL used"
+  },
+  "defaultVerify": {
+    "exitCode": 0,
+    "totals": {
+      "total": 55,
+      "passed": 37,
+      "blocked": 18,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "strictAcceptance": {
+    "exitCode": 1,
+    "mandatoryScenarios": [
+      "BLOCKED",
+      "BLOCKED",
+      "BLOCKED",
+      "BLOCKED",
+      "BLOCKED"
+    ],
+    "junitPrerequisiteFailures": 18,
+    "reason": "Real Backend #1/#2 APIs and BackendAcceptanceDriver absent",
+    "log": "tmp/acceptance-strict.log"
+  },
+  "backendIntegrationReady": false,
+  "suites": [
+    {
+      "name": "ru.hackathon.airballoon.acceptance.GameScenariosIT",
+      "tests": 5,
+      "passed": 0,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 5,
+      "cases": [
+        {
+          "name": "scenario1BetAndStart",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "scenario2SuccessfulCashout",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "scenario5RuntimeConfig",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "scenario3Loss",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "scenario4Booster",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.acceptance.TournamentAcceptanceIT",
+      "tests": 1,
+      "passed": 1,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "currentUserMovesFromFourthToFirstOverHttpAndLiveStomp",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.concurrency.GameConcurrencyIT",
+      "tests": 4,
+      "passed": 0,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 4,
+      "cases": [
+        {
+          "name": "duplicateLevelEventCreditsPointsOnce",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "tenParallelBetsCannotOverdrawBalance",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "fiftySimultaneousCashoutsProduceExactlyOneWinCredit",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "duplicateBoosterEventChangesNeitherPointsNorMultiplier",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.concurrency.TournamentConcurrencyIT",
+      "tests": 2,
+      "passed": 2,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "concurrentPlayersAreNotLostAcrossSharedTournamentLock",
+          "status": "PASS"
+        },
+        {
+          "name": "fiftyOutOfOrderAndDuplicateEventsKeepNewestAuthoritativeScore",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.integration.DemoAndRecoveryIT",
+      "tests": 2,
+      "passed": 2,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "prodExcludesDemoEvenWhenDemoProfileAndSimulationFlagArePresent",
+          "status": "PASS"
+        },
+        {
+          "name": "demoSeedingSimulationAndActualContextRestartRetainLeaderboard",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.integration.GamePersistenceIT",
+      "tests": 3,
+      "passed": 0,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 3,
+      "cases": [
+        {
+          "name": "globalHistoryIncludesThreeUsersAndStablePagination",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "restartRetainsEconomyScoreRewardHistoryConfigAndTournament",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "rewardGenerationIsIdempotent",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.integration.LeaderboardIT",
+      "tests": 11,
+      "passed": 11,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "controllableClockTransitionsAndFreezesResultsAtExactDeadline",
+          "status": "PASS"
+        },
+        {
+          "name": "rankingTopThreePaginationAndCurrentPlayerWorkOverHttp",
+          "status": "PASS"
+        },
+        {
+          "name": "noActiveTournamentIsANormalHttpResponse",
+          "status": "PASS"
+        },
+        {
+          "name": "preTournamentAndFutureEventsAreNotAccepted",
+          "status": "PASS"
+        },
+        {
+          "name": "tieOrderingIsDeterministicIncludingUuidAndEarlierUpdate",
+          "status": "PASS"
+        },
+        {
+          "name": "producerRollbackRollsBackProjectionAndRevision",
+          "status": "PASS"
+        },
+        {
+          "name": "emptyAndSmallLeaderboardsAndUnjoinedViewerAreSupported",
+          "status": "PASS"
+        },
+        {
+          "name": "malformedIdsAndPaginationReturnBusinessErrors",
+          "status": "PASS"
+        },
+        {
+          "name": "staleAndDuplicateEventsDoNotChangeRevisionButNewerCorrectionsCanDecreaseScore",
+          "status": "PASS"
+        },
+        {
+          "name": "httpJoinUsesTheSharedScoreSourceAndIsIdempotent",
+          "status": "PASS"
+        },
+        {
+          "name": "maskingCanBeDisabled",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.integration.LeaderboardWebSocketIT",
+      "tests": 2,
+      "passed": 2,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "rollbackAndDuplicatesEmitNoFramesBeforeNextValidCommit",
+          "status": "PASS"
+        },
+        {
+          "name": "actualStompClientSeesCommittedScoreAndRankIncludingPlayerOutsideTopTwenty",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.security.GameAntiCheatIT",
+      "tests": 6,
+      "passed": 0,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 6,
+      "cases": [
+        {
+          "name": "foreignUserCannotCashoutRound",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "clientCannotSupplyAuthoritativeValues(String)[1]",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "clientCannotSupplyAuthoritativeValues(String)[2]",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "clientCannotSupplyAuthoritativeValues(String)[3]",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "clientCannotSupplyAuthoritativeValues(String)[4]",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "cashoutBeforeFirstLevelIsRejected",
+          "status": "BLOCKED"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.security.TournamentSecurityIT",
+      "tests": 3,
+      "passed": 3,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "anonymousCannotJoinAndForgedIdentityDoesNotUnmaskAnotherPlayer",
+          "status": "PASS"
+        },
+        {
+          "name": "clientCannotPublishFakeLeaderboardFramesToPublicTopic",
+          "status": "PASS"
+        },
+        {
+          "name": "joinBodyCannotOverwriteScoreOrEnrollForeignUser",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.unit.TournamentDomainTest",
+      "tests": 4,
+      "passed": 4,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "invalidDatesAndNameAreRejected",
+          "status": "PASS"
+        },
+        {
+          "name": "dateBoundariesAreHalfOpen",
+          "status": "PASS"
+        },
+        {
+          "name": "invalidAuthoritativeScoresAreRejected",
+          "status": "PASS"
+        },
+        {
+          "name": "countdownRoundsUpAndNeverBecomesNegative",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.unit.TournamentServiceTest",
+      "tests": 4,
+      "passed": 4,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "invalidPaginationDoesNotQueryDatabase",
+          "status": "PASS"
+        },
+        {
+          "name": "transportFailureDoesNotTurnCommittedScoreIntoBusinessFailure",
+          "status": "PASS"
+        },
+        {
+          "name": "missingTournamentReturnsTypedNotFound",
+          "status": "PASS"
+        },
+        {
+          "name": "expiryIsRecheckedAfterWaitingForLock",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "ru.hackathon.airballoon.unit.UsernameMaskerTest",
+      "tests": 8,
+      "passed": 8,
+      "failures": 0,
+      "errors": 0,
+      "blocked": 0,
+      "cases": [
+        {
+          "name": "missingNameIsSafe",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[1]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[2]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[3]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[4]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[5]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[6]",
+          "status": "PASS"
+        },
+        {
+          "name": "masksFirstThreeCodePoints(String, String)[7]",
+          "status": "PASS"
+        }
+      ]
+    }
+  ]
+}
