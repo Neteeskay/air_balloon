@@ -12,6 +12,11 @@ game:
   fixed-seed: 42
   tick-millis: 100
   scheduler-enabled: true
+  resilience:
+    replay-limit: 256
+    replay-retention: 15m
+    finished-retention: 24h
+    cleanup-millis: 30000
   demo-user: 00000000-0000-0000-0000-000000000001
   demo-balance: 1000.00
   allowed-origins:

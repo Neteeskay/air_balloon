@@ -29,11 +29,13 @@ public final class RoundEngine {
                                  long seed, GameConfig config, Instant now) {
         validateStart(theme, bet, booster, config);
         Instant start = now.truncatedTo(ChronoUnit.MILLIS);
+        Integer boosterLevel = boosters.generate(config, theme, booster, seed);
+        BigDecimal crashMultiplier = crash.generate(config, theme, booster, seed);
+        String commitment = RoundFairness.commitment(id, seed, crashMultiplier, boosterLevel);
         Frame f = new Frame(new GameRound(id, userId, theme, bet.setScale(2), booster,
-                boosters.generate(config, theme, booster, seed), false,
-                crash.generate(config, theme, booster, seed), new BigDecimal("1.0000"), 0, null,
+                boosterLevel, false, crashMultiplier, new BigDecimal("1.0000"), 0, null,
                 new BigDecimal("0.00"), 0, start, null, null, null, seed,
-                RoundStatus.CREATED, start, 0, config));
+                RoundStatus.CREATED, start, 0, config, commitment));
         f.status = states.transition(f.status, RoundStatus.RUNNING);
         f.emit(GameEvent.Type.ROUND_STARTED, Map.of());
         return f.result();
@@ -133,7 +135,8 @@ public final class RoundEngine {
             return new GameRound(original.id(), original.userId(), original.theme(), original.betAmount(),
                     original.boosterMultiplier(), original.boosterLevel(), boosted, original.crashMultiplier(),
                     multiplier, level, cashoutMultiplier, win, score, original.startedAt(), cashoutAt,
-                    crashedAt, finishedAt, original.seed(), status, updated, sequence, original.config());
+                    crashedAt, finishedAt, original.seed(), status, updated, sequence, original.config(),
+                    original.fairnessCommitment());
         }
 
         void emit(GameEvent.Type type, Map<String, Object> data) {

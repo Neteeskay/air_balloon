@@ -1,6 +1,6 @@
 # API / WebSocket contract
 
-Контракт Game Engine v1. Модули users/history/admin/rewards подключает Backend №2.
+Контракт Game Engine v1 с дополнениями Game Resilience. Модули users/history/admin/rewards подключает Backend №2.
 Все timestamp — UTC ISO-8601; деньги и коэффициенты — JSON numbers с точным
 серверным расчётом через BigDecimal. Клиент отображает значения, не рассчитывает выплату.
 
@@ -27,7 +27,6 @@
   "theme":"GREEN",
   "betAmount":100.00,
   "boosterMultiplier":3,
-  "boosterLevel":3,
   "boosterActivated":false,
   "currentMultiplier":1.0000,
   "currentLevel":0,
@@ -39,18 +38,27 @@
   "status":"RUNNING",
   "startedAt":"2026-09-11T00:00:00Z",
   "timestamp":"2026-09-11T00:00:00Z",
+  "roundId":"00000000-0000-0000-0000-000000000123",
+  "serverTime":"2026-09-11T00:00:00Z",
+  "cashoutPerformed":false,
+  "fairnessCommitment":"sha256:fb553c3b8fce90e8b7b024d5917254fb402b22b343ebf2cf96209cb8f6008456",
   "sequence":1
 }
 ```
 
-Seed отсутствует всегда, crashMultiplier отсутствует до падения. Позиция бустера
-выбирается сервером и может отображаться клиентом. Для x1 boosterLevel отсутствует.
+Seed отсутствует на верхнем уровне всегда; `fairnessReveal.serverSeed` появляется
+после падения. crashMultiplier отсутствует до падения. Позиция бустера скрыта до
+фактической активации или падения; это исправление утечки будущего результата.
+Для x1 boosterLevel отсутствует и в proof трактуется как null.
 Start не идемпотентен: каждый POST списывает новую ставку.
 
 ### Snapshot
 
 `GET /api/rounds/{roundId}`, success `200 OK`, ответ — RoundView. Проверяет владельца,
 догоняет состояние до текущего серверного времени. Используется после reconnect.
+`roundId` — alias прежнего `id`, `sequence` — cursor snapshot. `cashoutPerformed`
+явно указывает, зафиксирована ли выплата. `serverTime` — текущее время сервера,
+а `timestamp` — время последнего изменения состояния.
 
 ### Cashout
 
@@ -63,9 +71,34 @@ Start не идемпотентен: каждый POST списывает нов
 В обоих случаях повторного начисления нет. При `503 INTEGRATION_UNAVAILABLE`
 сумма могла уже зафиксироваться; GET и повтор команды завершают ожидающие эффекты.
 
+Опциональный header `Idempotency-Key: UUID` сохраняет первый успешный результат
+cashout в пределах раунда. С тем же key возвращается тот же cashout snapshot даже
+после crash (со свежим serverTime); для актуального статуса использовать GET.
+Другой key/без key — прежние 409. Key хранится вместе с checkpoint в пределах
+finished-retention, default 24h. Неверный формат header: 400 INVALID_REQUEST.
+
 Финальный RoundView имеет `status=FINISHED`, `crashMultiplier`, `crashedAt`,
 `finishedAt`, `outcome=CASHED_OUT|LOSS`; ранее зафиксированные winAmount/cashoutAt
-не изменяются. Null-поля в JSON опущены.
+не изменяются. Добавляется `fairnessReveal` с proof. Null-поля в JSON опущены.
+
+### Fairness
+
+`GET /api/rounds/{roundId}/fairness`, 200, только владелец.
+До crash: `status=COMMITTED`, `roundId`, `commitment`, `algorithm=SHA-256`,
+`format=air-balloon-fairness:v1`. После crash: `status=REVEALED` и дополнительно
+`serverSeed` (decimal string), `crashMultiplier`, `boosterLevel`, `verified`,
+`canonicalInput`. Seed/result до падения отсутствуют, даже после cashout.
+Проверять по первоначальному commitment: [точный формат и verifier](fairness.md).
+
+### Replay
+
+`GET /api/rounds/{roundId}/events?afterSequence=15`, 200, только владелец.
+Ответ содержит `roundId`, `events` с sequence>15, `oldestAvailableSequence`,
+`latestSequence`, `snapshotRequired`, `serverTime`. Events используют тот же
+envelope, что WebSocket, без внутренних snapshot/userId/config/seed.
+При `snapshotRequired=true` вернуть UI к GET snapshot: начало буфера могло быть
+удалено, cursor мог опередить сервер или replay истёк. Невалидный/отрицательный
+cursor: 400. Default limit=256 всех событий на round, finished replay TTL=15m.
 
 ## WebSocket events
 
@@ -83,22 +116,24 @@ POST start. Не отправлять клиентские игровые соо
   "type":"MULTIPLIER_UPDATE",
   "roundId":"00000000-0000-0000-0000-000000000123",
   "sequence":12,
+  "eventId":"00000000-0000-0000-0000-000000000123:12",
   "timestamp":"2026-09-11T00:00:10.100Z",
+  "serverTime":"2026-09-11T00:00:10.100Z",
   "data":{"multiplier":6.0300,"level":6}
 }
 ```
 
 | type | data |
 | --- | --- |
-| ROUND_STARTED | `round: RoundView` |
+| ROUND_STARTED | `round: RoundView`, `fairnessCommitment` |
 | MULTIPLIER_UPDATE | `multiplier, level` |
 | LEVEL_REACHED | `level, multiplier, points, pointsToAward` |
 | BOOSTER_ACTIVATED | `booster, level, beforeMultiplier, afterMultiplier, points, pointsToAward` |
 | CASHOUT_SUCCESS | `multiplier, cashoutMultiplier, winAmount` |
-| CRASH | `crashMultiplier` |
-| ROUND_FINISHED | `round: RoundView` с полным финальным клиентским состоянием |
+| CRASH | `crashMultiplier`, `fairnessReveal` |
+| ROUND_FINISHED | `round: RoundView` с полным финальным состоянием, `fairnessReveal` |
 
-`roundId`, `sequence`, `timestamp` находятся в envelope всех игровых событий.
+`roundId`, `sequence`, `eventId`, `timestamp`, `serverTime` находятся в envelope всех игровых событий.
 Доменный event дополнительно содержит userId и внутренний snapshot для Backend №2;
 в WebSocket они напрямую не сериализуются.
 
@@ -110,7 +145,9 @@ Frontend интерполирует между значениями, FPS не в
 `sequence` монотонен внутри roundId. Дедуплицировать повторные доставки по
 `(roundId,sequence)`. После reconnect: открыть socket, буферизовать события,
 получить GET snapshot, отбросить события `sequence <= snapshot.sequence`,
-применить остальные. Сервер не хранит долговечный replay событий.
+применить остальные по порядку. Разрыв sequence требует replay или нового snapshot.
+Replay ограничен по размеру и TTL и не переживает рестарт JVM с memory adapters.
+Подробный протокол, retention и контракты: [reconnect-recovery.md](reconnect-recovery.md).
 
 ## Error format
 

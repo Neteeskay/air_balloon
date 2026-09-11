@@ -13,15 +13,22 @@ public record RoundView(UUID id, Theme theme, BigDecimal betAmount, int boosterM
                         boolean cashoutAvailable, BigDecimal cashoutMultiplier, BigDecimal winAmount,
                         long roundScore, RoundStatus status, String outcome, BigDecimal crashMultiplier,
                         Instant startedAt, Instant cashoutAt, Instant crashedAt, Instant finishedAt,
-                        Instant timestamp, long sequence) {
+                        Instant timestamp, long sequence, UUID roundId, Instant serverTime,
+                        boolean cashoutPerformed, String fairnessCommitment, FairnessView fairnessReveal) {
     public static RoundView from(GameRound r) {
+        return from(r, r.updatedAt());
+    }
+    public static RoundView from(GameRound r, Instant serverTime) {
         boolean finished = r.status() == RoundStatus.FINISHED;
-        return new RoundView(r.id(), r.theme(), r.betAmount(), r.boosterMultiplier(), r.boosterLevel(),
+        boolean revealed = finished || r.status() == RoundStatus.CRASHED;
+        return new RoundView(r.id(), r.theme(), r.betAmount(), r.boosterMultiplier(),
+                revealed || r.boosterActivated() ? r.boosterLevel() : null,
                 r.boosterActivated(), r.currentMultiplier(), r.currentLevel(), r.theme().levels(),
                 r.config().forTheme(r.theme()).thresholds(), r.status() == RoundStatus.RUNNING && r.currentLevel() > 0,
                 r.cashoutMultiplier(), r.winAmount(), r.roundScore(), r.status(),
                 finished ? (r.cashoutAt() == null ? "LOSS" : "CASHED_OUT") : null,
                 finished || r.status() == RoundStatus.CRASHED ? r.crashMultiplier() : null,
-                r.startedAt(), r.cashoutAt(), r.crashedAt(), r.finishedAt(), r.updatedAt(), r.sequence());
+                r.startedAt(), r.cashoutAt(), r.crashedAt(), r.finishedAt(), r.updatedAt(), r.sequence(),
+                r.id(), serverTime, r.cashoutAt() != null, r.fairnessCommitment(), revealed ? FairnessView.from(r) : null);
     }
 }

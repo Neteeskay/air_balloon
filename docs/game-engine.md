@@ -342,16 +342,19 @@ config validation/snapshot, seed profiles, ownership, unknown fields, WebSocket
   и механизм fencing/сериализации; `ReentrantLock` не является распределённым lock.
 - Очередь эффектов и активные сессии живут в памяти. При перезапуске незавершённые
   раунды требуют durable outbox/recovery от Backend №2. Просто PostgreSQL adapter
-  не делает процесс crash-safe. У найденного незавершённого чужому процессу
-  snapshot возвращается INTEGRATION_UNAVAILABLE вместо небезопасного cashout.
-- Завершённые сессии и fake balances пока сохраняются в памяти без TTL; это
-  ограничение длительной эксплуатации, не механизм production history.
+  не делает процесс crash-safe. Если найден незавершённый snapshot без recovery
+  checkpoint, возвращается INTEGRATION_UNAVAILABLE вместо небезопасного cashout.
+- Game Resilience удаляет завершённые сессии после успешных эффектов и вводит TTL
+  для replay/checkpoints/snapshots. Fake balances остаются demo-адаптером Backend №2.
 - Временные ошибки адаптера повторяются scheduler; для внешних систем нужны
-  timeout/backoff и мониторинг. Длительный блокирующий вызов может задерживать
-  очередной обход scheduler, хотя HTTP других раундов не держит общий lock.
-- Нет долговечного event replay. Reconnect восстанавливает snapshot через GET.
+  timeout/backoff и мониторинг. Game Resilience обрабатывает раунды в независимых
+  scheduler-задачах, с максимум одной ожидающей/выполняющейся задачей на round.
+- Есть bounded in-memory replay и recovery contracts; долговечных адаптеров нет.
 - Production authentication, БД, награды, история и Admin API остаются Backend №2.
-- Системная демо-математика не обещает регулируемый RTP/provably fair.
+- Системная демо-математика не обещает регулируемый RTP. Добавлено упрощённое
+  commit/reveal доказательство неизменности результата: [fairness.md](fairness.md).
+
+Дополнения следующего этапа: [reconnect-recovery.md](reconnect-recovery.md).
 
 Эти ограничения не препятствуют интеграции портов и frontend для одного
 хакатонного процесса; они обозначают дополнительные задачи перед production.

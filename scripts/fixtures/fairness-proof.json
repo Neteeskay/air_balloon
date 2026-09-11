@@ -1,0 +1,11 @@
+{
+  "roundId": "00000000-0000-0000-0000-000000000123",
+  "status": "REVEALED",
+  "commitment": "sha256:fb553c3b8fce90e8b7b024d5917254fb402b22b343ebf2cf96209cb8f6008456",
+  "algorithm": "SHA-256",
+  "format": "air-balloon-fairness:v1",
+  "serverSeed": "42",
+  "crashMultiplier": 8.42,
+  "boosterLevel": 3,
+  "verified": true
+}

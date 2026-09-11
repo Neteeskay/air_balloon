@@ -15,6 +15,9 @@ import ru.airballoon.game.application.port.*;
 import ru.airballoon.game.infrastructure.memory.*;
 import java.io.IOException;
 import java.security.Principal;
+import java.time.Clock;
+import org.springframework.beans.factory.ObjectProvider;
+import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 @Profile({"dev", "demo", "test"})
@@ -27,7 +30,11 @@ public class DemoAdaptersConfiguration {
     }
 
     @Bean @ConditionalOnMissingBean(RoundRepository.class)
-    InMemoryRoundRepository demoRounds() { return new InMemoryRoundRepository(); }
+    InMemoryRoundRepository demoRounds(ObjectProvider<Clock> clock, ObjectProvider<ResilienceProperties> policies) {
+        ResilienceProperties p = policies.getIfAvailable();
+        return new InMemoryRoundRepository(clock.getIfAvailable(Clock::systemUTC),
+                p == null ? Duration.ofHours(24) : p.finishedRetention());
+    }
 
     @Bean @ConditionalOnMissingBean(BalanceService.class)
     FakeBalanceService demoBalance(GameProperties properties) { return new FakeBalanceService(properties.demoBalance()); }

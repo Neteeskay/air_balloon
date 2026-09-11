@@ -11,5 +11,5 @@ public record GameRound(
         BigDecimal currentMultiplier, int currentLevel, BigDecimal cashoutMultiplier,
         BigDecimal winAmount, long roundScore, Instant startedAt, Instant cashoutAt,
         Instant crashedAt, Instant finishedAt, long seed, RoundStatus status,
-        Instant updatedAt, long sequence, GameConfig config) {
+        Instant updatedAt, long sequence, GameConfig config, String fairnessCommitment) {
 }

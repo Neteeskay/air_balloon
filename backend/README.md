@@ -40,3 +40,10 @@ Native JSON WebSocket: `/ws/rounds`, автоматически только с�
 - [Математика, lifecycle, конфигурация, DI и ограничения](../docs/game-engine.md)
 - [Полный отчёт о реализации](../docs/game-engine-result.md)
 - [Smoke test реального scheduler + WebSocket](../scripts/game-engine-smoke.ps1)
+- [Commit/reveal и независимая проверка proof](../docs/fairness.md)
+- [Snapshot, reconnect, replay, checkpoints и cleanup](../docs/reconnect-recovery.md)
+
+Дополнительные REST endpoints: `GET /api/rounds/{id}/fairness`,
+`GET /api/rounds/{id}/events?afterSequence=0`. Cashout принимает необязательный
+`Idempotency-Key: UUID`. Все integration/reliability tests входят в `mvnw verify`.
+Локальная fairness-демонстрация из корня: `node scripts/verify-fairness.mjs --demo`.

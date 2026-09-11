@@ -13,13 +13,17 @@ import org.slf4j.LoggerFactory;
 import ru.airballoon.game.application.GameService;
 import ru.airballoon.game.application.port.*;
 import ru.airballoon.game.domain.*;
+import ru.airballoon.game.infrastructure.memory.InMemoryRoundEventStore;
+import ru.airballoon.game.infrastructure.memory.InMemoryActiveRoundStateStore;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(GameProperties.class)
+@EnableConfigurationProperties({GameProperties.class, ResilienceProperties.class})
 @EnableScheduling
 public class EngineConfiguration {
     private static final Set<String> DEMO_PROFILES = Set.of("test", "dev", "demo");
@@ -47,21 +51,36 @@ public class EngineConfiguration {
 
     @Bean
     GameService gameService(GameConfigProvider configs, RoundRepository repository, BalanceService balances,
-                            RewardService rewards, GameEventPublisher events, SeedSource seeds, Clock clock) {
-        return new GameService(new RoundEngine(), configs, repository, balances, rewards, events, seeds, clock);
+                            RewardService rewards, GameEventPublisher events, SeedSource seeds, Clock clock,
+                            RoundEventStore eventStore, ActiveRoundStateStore checkpoints) {
+        return new GameService(new RoundEngine(), configs, repository, balances, rewards, events, seeds, clock, eventStore, checkpoints);
+    }
+
+    @Bean @ConditionalOnMissingBean(RoundEventStore.class)
+    RoundEventStore roundEventStore(ResilienceProperties p) {
+        return new InMemoryRoundEventStore(p.replayLimit(), p.replayRetention());
+    }
+
+    @Bean @ConditionalOnMissingBean(ActiveRoundStateStore.class)
+    ActiveRoundStateStore activeRoundStateStore(ResilienceProperties p) {
+        return new InMemoryActiveRoundStateStore(p.finishedRetention());
     }
 
     @Bean @ConditionalOnProperty(name = "game.scheduler-enabled", havingValue = "true", matchIfMissing = true)
     GameTicker gameTicker(GameService service) { return new GameTicker(service); }
 
-    public static final class GameTicker {
+    public static final class GameTicker implements AutoCloseable {
         private static final Logger log = LoggerFactory.getLogger(GameTicker.class);
         private final GameService service;
+        private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
         GameTicker(GameService service) { this.service = service; }
 
         @Scheduled(fixedDelayString = "${game.tick-millis:100}")
         public void tick() {
-            service.tickAll((id, ex) -> log.error("Round {} tick failed", id, ex));
+            service.tickAll((id, ex) -> log.error("Round {} tick failed", id, ex), workers);
         }
+        @Scheduled(fixedDelayString = "${game.resilience.cleanup-millis:30000}")
+        public void cleanup() { service.cleanup(); }
+        @Override public void close() { workers.close(); }
     }
 }
