@@ -11,60 +11,55 @@ export interface BalloonPathConfig {
 
 /**
  * Creates smooth, realistic floating animation for hot air balloons
- * Balloons rise slowly from bottom to top with gentle wave motion
- * Infinite loop - when balloon exits top, it reappears at bottom
+ * Balloons rise continuously with infinite seamless loop
  */
 export function createBalloonPath(
   element: HTMLElement,
   config: BalloonPathConfig = {},
 ) {
   const {
-    duration = 20 + Math.random() * 10, // 20-30 seconds - очень медленное движение вверх
-    yOffset = config.yOffset || (15 + Math.random() * 10), // Вертикальное смещение
-    xOffset = config.xOffset || ((Math.random() - 0.5) * 30), // Горизонтальное волнистое движение
-    rotation = config.rotation || ((Math.random() - 0.5) * 6), // -3 to +3 degrees
-    delay = 0, // Убираем delay - шары должны сразу быть видны
-    scaleVariation = 0.01 + Math.random() * 0.02, // Едва заметное изменение масштаба
+    duration = 30 + Math.random() * 15, // 30-45 seconds
+    xOffset = config.xOffset || ((Math.random() - 0.5) * 60),
+    rotation = config.rotation || ((Math.random() - 0.5) * 8),
+    delay = Math.random() * duration, // Случайная стартовая позиция в цикле
   } = config;
 
+  // Получаем начальную позицию элемента
+  const initialY = parseFloat(getComputedStyle(element).top);
+  const viewportHeight = window.innerHeight;
+
+  // Конечная точка - далеко за верхом экрана
+  const endY = -viewportHeight * 1.5;
+
+  // Стартовая точка - начальная позиция элемента
+  const startY = initialY;
+
+  // Бесконечная анимация с yoyo:false для бесшовного цикла
   const tl = gsap.timeline({
-    repeat: -1, // Бесконечный цикл
-    delay,
+    repeat: -1,
+    delay: delay,
+    onRepeat: () => {
+      // При повторе сбрасываем на начальную позицию без видимого прыжка
+      gsap.set(element, { y: 0, x: 0, rotation: 0 });
+    }
   });
 
-  // Плавное волнистое движение снизу вверх
+  // Плавный подъём вверх
   tl.to(element, {
-    y: yOffset * 0.3,
-    x: xOffset * 0.2,
-    rotation: rotation * 0.3,
-    scale: `+=${scaleVariation * 0.5}`,
-    duration: duration * 0.25,
-    ease: 'sine.inOut',
-  })
-    .to(element, {
-      y: yOffset * 0.6,
-      x: xOffset * 0.6,
-      rotation: rotation * 0.7,
-      scale: `+=${scaleVariation * 0.3}`,
-      duration: duration * 0.25,
-      ease: 'sine.inOut',
-    })
-    .to(element, {
-      y: yOffset * 0.85,
-      x: xOffset * 0.9,
-      rotation: rotation * 0.9,
-      scale: `+=${scaleVariation * 0.2}`,
-      duration: duration * 0.25,
-      ease: 'sine.inOut',
-    })
-    .to(element, {
-      y: yOffset,
-      x: xOffset,
-      rotation: rotation,
-      scale: `-=${scaleVariation}`,
-      duration: duration * 0.25,
-      ease: 'sine.inOut',
-    });
+    y: endY - startY, // Относительное смещение вверх
+    x: xOffset,
+    rotation: rotation,
+    duration: duration,
+    ease: 'none',
+    modifiers: {
+      // Волнистость по X
+      x: function(x) {
+        const progress = tl.progress();
+        const wave = Math.sin(progress * Math.PI * 3) * 25;
+        return parseFloat(x) + wave + 'px';
+      }
+    }
+  });
 
   return tl;
 }

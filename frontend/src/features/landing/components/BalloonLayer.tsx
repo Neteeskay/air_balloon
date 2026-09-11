@@ -2,7 +2,6 @@ import { CSSProperties, useEffect, useRef } from 'react';
 import { createBalloonPath } from '../animations/balloonPath';
 import { SPRITES } from '../config/sprites';
 import type { BalloonColor } from '../config/sprites';
-import { gsap } from '../animations/gsapSetup';
 
 export interface Balloon {
   id: string;
@@ -33,40 +32,16 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
         const balloon = balloons[index];
         if (!balloon) return null;
 
-        const animation = createBalloonPath(el, {
-          delay: 0, // Убираем delay - шары сразу видны
+        return createBalloonPath(el, {
           xOffset: balloon.pathConfig?.xOffset,
           yOffset: balloon.pathConfig?.yOffset,
           rotation: balloon.pathConfig?.rotation,
         });
-
-        // Когда шар вылетает сверху, телепортируем его вниз
-        const checkBounds = () => {
-          const rect = el.getBoundingClientRect();
-
-          // Шар вылетел за верхнюю границу - возвращаем вниз
-          if (rect.bottom < -200) {
-            // Сбрасываем трансформы GSAP и возвращаем на стартовую позицию
-            gsap.set(el, {
-              y: 0,
-              x: 0,
-              rotation: 0,
-            });
-          }
-        };
-
-        // Проверяем границы каждые 2 секунды
-        const interval = setInterval(checkBounds, 2000);
-
-        return { animation, interval };
       })
-      .filter((anim): anim is { animation: ReturnType<typeof createBalloonPath>, interval: NodeJS.Timeout } => anim !== null);
+      .filter((anim): anim is ReturnType<typeof createBalloonPath> => anim !== null);
 
     return () => {
-      animations.forEach(({ animation, interval }) => {
-        animation.kill();
-        clearInterval(interval);
-      });
+      animations.forEach((anim) => anim.kill());
     };
   }, [balloons]);
 
@@ -79,7 +54,6 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
           top: `${balloon.y}%`,
           transform: `scale(${balloon.scale})`,
           willChange: 'transform',
-          opacity: 1, // Всегда видны
         };
 
         return (
