@@ -39,11 +39,14 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .flight-stage {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
   z-index: 2;
-  width: min(100%, 1920px);
-  height: 100%;
-  margin-inline: auto;
+  width: min(100vw, calc(100svh * 16 / 9), 1920px);
+  aspect-ratio: 16 / 9;
+  max-height: 100svh;
+  transform: translate(-50%, -50%);
+  container-type: size;
 }
 
 .birds {
@@ -65,16 +68,16 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(48vw, 850px);
+  width: min(48cqw, 850px);
   transform: translateX(-50%);
   text-align: center;
 }
 
 .flight-logo {
   display: block;
-  width: clamp(300px, 27vw, 515px);
-  height: clamp(135px, 15.2vw, 285px);
-  margin: clamp(-50px, -2.8vw, -24px) 0 clamp(-55px, -3vw, -24px);
+  width: clamp(300px, 27cqw, 515px);
+  height: clamp(135px, 15.2cqw, 285px);
+  margin: clamp(-50px, -2.8cqw, -24px) 0 clamp(-55px, -3cqw, -24px);
   object-fit: contain;
   user-select: none;
 }
@@ -82,7 +85,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .flight-header h1 {
   margin: 0;
   color: #081a4a;
-  font-size: clamp(27px, 2.15vw, 42px);
+  font-size: clamp(27px, 2.15cqw, 42px);
   font-weight: 900;
   line-height: 1.08;
   letter-spacing: -.045em;
@@ -92,7 +95,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .flight-header p {
   margin: .35rem 0 0;
   color: #30486c;
-  font-size: clamp(13px, .92vw, 18px);
+  font-size: clamp(13px, .92cqw, 18px);
   font-weight: 600;
   line-height: 1.2;
 }
@@ -104,9 +107,9 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: clamp(10px, .9vw, 18px);
-  min-width: clamp(230px, 16vw, 310px);
-  height: clamp(52px, 5.2vh, 66px);
+  gap: clamp(10px, .9cqw, 18px);
+  min-width: clamp(230px, 16cqw, 310px);
+  height: clamp(52px, 5.2cqh, 66px);
   padding: 6px 13px 6px 8px;
   border: 1px solid rgba(255,255,255,.32);
   border-radius: 999px;
@@ -126,7 +129,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   background: rgba(235,247,255,.92);
 }
 
-.user-panel strong { flex: 1; font-size: clamp(14px, .9vw, 17px); }
+.user-panel strong { flex: 1; font-size: clamp(14px, .9cqw, 17px); }
 .user-panel__divider { width: 1px; height: 28px; background: rgba(255,255,255,.72); }
 .user-panel button { display: grid; place-items: center; padding: 4px; border: 0; color: white; background: transparent; cursor: pointer; }
 
@@ -136,7 +139,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   left: 50%;
   z-index: 3;
   display: flex;
-  gap: clamp(24px, 2.1vw, 42px);
+  gap: clamp(24px, 2.1cqw, 42px);
   transform: translateX(-50%);
 }
 
@@ -144,11 +147,11 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   --accent: #e92328;
   --accent-dark: #c6121e;
   position: relative;
-  width: clamp(286px, 21.2vw, 407px);
-  height: clamp(370px, 46vh, 500px);
+  width: clamp(286px, 21.2cqw, 407px);
+  height: clamp(370px, 46cqh, 500px);
   overflow: visible;
   border: 3px solid rgba(255, 255, 255, .93);
-  border-radius: clamp(25px, 2vw, 38px);
+  border-radius: clamp(25px, 2cqw, 38px);
   background: linear-gradient(180deg, rgba(227,246,255,.92) 0%, rgba(255,255,255,.97) 72%);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 60%), 0 0 34px color-mix(in srgb, var(--accent), transparent 45%), 0 20px 42px rgba(16,76,110,.2);
 }
@@ -184,18 +187,18 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .mode-card__copy h2 {
   margin: 0 0 .25rem;
   color: var(--accent-dark);
-  font-size: clamp(24px, 1.8vw, 35px);
+  font-size: clamp(24px, 1.8cqw, 35px);
   font-weight: 900;
   line-height: 1;
   letter-spacing: -.045em;
 }
 
 .mode-card__levels { display: flex; align-items: flex-end; justify-content: center; gap: .55rem; color: #122752; }
-.mode-card__levels strong { font-size: clamp(15px, 1.12vw, 21px); line-height: 1; }
+.mode-card__levels strong { font-size: clamp(15px, 1.12cqw, 21px); line-height: 1; }
 .signal { display: flex; align-items: flex-end; gap: 3px; height: 20px; color: var(--accent); }
 .signal i { display: block; width: 5px; border-radius: 2px 2px 0 0; background: currentColor; }
 .signal i:nth-child(1) { height: 7px; }.signal i:nth-child(2) { height: 13px; }.signal i:nth-child(3) { height: 19px; }
-.mode-card__copy p { margin: .45rem 0 0; color: #52627a; font-size: clamp(13px, .92vw, 18px); font-weight: 600; }
+.mode-card__copy p { margin: .45rem 0 0; color: #52627a; font-size: clamp(13px, .92cqw, 18px); font-weight: 600; }
 
 .mode-card__button {
   position: absolute;
@@ -213,7 +216,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   color: white;
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent), white 9%), var(--accent-dark));
   box-shadow: inset 0 2px 2px rgba(255,255,255,.35), 0 6px 12px color-mix(in srgb, var(--accent), transparent 68%);
-  font-size: clamp(17px, 1.18vw, 23px);
+  font-size: clamp(17px, 1.18cqw, 23px);
   font-weight: 900;
   cursor: pointer;
 }
@@ -229,10 +232,10 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: clamp(16px, 1.5vw, 30px);
-  width: clamp(620px, 46.5vw, 892px);
-  height: clamp(82px, 10.5vh, 114px);
-  padding: 10px clamp(20px, 1.8vw, 34px);
+  gap: clamp(16px, 1.5cqw, 30px);
+  width: clamp(620px, 46.5cqw, 892px);
+  height: clamp(82px, 10.5cqh, 114px);
+  padding: 10px clamp(20px, 1.8cqw, 34px);
   border: 3px solid rgba(255,255,255,.88);
   border-radius: 27px;
   color: #0c265a;
@@ -241,11 +244,11 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   transform: translateX(-50%);
 }
 
-.rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5vw, 94px); color: #e69600; }
+.rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5cqw, 94px); color: #e69600; }
 .trophy-icon { width: 100%; height: auto; stroke-width: 1.7; fill: #ffc43b; stroke: #c67a00; }
-.rating-card h2 { margin: 0; font-size: clamp(18px, 1.32vw, 25px); font-weight: 900; }
-.rating-card p { margin: .22rem 0 0; color: #425d82; font-size: clamp(12px, .8vw, 16px); font-weight: 600; line-height: 1.25; }
-.rating-card__days { display: flex; align-items: center; gap: .55rem; padding: .65rem 1rem; border-radius: 999px; color: #78541d; background: #ffeab2; font-size: clamp(14px, .95vw, 18px); font-weight: 900; }
+.rating-card h2 { margin: 0; font-size: clamp(18px, 1.32cqw, 25px); font-weight: 900; }
+.rating-card p { margin: .22rem 0 0; color: #425d82; font-size: clamp(12px, .8cqw, 16px); font-weight: 600; line-height: 1.25; }
+.rating-card__days { display: flex; align-items: center; gap: .55rem; padding: .65rem 1rem; border-radius: 999px; color: #78541d; background: #ffeab2; font-size: clamp(14px, .95cqw, 18px); font-weight: 900; }
 .rating-card > svg { width: 1.55rem; height: 1.55rem; }
 
 .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
@@ -253,13 +256,13 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .tutorial-sign {
   position: absolute;
   z-index: 2;
-  padding: clamp(13px, 1.1vw, 21px) clamp(17px, 1.35vw, 26px);
+  padding: clamp(13px, 1.1cqw, 21px) clamp(17px, 1.35cqw, 26px);
   border: 3px solid #654022;
   border-radius: 4px;
   color: #f3e4d0;
   background: linear-gradient(96deg, #6c4528, #93623b 48%, #694023);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 7px 14px rgba(42,24,12,.32);
-  font-size: clamp(14px, 1.05vw, 20px);
+  font-size: clamp(14px, 1.05cqw, 20px);
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
@@ -269,8 +272,8 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 .tutorial-sign::before, .tutorial-sign::after { content: ''; position: absolute; top: -42px; width: 8px; height: 47px; border-radius: 4px; background: #654022; z-index: -1; }
 .tutorial-sign::before { left: 20%; }.tutorial-sign::after { right: 20%; }
-.tutorial-sign--left { top: 35%; left: -10px; min-width: clamp(150px, 12vw, 230px); }
-.tutorial-sign--right { top: 61%; right: -8px; min-width: clamp(115px, 8.8vw, 170px); transform: rotate(3deg); }
+.tutorial-sign--left { top: 35%; left: -10px; min-width: clamp(150px, 12cqw, 230px); }
+.tutorial-sign--right { top: 61%; right: -8px; min-width: clamp(115px, 8.8cqw, 170px); transform: rotate(3deg); }
 .tutorial-arcs { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
 .tutorial-arcs path {
   fill: none;
@@ -285,7 +288,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   bottom: -5%;
   left: -1.5%;
   z-index: 4;
-  width: clamp(350px, 28vw, 535px);
+  width: clamp(350px, 28cqw, 535px);
   animation: chinchillotEnter 520ms cubic-bezier(.2,.75,.28,1) both;
   pointer-events: none;
   user-select: none;
@@ -304,14 +307,14 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   position: absolute;
   display: grid;
   place-items: center;
-  width: clamp(44px, 3.7vw, 70px);
+  width: clamp(44px, 3.7cqw, 70px);
   aspect-ratio: 1;
   border: 4px solid white;
   border-radius: 50%;
   color: white;
   background: #ffbd00;
   box-shadow: 0 3px 10px rgba(113,73,0,.25);
-  font-size: clamp(23px, 1.8vw, 35px);
+  font-size: clamp(23px, 1.8cqw, 35px);
   font-weight: 900;
 }
 
@@ -320,8 +323,8 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   left: 7.5%;
   z-index: 6;
   display: grid;
-  width: clamp(330px, 23vw, 440px);
-  padding: clamp(20px, 1.4vw, 27px) clamp(24px, 1.8vw, 35px);
+  width: clamp(330px, 23cqw, 440px);
+  padding: clamp(20px, 1.4cqw, 27px) clamp(24px, 1.8cqw, 35px);
   border: 0;
   border-radius: 44% 44% 40% 40% / 30% 30% 42% 42%;
   text-align: left;
@@ -330,10 +333,10 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 .tutorial-dialog .tutorial-number { top: -38px; left: -18px; }
-.tutorial-dialog strong { font-size: clamp(20px, 1.5vw, 29px); }
-.tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05vw, 20px); line-height: 1.3; }
-.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18vw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
-.tutorial-tip strong { font-size: clamp(16px, 1.05vw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92vw, 18px); }
+.tutorial-dialog strong { font-size: clamp(20px, 1.5cqw, 29px); }
+.tutorial-dialog > span:last-child { margin-top: .35rem; font-size: clamp(15px, 1.05cqw, 20px); line-height: 1.3; }
+.tutorial-tip { z-index: 7; display: grid; min-width: clamp(255px, 18cqw, 345px); padding: 16px 24px; border-radius: 22px; animation: tutorialBubble 360ms 90ms ease-out both; }
+.tutorial-tip strong { font-size: clamp(16px, 1.05cqw, 21px); }.tutorial-tip > span:last-child { margin-top: 3px; font-size: clamp(14px, .92cqw, 18px); }
 .tutorial-tip--red { top: 20.5%; left: 12.5%; color: #9b1420; }
 .tutorial-tip--green { top: 20.5%; right: 12.5%; color: #147039; }
 .tutorial-tip--red .tutorial-number { right: -58px; bottom: -52px; background: #e01725; }
@@ -353,7 +356,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
   color: white;
   background: rgba(42,74,126,.68);
   box-shadow: 0 8px 20px rgba(4,37,82,.2);
-  font-size: clamp(14px, .9vw, 18px);
+  font-size: clamp(14px, .9cqw, 18px);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -381,7 +384,6 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 }
 
 @media (max-width: 1100px) {
-  .flight-mode-page { min-width: 960px; }
   .user-panel { right: 1.5%; }
   .tutorial-tip--red { left: 8%; }
   .tutorial-tip--green { right: 8%; }

@@ -11,6 +11,11 @@ type CurrentUser = {
   displayName: string
 }
 
+const DEV_PREVIEW_USER: CurrentUser = {
+  userId: '00000000-0000-4000-8000-000000000517',
+  displayName: 'Игрок123',
+}
+
 function onboardingKey(userId: string) {
   return `${ONBOARDING_KEY_PREFIX}${userId}`
 }
@@ -28,13 +33,21 @@ async function loadCurrentUser(signal: AbortSignal): Promise<CurrentUser | null>
     }
   }
 
-  const response = await fetch('/api/auth/me', {
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-    signal,
-  })
+  let response: Response
+
+  try {
+    response = await fetch('/api/auth/me', {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+      signal,
+    })
+  } catch (error) {
+    if (import.meta.env.DEV && !signal.aborted) return DEV_PREVIEW_USER
+    throw error
+  }
 
   if (response.status === 401 || response.status === 403) return null
+  if (import.meta.env.DEV && response.status >= 500) return DEV_PREVIEW_USER
   if (!response.ok) throw new Error(`Unable to load current user: ${response.status}`)
 
   const user = await response.json() as Partial<CurrentUser>
