@@ -107,7 +107,7 @@ section {
   position: relative;
   width: 100%;
   min-height: 300vh; /* Достаточно места для скролла */
-  background-image: url('../../../img/back.png');
+  background-image: url('/img/back.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
