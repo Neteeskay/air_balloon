@@ -11,30 +11,29 @@ export interface BalloonPathConfig {
 
 /**
  * Creates smooth, realistic floating animation for hot air balloons
- * Balloons drift slowly and gracefully like real aircraft
+ * Balloons rise slowly from bottom to top with gentle wave motion
  */
 export function createBalloonPath(
   element: HTMLElement,
   config: BalloonPathConfig = {},
 ) {
   const {
-    duration = 6 + Math.random() * 4, // 6-10 seconds - медленнее, плавнее
-    yOffset = 15 + Math.random() * 10, // 15-25px - меньшее вертикальное движение
-    xOffset = (Math.random() - 0.5) * 30, // -15 to +15px - лёгкий дрейф
-    rotation = (Math.random() - 0.5) * 6, // -3 to +3 degrees - очень лёгкое покачивание
-    delay = Math.random() * 2,
-    scaleVariation = 0.02 + Math.random() * 0.03, // 0.02-0.05 - едва заметное изменение масштаба
+    duration = 20 + Math.random() * 10, // 20-30 seconds - очень медленное движение вверх
+    yOffset = config.yOffset || (15 + Math.random() * 10), // Вертикальное смещение
+    xOffset = config.xOffset || ((Math.random() - 0.5) * 30), // Горизонтальное волнистое движение
+    rotation = config.rotation || ((Math.random() - 0.5) * 6), // -3 to +3 degrees
+    delay = config.delay || Math.random() * 2,
+    scaleVariation = 0.01 + Math.random() * 0.02, // Едва заметное изменение масштаба
   } = config;
 
   const tl = gsap.timeline({
     repeat: -1,
-    yoyo: true,
     delay,
   });
 
-  // Плавное S-образное движение (как настоящий воздушный шар)
+  // Плавное волнистое движение снизу вверх (без yoyo - только вверх)
   tl.to(element, {
-    y: -yOffset * 0.4,
+    y: yOffset * 0.3,
     x: xOffset * 0.2,
     rotation: rotation * 0.3,
     scale: `+=${scaleVariation * 0.5}`,
@@ -42,27 +41,27 @@ export function createBalloonPath(
     ease: 'sine.inOut',
   })
     .to(element, {
-      y: -yOffset * 0.7,
+      y: yOffset * 0.6,
       x: xOffset * 0.6,
       rotation: rotation * 0.7,
       scale: `+=${scaleVariation * 0.3}`,
-      duration: duration * 0.3,
+      duration: duration * 0.25,
       ease: 'sine.inOut',
     })
     .to(element, {
-      y: -yOffset,
-      x: xOffset,
-      rotation: rotation,
+      y: yOffset * 0.85,
+      x: xOffset * 0.9,
+      rotation: rotation * 0.9,
       scale: `+=${scaleVariation * 0.2}`,
       duration: duration * 0.25,
       ease: 'sine.inOut',
     })
     .to(element, {
-      y: -yOffset * 0.8,
-      x: xOffset * 0.7,
-      rotation: rotation * 0.6,
-      scale: `-=${scaleVariation * 0.3}`,
-      duration: duration * 0.2,
+      y: yOffset,
+      x: xOffset,
+      rotation: rotation,
+      scale: `-=${scaleVariation}`,
+      duration: duration * 0.25,
       ease: 'sine.inOut',
     });
 

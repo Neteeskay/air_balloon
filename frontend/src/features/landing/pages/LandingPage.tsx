@@ -4,60 +4,66 @@ import { BalloonLayer, type Balloon } from '../components/BalloonLayer';
 import { CONTENT } from '../config/content';
 import { gsap } from '../animations/gsapSetup';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { LIGHTING } from '../animations/lighting';
+import '../styles/landing.css';
 
 // INTRO CLOUDS - видны сразу, разлетаются при скролле
 const INTRO_CLOUDS: Cloud[] = [
-  { id: 'intro-1', x: 15, y: 25, scale: 2.0, cloudNum: 1 },
-  { id: 'intro-2', x: 65, y: 45, scale: 2.3, cloudNum: 3 },
-  { id: 'intro-3', x: 80, y: 15, scale: 1.8, cloudNum: 5 },
+  { id: 'intro-1', x: 5, y: 20, scale: 0.7, cloudNum: 1 },
+  { id: 'intro-2', x: 88, y: 15, scale: 0.65, cloudNum: 3 },
+  { id: 'intro-3', x: 10, y: 60, scale: 0.75, cloudNum: 5 },
+  { id: 'intro-4', x: 85, y: 55, scale: 0.7, cloudNum: 2 },
+  { id: 'intro-5', x: 3, y: 85, scale: 0.8, cloudNum: 4 },
+  { id: 'intro-6', x: 92, y: 80, scale: 0.75, cloudNum: 6 },
 ];
 
 // BACKGROUND CLOUDS - дальние, медленные
 const BG_CLOUDS: Cloud[] = [
-  { id: 'bg-1', x: 10, y: 30, scale: 0.45, cloudNum: 13 },
-  { id: 'bg-2', x: 85, y: 70, scale: 0.4, cloudNum: 15 },
+  { id: 'bg-1', x: 8, y: 25, scale: 0.3, cloudNum: 13 },
+  { id: 'bg-2', x: 90, y: 70, scale: 0.28, cloudNum: 15 },
+  { id: 'bg-3', x: 12, y: 75, scale: 0.32, cloudNum: 14 },
+  { id: 'bg-4', x: 87, y: 30, scale: 0.3, cloudNum: 16 },
 ];
 
 // MIDDLE CLOUDS - средняя скорость
 const MID_CLOUDS: Cloud[] = [
-  { id: 'mid-1', x: 20, y: 50, scale: 0.7, cloudNum: 8 },
-  { id: 'mid-2', x: 75, y: 35, scale: 0.75, cloudNum: 10 },
-  { id: 'mid-3', x: 45, y: 80, scale: 0.65, cloudNum: 11 },
+  { id: 'mid-1', x: 15, y: 40, scale: 0.45, cloudNum: 8 },
+  { id: 'mid-2', x: 82, y: 45, scale: 0.48, cloudNum: 10 },
+  { id: 'mid-3', x: 10, y: 80, scale: 0.42, cloudNum: 11 },
+  { id: 'mid-4', x: 88, y: 65, scale: 0.46, cloudNum: 9 },
 ];
 
 // FOREGROUND CLOUDS - близкие, быстрые
 const FG_CLOUDS: Cloud[] = [
-  { id: 'fg-1', x: 5, y: 85, scale: 1.0, cloudNum: 2 },
-  { id: 'fg-2', x: 88, y: 75, scale: 0.95, cloudNum: 4 },
+  { id: 'fg-1', x: 2, y: 50, scale: 0.6, cloudNum: 2 },
+  { id: 'fg-2', x: 93, y: 40, scale: 0.58, cloudNum: 4 },
+  { id: 'fg-3', x: 5, y: 90, scale: 0.62, cloudNum: 7 },
+  { id: 'fg-4', x: 90, y: 85, scale: 0.6, cloudNum: 3 },
 ];
 
-// BALLOONS - плавно плывут
+// BALLOONS - плавно плывут снизу вверх
 const BALLOONS: Balloon[] = [
-  { id: 'b-1', color: 'red', x: 8, y: 35, scale: 0.55, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 18, rotation: -3 } },
-  { id: 'b-2', color: 'green', x: 88, y: 45, scale: 0.7, floatDelay: 1, pathConfig: { xOffset: 22, yOffset: 20, rotation: 4 } },
-  { id: 'b-3', color: 'red', x: 12, y: 70, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 17, rotation: 2 } },
-  { id: 'b-4', color: 'green', x: 90, y: 82, scale: 0.58, floatDelay: 2.5, pathConfig: { xOffset: -20, yOffset: 19, rotation: -4 } },
+  { id: 'b-1', color: 'red', x: 18, y: 110, scale: 0.35, floatDelay: 0, pathConfig: { xOffset: -25, yOffset: -180, rotation: -4 } },
+  { id: 'b-2', color: 'green', x: 78, y: 115, scale: 0.4, floatDelay: 2, pathConfig: { xOffset: 30, yOffset: -200, rotation: 5 } },
+  { id: 'b-3', color: 'red', x: 35, y: 120, scale: 0.32, floatDelay: 4, pathConfig: { xOffset: 20, yOffset: -190, rotation: 3 } },
+  { id: 'b-4', color: 'green', x: 65, y: 125, scale: 0.38, floatDelay: 6, pathConfig: { xOffset: -28, yOffset: -195, rotation: -5 } },
 ];
 
 // FINAL BALLOONS - появляются внизу
 const FINAL_BALLOONS: Balloon[] = [
-  { id: 'f-b-1', color: 'green', x: 20, y: 25, scale: 0.75, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 18, rotation: 3 } },
-  { id: 'f-b-2', color: 'red', x: 45, y: 15, scale: 0.85, floatDelay: 1.2, pathConfig: { xOffset: -20, yOffset: 20, rotation: -4 } },
-  { id: 'f-b-3', color: 'green', x: 72, y: 30, scale: 0.7, floatDelay: 1.8, pathConfig: { xOffset: 16, yOffset: 17, rotation: 3 } },
+  { id: 'f-b-1', color: 'green', x: 25, y: 110, scale: 0.42, floatDelay: 1, pathConfig: { xOffset: 22, yOffset: -170, rotation: 4 } },
+  { id: 'f-b-2', color: 'red', x: 50, y: 115, scale: 0.48, floatDelay: 3, pathConfig: { xOffset: -26, yOffset: -185, rotation: -4 } },
+  { id: 'f-b-3', color: 'green', x: 72, y: 120, scale: 0.4, floatDelay: 5, pathConfig: { xOffset: 24, yOffset: -175, rotation: 3 } },
 ];
 
 export function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const heroContentRef = useRef<HTMLDivElement>(null);
   const finalContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !overlayRef.current) return;
+    if (!containerRef.current) return;
 
     const container = containerRef.current;
-    const overlay = overlayRef.current;
 
     // INTRO ANIMATION - облака разлетаются при начале скролла
     const introClouds = Array.from(
@@ -73,24 +79,28 @@ export function LandingPage() {
       },
     });
 
-    // Затемнение уходит
-    introTl.to(overlay, {
-      opacity: 0,
-      ease: 'power1.inOut',
+    // Затемнение уходит - УБРАНО, без затемнения на первом экране
+
+    // Облака наплывают при открытии (появляются с opacity 0)
+    gsap.set(introClouds, { opacity: 0, scale: 0.5 });
+
+    introTl.to(introClouds, {
+      opacity: 1,
+      scale: 1,
+      duration: 1.5,
+      stagger: 0.2,
+      ease: 'power2.out',
     }, 0);
 
-    // Облака разлетаются радиально
+    // Облака двигаются в стороны при первом скролле
     introClouds.forEach((cloud, i) => {
-      const angle = (i / introClouds.length) * Math.PI * 2;
-      const distance = 700;
+      const isLeft = i % 2 === 0;
 
       introTl.to(cloud, {
-        x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance - 400,
-        scale: 3.0,
-        rotation: (i % 2 === 0 ? 1 : -1) * 20,
+        x: isLeft ? -800 : 800,
+        y: -200,
         opacity: 0,
-        ease: 'power1.out',
+        ease: 'power1.inOut',
       }, 0);
     });
 
@@ -159,6 +169,39 @@ export function LandingPage() {
       });
     });
 
+    // Hero content fade out при скролле
+    if (heroContentRef.current) {
+      gsap.to(heroContentRef.current, {
+        opacity: 0,
+        y: -100,
+        ease: 'power2.inOut',
+        scrollTrigger: {
+          trigger: container,
+          start: 'top top',
+          end: '20% top',
+          scrub: 1,
+        },
+      });
+    }
+
+    // Final content fade in при приближении к концу
+    if (finalContentRef.current) {
+      gsap.fromTo(finalContentRef.current, {
+        opacity: 0,
+        y: 100,
+      }, {
+        opacity: 1,
+        y: 0,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: container,
+          start: '70% top',
+          end: '85% top',
+          scrub: 1,
+        },
+      });
+    }
+
     return () => {
       introTl.kill();
       ScrollTrigger.getAll().forEach((st) => st.kill());
@@ -167,18 +210,7 @@ export function LandingPage() {
 
   return (
     <div ref={containerRef} className="landing-page">
-      {/* Тёмный overlay (исчезает при скролле) */}
-      <div
-        ref={overlayRef}
-        className="landing-page__overlay"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: `rgba(0, 0, 0, ${LIGHTING.dark})`,
-          pointerEvents: 'none',
-          zIndex: 50,
-        }}
-      />
+      {/* Тёмный overlay - УБРАН, без затемнения */}
 
       {/* INTRO CLOUDS - разлетаются */}
       <CloudLayer depth="foreground" clouds={INTRO_CLOUDS} className="intro-clouds" />

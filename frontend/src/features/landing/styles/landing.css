@@ -107,14 +107,11 @@ section {
   position: relative;
   width: 100%;
   min-height: 300vh; /* Достаточно места для скролла */
-  background: linear-gradient(
-    to bottom,
-    var(--sky-dark) 0%,
-    var(--sky-top) 20%,
-    var(--sky-middle) 50%,
-    var(--sky-bottom) 80%,
-    var(--sky-light) 100%
-  );
+  background-image: url('../../../img/back.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   overflow: hidden;
 }
 
