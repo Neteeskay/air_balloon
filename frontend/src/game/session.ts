@@ -22,9 +22,9 @@ export class GameSession {
     if (previous?.id === round.id && previous.sequence > round.sequence) return
     this.set({ round }); this.remember(round.id)
   }
-  private event = (e: GameEvent) => {
+  private applyEvent = (e: GameEvent) => {
     const round = this.state.round
-    if (!round || this.syncing) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
+    if (!round) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
     if (e.roundId !== round.id || e.sequence <= round.sequence) return
     if (e.sequence !== round.sequence + 1) { this.buffer.push(e); void this.recover(); return }
     const next = { ...round, sequence: e.sequence, timestamp: e.timestamp, serverTime: e.serverTime }
@@ -46,6 +46,10 @@ export class GameSession {
     }
     this.install(next)
   }
+  private event = (e: GameEvent) => {
+    if (this.syncing) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
+    this.applyEvent(e)
+  }
   private async connect() {
     if (this.stop) return
     if (this.opening) return this.opening
@@ -64,10 +68,23 @@ export class GameSession {
     this.syncing = (async () => {
       try {
         await this.connect()
-        const after = this.state.round?.id === id ? this.state.round.sequence : 0
-        await this.game.getReplay(id, after) // bounded replay may require a snapshot; always get canonical cumulative state.
-        const snapshot = await this.game.getSnapshot(id)
+        // Contract order: open and buffer the stream, then establish an authoritative snapshot cursor.
+        let snapshot = await this.game.getSnapshot(id)
         this.install(snapshot)
+        let pending = this.buffer.splice(0).filter(event => event.roundId === id && event.sequence > snapshot.sequence)
+          .sort((a, b) => a.sequence - b.sequence)
+        pending = pending.filter((event, index) => index === 0 || event.sequence !== pending[index - 1].sequence)
+        if (pending.length && pending[0].sequence !== snapshot.sequence + 1) {
+          const replay = await this.game.getReplay(id, snapshot.sequence)
+          if (replay.snapshotRequired) {
+            snapshot = await this.game.getSnapshot(id); this.install(snapshot)
+            pending = this.buffer.splice(0).filter(event => event.roundId === id && event.sequence > snapshot.sequence)
+          } else {
+            pending = [...replay.events, ...pending].sort((a, b) => a.sequence - b.sequence)
+              .filter((event, index, events) => index === 0 || event.sequence !== events[index - 1].sequence)
+          }
+        }
+        pending.forEach(this.applyEvent)
         this.set({ connection: 'connected', recovered: this.state.recovered + 1, error: '' })
       } catch (e) { this.set({ connection: 'disconnected', error: message(e) }) }
     })()

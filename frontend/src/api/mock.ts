@@ -2,9 +2,10 @@ import { demoUsers, SESSION_KEY } from './demoUsers'
 import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, StartInput, Wallet } from './types'
 
 export const mockCatalog: Catalog = {
-  stakes: [100, 250, 500, 1000], boosters: [1, 2, 3, 4], pointsPerLevel: 100, cashoutPoints: 50,
-  thresholds: { GREEN: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], RED: [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] },
+  stakes: [100, 250, 500, 1000], stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
+  boosters: [1, 2, 3, 4], levels: { GREEN: 9, RED: 12 }, pointsPerLevel: 100, cashoutPoints: 50,
 }
+const thresholds: Record<'GREEN' | 'RED', number[]> = { GREEN: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], RED: [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] }
 type StoredRound = { view: Round; owner: string; preset: Preset; processed: number; events: GameEvent[] }
 type Database = { version: 1; wallets: Record<string, Wallet>; rounds: Record<string, StoredRound>; counter: number }
 const DATA_KEY = 'air-balloon-game-mock-v1'
@@ -72,7 +73,7 @@ export class MockBackend {
       }
       while (v.currentLevel < v.totalLevels && v.currentMultiplier >= v.levelThresholds[v.currentLevel]) {
         v.currentLevel++
-        const points = v.cashoutPerformed ? 0 : mockCatalog.pointsPerLevel
+        const points = v.cashoutPerformed ? 0 : (mockCatalog.pointsPerLevel ?? 100)
         this.award(r, points); v.cashoutAvailable = !v.cashoutPerformed
         this.emit(r, 'LEVEL_REACHED', { level: v.currentLevel, multiplier: v.currentMultiplier, points, pointsToAward: points })
         if (v.currentLevel === 3 && v.boosterMultiplier > 1 && !v.cashoutPerformed && !v.boosterActivated) {
@@ -106,22 +107,22 @@ export class MockBackend {
       },
       logout: async () => { this.storage.removeItem(SESSION_KEY) },
     },
-    economy: { getBalance: async id => { this.tick(); return clone(this.db.wallets[id]) } },
+    economy: { getBalance: async id => { this.tick(); return clone(this.db.wallets[id ?? this.user()]) } },
     catalog: { get: async () => clone(mockCatalog) },
     history: { getHistory: async (page = 0) => {
       this.tick(); const currentUser = this.user()
-      const items: HistoryItem[] = Object.values(this.db.rounds).filter(r => r.owner === currentUser && r.view.status === 'FINISHED').map(({ view: v, owner }) => ({ roundId: v.id, username: owner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, roundScore: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', finishedAt: v.finishedAt! }))
-      items.sort((a, b) => b.finishedAt.localeCompare(a.finishedAt) || b.roundId.localeCompare(a.roundId))
+      const items: HistoryItem[] = Object.values(this.db.rounds).filter(r => r.owner === currentUser && r.view.status === 'FINISHED').map(({ view: v, owner }) => ({ roundId: v.id, username: owner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', completedAt: v.finishedAt! }))
+      items.sort((a, b) => b.completedAt.localeCompare(a.completedAt) || b.roundId.localeCompare(a.roundId))
       return { items: items.slice(page * 10, (page + 1) * 10), page, size: 10, total: items.length }
     } },
     game: {
       startRound: async (input: StartInput) => {
         this.requireOnline(); const owner = this.user(); this.tick()
         if (Object.values(this.db.rounds).some(r => r.owner === owner && r.view.status !== 'FINISHED')) throw new Error('У вас уже есть активный раунд. Восстановите его.')
-        if (!mockCatalog.stakes.includes(input.betAmount) || !mockCatalog.boosters.includes(input.boosterMultiplier) || !mockCatalog.thresholds[input.theme]) throw new Error('Недопустимый вариант ставки.')
+        if (!mockCatalog.stakes.includes(input.betAmount) || !mockCatalog.boosters.includes(input.boosterMultiplier) || !thresholds[input.theme]) throw new Error('Недопустимый вариант ставки.')
         this.debit(owner, input.betAmount)
         const id = `demo-${++this.db.counter}`; const date = new Date(this.now()).toISOString()
-        const r: StoredRound = { owner, preset: this.preset, processed: 0, events: [], view: { ...input, id, roundId: id, boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: mockCatalog.thresholds[input.theme].length, levelThresholds: [...mockCatalog.thresholds[input.theme]], cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', startedAt: date, timestamp: date, serverTime: date, sequence: 0, fairnessCommitment: 'DEMO · пример commitment, не криптографическое доказательство' } }
+        const r: StoredRound = { owner, preset: this.preset, processed: 0, events: [], view: { ...input, id, roundId: id, boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: thresholds[input.theme].length, levelThresholds: [...thresholds[input.theme]], cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', startedAt: date, timestamp: date, serverTime: date, sequence: 0, fairnessCommitment: 'DEMO · пример commitment, не криптографическое доказательство' } }
         this.db.rounds[id] = r; this.emit(r, 'ROUND_STARTED', {}); this.save(); this.ensureTimer(); return this.publicRound(r)
       },
       cashout: async id => {
@@ -130,7 +131,7 @@ export class MockBackend {
         if (!v.cashoutAvailable || v.status !== 'RUNNING') throw new Error('Забрать можно после первого уровня и до падения.')
         v.cashoutPerformed = true; v.cashoutAvailable = false; v.cashoutMultiplier = v.currentMultiplier
         v.winAmount = Math.floor(v.betAmount * v.currentMultiplier); v.status = 'CASHED_OUT'
-        this.credit(r.owner, v.winAmount); this.award(r, mockCatalog.cashoutPoints)
+        this.credit(r.owner, v.winAmount); this.award(r, mockCatalog.cashoutPoints ?? 50)
         this.emit(r, 'CASHOUT_SUCCESS', { multiplier: v.cashoutMultiplier, cashoutMultiplier: v.cashoutMultiplier, winAmount: v.winAmount })
         this.save(); return this.publicRound(r)
       },
@@ -143,6 +144,12 @@ export class MockBackend {
         if (Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')) this.ensureTimer()
         return () => { this.listeners.delete(listener); if (!this.listeners.size) { clearInterval(this.timer); this.timer = undefined } }
       },
+    },
+    tournament: {
+      getActive: async () => ({ active: false }),
+      getLeaderboard: async () => { throw new Error('В демо сейчас нет активного турнира.') },
+      join: async () => {},
+      connect: async (_id, _update, connection) => { connection('connected'); return () => {} },
     },
     dev: {
       setPreset: p => { this.preset = p },
