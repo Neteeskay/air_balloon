@@ -331,7 +331,7 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 
 .tutorial-dialog {
   bottom: 42%;
-  left: 7.5%;
+  left: 0;
   z-index: 6;
   display: grid;
   width: clamp(330px, 23cqw, 440px);
