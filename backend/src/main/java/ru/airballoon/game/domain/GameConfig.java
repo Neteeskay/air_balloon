@@ -10,7 +10,7 @@ public record GameConfig(
         double distributionParameter, BigDecimal growthPerSecond,
         BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
         Long boosterPointsX2, Long boosterPointsX3, Long boosterPointsX4,
-        Integer economyScale,
+        long cashoutPoints, Integer economyScale,
         ThemeConfig green, ThemeConfig red) {
 
     /** Backward-compatible form used by the standalone engine configuration. */
@@ -19,7 +19,7 @@ public record GameConfig(
                       BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
                       ThemeConfig green, ThemeConfig red) {
         this(minCrashMultiplier, maxCrashMultiplier, distributionParameter, growthPerSecond,
-                minBet, maxBet, boosterPointsPerMultiplier, null, null, null, null, green, red);
+                minBet, maxBet, boosterPointsPerMultiplier, null, null, null, 0, null, green, red);
     }
 
     @ConstructorBinding
@@ -41,6 +41,7 @@ public record GameConfig(
                 && minBet.scale() <= 2 && maxBet.scale() <= 2, "Invalid bet bounds or money precision");
         require(boosterPointsPerMultiplier >= 0 && boosterPointsPerMultiplier <= 1000000000,
                 "Invalid booster points");
+        require(cashoutPoints >= 0 && cashoutPoints <= 1000000000, "Invalid cashout points");
         require((boosterPointsX2 == null && boosterPointsX3 == null && boosterPointsX4 == null)
                         || (validPoints(boosterPointsX2) && validPoints(boosterPointsX3)
                         && validPoints(boosterPointsX4)),

@@ -106,7 +106,7 @@ class RoundApiIT extends IntegrationSupport {
         // Test filter deliberately supplies an invalid trusted principal; arbitrary X-User-Id cannot replace it.
         mvc.perform(get("/api/rounds/" + UUID.randomUUID()).header("X-Test-User", "invalid")
                         .header("X-User-Id", user.toString()))
-                .andExpect(status().isUnauthorized()).andExpect(jsonPath("code").value("UNAUTHENTICATED"));
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("code").value("AUTH_REQUIRED"));
     }
 
     private String start() throws Exception {

@@ -106,8 +106,10 @@ public final class RoundEngine {
         f.win = round.betAmount().multiply(f.cashoutMultiplier)
                 .setScale(round.config().effectiveEconomyScale(), RoundingMode.DOWN);
         f.cashoutAt = f.updated;
+        f.score += round.config().cashoutPoints();
         f.emit(GameEvent.Type.CASHOUT_SUCCESS, Map.of("cashoutMultiplier", f.cashoutMultiplier,
-                "multiplier", f.cashoutMultiplier, "winAmount", f.win));
+                "multiplier", f.cashoutMultiplier, "winAmount", f.win,
+                "points", round.config().cashoutPoints(), "pointsToAward", round.config().cashoutPoints()));
         return f.result();
     }
 

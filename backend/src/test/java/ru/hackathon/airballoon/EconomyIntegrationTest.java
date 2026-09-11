@@ -252,8 +252,9 @@ class EconomyIntegrationTest {
         var r=transactions.finishAndReward(finish(start(anna,100,1)));
         var a=rewards.generateReward(r);var b=rewards.generateReward(r);
         assertThat(a).isEqualTo(b);
-        assertThat(history.getResult(r.id()).reward()).isEqualTo(a);
-        http.perform(get("/api/rounds/"+r.id()+"/result")).andExpect(status().isOk()).andExpect(jsonPath("$.reward.id").value(a.id().toString()));
+        assertThat(history.getResult(r.id()).reward().id()).isEqualTo(a.id());
+        http.perform(get("/api/rounds/"+r.id()+"/result").principal(()->anna.toString()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.reward.id").value(a.id().toString()));
     }
     @Test void parallelRewardGeneratesOnlyOne() throws Exception {
         var r=rounds.save(finish(start(anna,100,1)));
@@ -316,10 +317,11 @@ class EconomyIntegrationTest {
         assertThat(users.getState(anna).gameScore()).isEqualTo(900);
     }
     @Test void userStateAndErrorApi() throws Exception {
-        http.perform(get("/api/users/"+anna+"/state")).andExpect(status().isOk())
+        http.perform(get("/api/users/"+anna+"/state").principal(()->anna.toString())).andExpect(status().isOk())
             .andExpect(jsonPath("$.bonusBalance").value(5000)).andExpect(jsonPath("$.gameScore").value(0));
-        http.perform(get("/api/users/"+UUID.randomUUID()+"/state")).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
-        http.perform(get("/api/users/not-a-uuid/state")).andExpect(status().isBadRequest());
+        http.perform(get("/api/users/"+UUID.randomUUID()+"/state").principal(()->anna.toString())).andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("NOT_OWNER"));
+        http.perform(get("/api/users/not-a-uuid/state").principal(()->anna.toString())).andExpect(status().isBadRequest());
     }
 
     @Test void configConcurrentEditorsCannotLoseUpdate() throws Exception {
@@ -374,4 +376,5 @@ class EconomyIntegrationTest {
             .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
         http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isForbidden());
     }
+
 }

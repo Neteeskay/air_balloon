@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import ru.airballoon.game.domain.GameError;
+import ru.airballoon.game.domain.GameException;
 import ru.hackathon.airballoon.user.DemoBootstrap;
 import ru.hackathon.airballoon.user.UserService;
 import ru.hackathon.airballoon.user.UserState;
@@ -38,7 +39,7 @@ public class DemoAuthController {
         String expected = PASSWORDS.get(request.username().trim());
         if (expected == null || !MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
                 request.password().getBytes(StandardCharsets.UTF_8)))
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid demo credentials");
+            throw new GameException(GameError.AUTH_REQUIRED, "Invalid demo credentials");
         UUID id = DemoBootstrap.id(request.username().trim());
         session.setAttribute(SESSION_USER, id);
         return users.getState(id);
@@ -46,11 +47,11 @@ public class DemoAuthController {
 
     @GetMapping("/me")
     public UserState me(Principal principal) {
-        if (principal == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
-        return users.getState(UUID.fromString(principal.getName()));
+        return users.getState(ru.airballoon.game.infrastructure.web.CurrentUser.id(principal));
     }
 
     @DeleteMapping("/session")
+    @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) session.invalidate();

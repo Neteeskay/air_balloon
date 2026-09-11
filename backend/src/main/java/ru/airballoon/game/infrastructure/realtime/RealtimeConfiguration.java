@@ -45,8 +45,8 @@ public class RealtimeConfiguration implements WebSocketConfigurer, WebMvcConfigu
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/rounds/**").allowedOrigins(properties.allowedOrigins().toArray(String[]::new))
-                .allowedMethods("GET", "POST").allowCredentials(true);
+        registry.addMapping("/api/**").allowedOrigins(properties.allowedOrigins().toArray(String[]::new))
+                .allowedMethods("GET", "POST", "PUT", "DELETE").allowCredentials(true);
     }
 
     @Bean

@@ -25,6 +25,10 @@ public class ConfigValidator {
         check(Double.isFinite(c.growthRate()) && c.growthRate() > 0 && c.growthRate() <= 100, "growthRate: (0,100]");
         check(Double.isFinite(c.alpha()) && c.alpha() > 0 && c.alpha() <= 100, "alpha: (0,100]");
         check(c.updateIntervalMs() >= 16 && c.updateIntervalMs() <= 1000, "updateIntervalMs: 16–1000");
+        check(c.minBet()!=null && c.maxBet()!=null && c.minBet().signum()>0
+            && c.maxBet().compareTo(c.minBet())>=0 && c.maxBet().compareTo(new BigDecimal("1000000000"))<=0,
+            "minBet/maxBet: 0 < minBet <= maxBet <= 1000000000");
+        check(c.minBet().scale()<=2 && c.maxBet().scale()<=2, "minBet/maxBet: максимум 2 знака после запятой");
         check(c.boosterValues()!=null && c.boosterValues().size()==4 && c.boosterValues().getFirst()==1
             && c.boosterValues().stream().allMatch(v -> v>=1 && v<=100),
             "boosterValues: четыре целых значения 1–100; первое = 1 (без усиления)");

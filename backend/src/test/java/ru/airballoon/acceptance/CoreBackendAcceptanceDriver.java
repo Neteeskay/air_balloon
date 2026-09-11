@@ -39,7 +39,7 @@ import ru.hackathon.airballoon.tournament.api.LeaderboardResponse;
 import ru.hackathon.airballoon.tournament.service.TournamentService;
 import ru.hackathon.airballoon.user.DemoBootstrap;
 
-final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
+public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
     private static final List<String> LOGINS = List.of("anna", "maks", "liza");
     private static final List<String> PASSWORDS = List.of("balloon1", "balloon2", "balloon3");
     private static final String ADMIN_TOKEN = "acceptance-admin";
@@ -59,7 +59,7 @@ final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
     private final Map<UUID, UUID> cashoutKeys = new ConcurrentHashMap<>();
     private final Map<String, String> retryPayloads = new ConcurrentHashMap<>();
     private final AtomicInteger nextLogin = new AtomicInteger();
-    CoreBackendAcceptanceDriver(JdbcTemplate jdbc, ObjectMapper json, TestRestTemplate http,
+    public CoreBackendAcceptanceDriver(JdbcTemplate jdbc, ObjectMapper json, TestRestTemplate http,
                                 MutableClock clock, GameService games, TournamentService tournaments,
                                 PostgresGameConfigProvider configs, RewardService rewards,
                                 PostgresRoundEventStore eventStore, DataSource dataSource,
@@ -304,10 +304,9 @@ final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
             try (ConfigurableApplicationContext ignored = new SpringApplicationBuilder(ru.airballoon.AirBalloonApplication.class)
                     .web(WebApplicationType.NONE)
                     .profiles("integration")
-                    .properties("game.scheduler-enabled=false", "logging.level.root=WARN",
-                            "spring.main.banner-mode=off")
+                    .properties("logging.level.root=WARN", "spring.main.banner-mode=off")
                     .run("--spring.datasource.url=" + url, "--spring.datasource.username=" + user,
-                            "--spring.datasource.password=" + password)) {
+                            "--spring.datasource.password=" + password, "--game.scheduler-enabled=false")) {
                 // A cold Core context has completed Flyway validation and startup recovery against this database.
             }
         } catch (Exception e) {
@@ -360,7 +359,7 @@ final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
                                          List<Integer> greenWeights, List<Integer> redWeights) {
         return new GameConfig(c.gameId(), c.gameName(), c.gameType(), c.active(), c.greenLevelCount(),
                 c.redLevelCount(), minCrash, maxCrash, c.growthRate(), c.alpha(), c.updateIntervalMs(),
-                c.boosterValues(), greenWeights, redWeights, points, c.pointsCashoutBonus(), c.pointsX2Bonus(),
+                c.minBet(), c.maxBet(), c.boosterValues(), greenWeights, redWeights, points, c.pointsCashoutBonus(), c.pointsX2Bonus(),
                 c.pointsX3Bonus(), c.pointsX4Bonus(), false, null);
     }
 
@@ -420,6 +419,46 @@ final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.COOKIE, cookie);
         return headers;
+    }
+
+    public ResponseEntity<JsonNode> get(UUID userId, String path) {
+        return http.exchange(url(path), HttpMethod.GET, new HttpEntity<>(playerHeaders(userId)), JsonNode.class);
+    }
+
+    public ResponseEntity<JsonNode> getAnonymous(String path) {
+        return http.exchange(url(path), HttpMethod.GET, HttpEntity.EMPTY, JsonNode.class);
+    }
+
+    public ResponseEntity<JsonNode> getWithCookie(String cookie, String path) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.COOKIE, cookie);
+        return http.exchange(url(path), HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
+    }
+
+    public String sessionCookie(UUID userId) { return sessions.get(userId); }
+
+    public ResponseEntity<JsonNode> post(UUID userId, String path, Object body) {
+        HttpHeaders headers=playerHeaders(userId);
+        HttpEntity<?> request;
+        if (body==null) request=new HttpEntity<>(headers);
+        else {
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            request=new HttpEntity<>(body,headers);
+        }
+        return http.exchange(url(path),HttpMethod.POST,request,JsonNode.class);
+    }
+
+    public ResponseEntity<JsonNode> postAnonymous(String path, Object body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return http.exchange(url(path), HttpMethod.POST, new HttpEntity<>(body, headers), JsonNode.class);
+    }
+
+    public ResponseEntity<JsonNode> deleteSession(UUID userId) {
+        ResponseEntity<JsonNode> response=http.exchange(url("/api/auth/session"),HttpMethod.DELETE,
+                new HttpEntity<>(playerHeaders(userId)),JsonNode.class);
+        sessions.remove(userId);
+        return response;
     }
 
     private static HttpHeaders adminHeaders() {

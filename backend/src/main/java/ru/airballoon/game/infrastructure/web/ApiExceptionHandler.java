@@ -26,7 +26,7 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiError> business(GameException e, HttpServletRequest request) {
         HttpStatus status = switch (e.code()) {
             case ROUND_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
+            case AUTH_REQUIRED, UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN_ROUND_ACCESS -> HttpStatus.FORBIDDEN;
             case ROUND_NOT_RUNNING, CASHOUT_NOT_AVAILABLE_YET, ALREADY_CASHED_OUT, ROUND_ALREADY_CRASHED,
                     INSUFFICIENT_BALANCE -> HttpStatus.CONFLICT;

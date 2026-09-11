@@ -10,6 +10,8 @@
   "growthRate": 0.2,
   "alpha": 1.5,
   "updateIntervalMs": 100,
+  "minBet": 1,
+  "maxBet": 1000,
   "boosterValues": [
     1,
     2,

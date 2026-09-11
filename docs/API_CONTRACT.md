@@ -16,7 +16,42 @@ JSON, даты UTC ISO-8601, идентификаторы UUID, бонусы/о�
 
 Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
 `GET /api/auth/me` возвращает текущее состояние пользователя,
-`DELETE /api/auth/session` завершает сессию.
+`DELETE /api/auth/session` завершает сессию (`204`). Отсутствующая, истёкшая или
+повреждённая session на любом private endpoint даёт `401 AUTH_REQUIRED`; она не
+маскируется под `503`. UUID из header/query/body никогда не выбирает пользователя.
+
+### Player catalog
+
+`GET /api/game/catalog` публично возвращает безопасный pre-round catalog из
+активной versioned PostgreSQL-конфигурации и фактической engine-конфигурации:
+
+```json
+{
+  "configVersion": 1,
+  "gameId": "air-balloon",
+  "gameName": "Воздушный Шар",
+  "active": true,
+  "themes": [
+    {"theme":"GREEN","levels":9,"active":true},
+    {"theme":"RED","levels":12,"active":true}
+  ],
+  "stakes": {"minimum":1,"maximum":1000,"decimalPlaces":0},
+  "boosters": [
+    {"multiplier":1,"extraCost":0,"active":true},
+    {"multiplier":2,"extraCost":0,"active":true},
+    {"multiplier":3,"extraCost":0,"active":true},
+    {"multiplier":4,"extraCost":0,"active":true}
+  ],
+  "serverTime": "2026-09-11T12:00:00Z"
+}
+```
+
+`stakes` описывает полный допустимый диапазон, а не UI suggestions. В текущей
+целочисленной PostgreSQL economy `decimalPlaces=0`. Booster не имеет отдельной
+цены, поэтому `extraCost=0`; ставка списывается ровно один раз независимо от
+варианта. Catalog не содержит weights/probabilities, seed, crash point или
+будущую позицию booster. Advertised theme/stake/booster валидируются тем же
+`GameConfig`, который использует `POST /api/rounds`.
 
 ### Start
 
@@ -26,8 +61,8 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
 {"theme":"GREEN","betAmount":100,"boosterMultiplier":3}
 ```
 
-Только GREEN/RED, booster 1/2/3/4, ставка с максимум двумя десятичными знаками в
-пределах GameConfig. В PostgreSQL-контуре бонусы целочисленные, поэтому ставка
+Только GREEN/RED, advertised booster и ставка в пределах `catalog.stakes`.
+Границы ставки являются частью versioned PostgreSQL GameConfig. В PostgreSQL-контуре бонусы целочисленные, поэтому ставка
 с дробной частью отклоняется; winAmount вычисляется движком с округлением вниз
 до целого бонуса. Неизвестные поля запрещены. Ответ — RoundView:
 
@@ -76,6 +111,7 @@ Start не идемпотентен: каждый POST списывает нов
 Даже `{}` отклоняется. Сервер проверяет владельца, first level, crash и отсутствие
 предыдущего cashout. После успеха появляются `cashoutMultiplier`, `cashoutAt`,
 `winAmount`, status=CASHED_OUT. Шар летит дальше; finishedAt пока отсутствует.
+`roundScore` сразу включает cashout bonus из immutable config version раунда.
 
 Повторный cashout до crash: `409 ALREADY_CASHED_OUT`. После crash: `409 ROUND_ALREADY_CRASHED`.
 В обоих случаях повторного начисления нет. При `503 INTEGRATION_UNAVAILABLE`
@@ -115,9 +151,12 @@ cursor: 400. Default limit=256 всех событий на round, finished repl
 | Метод | URL | Ответ |
 | --- | --- | --- |
 | GET | /api/demo/users | UserState[] из трёх пользователей; только demo |
-| GET | /api/users/{id}/state | UserState |
-| GET | /api/history?page=0&size=20 | {items, page, size, total} |
-| GET | /api/rounds/{id}/result | Завершённый результат с наградой |
+| GET | /api/current-user или /api/current-user/state | UserState текущего Principal; auth |
+| GET | /api/current-user/balance | `{bonusBalance,serverTime}` текущего Principal; auth |
+| GET | /api/users/{id}/state | Compatibility: только если `{id}` равен текущему Principal; иначе 403 |
+| GET | /api/current-user/history?page=0&size=20 | PersonalPage только текущего Principal; auth |
+| GET | /api/history?page=0&size=20 | Global history `{items,page,size,total}`; public |
+| GET | /api/rounds/{id}/result | Private завершённый result владельца; auth; чужой round → 403 |
 | GET | /api/admin/config | {version, updatedAt, config} |
 | PUT | /api/admin/config | Принимает {expectedVersion, config}, возвращает новый snapshot |
 
@@ -174,12 +213,18 @@ Replay ограничен по размеру и TTL. В `test/dev` memory adapt
 Подробный протокол, retention и контракты: [reconnect-recovery.md](reconnect-recovery.md).
 
 UserState: userId, username, displayName, bonusBalance, gameScore, createdAt, updatedAt.
+Frontend не передаёт userId для current state/balance/history.
 
 history.items: roundId, username, theme, betAmount, boosterTier,
 boosterMultiplier (значение из версии конфигурации раунда), cashoutMultiplier,
 crashMultiplier, winAmount, roundScore, result (WIN/LOSS), finishedAt.
 size=1..100; сортировка finishedAt DESC, id. История глобальная.
 WIN означает успешный cashout, в том числе после последующего crash.
+
+Personal history: `items,page,size,total,serverTime`; item содержит `roundId,theme,
+betAmount,boosterMultiplier,cashoutMultiplier,crashMultiplier,winAmount,score,
+result,reward,completedAt`. `size=1..100`, сортировка та же. Ни `userId`, ни
+username в personal item нет; SQL обязательно фильтрует `user_id` по Principal.
 
 ```json
 {
@@ -193,8 +238,8 @@ WIN означает успешный cashout, в том числе после �
 | HTTP | Codes |
 | --- | --- |
 | 400 | INVALID_REQUEST, INVALID_THEME, INVALID_BOOSTER, INVALID_BET |
-| 401 | UNAUTHENTICATED |
-| 403 | FORBIDDEN_ROUND_ACCESS |
+| 401 | AUTH_REQUIRED (нет/invalid/expired session); UNAUTHENTICATED только internal compatibility |
+| 403 | FORBIDDEN_ROUND_ACCESS, NOT_OWNER |
 | 404 | ROUND_NOT_FOUND |
 | 409 | ROUND_NOT_RUNNING, CASHOUT_NOT_AVAILABLE_YET, ALREADY_CASHED_OUT, ROUND_ALREADY_CRASHED, INSUFFICIENT_BALANCE |
 | 503 | INVALID_GAME_CONFIG, INTEGRATION_UNAVAILABLE |
@@ -205,8 +250,10 @@ WIN означает успешный cashout, в том числе после �
 Подробнее: [game-engine.md](game-engine.md).
 
 result: roundId, result, betAmount, cashoutMultiplier, crashMultiplier,
-winAmount, score, configVersion, reward.
-reward: id, roundId, userId, type, rarity, createdAt.
+winAmount, score, configVersion, reward, completedAt, serverTime. Endpoint private:
+только owner Principal получает result.
+result/personal reward: id, type, rarity, createdAt. Internal round/user foreign
+keys не сериализуются в frontend-facing reward DTO.
 До завершения — 409 ROUND_NOT_FINISHED.
 
 Полная схема GameConfig, ограничения, Java-интерфейсы и порядок транзакций:
@@ -223,7 +270,8 @@ reward: id, roundId, userId, type, rarity, createdAt.
 ~~~
 
 400 — ошибка запроса/валидации; 403 — доступ к admin; 404 — объект отсутствует;
-409 — бизнес-конфликт/устаревшая версия/ограничение БД.
+409 — бизнес-конфликт/устаревшая версия/ограничение БД; 503 — только реально
+недоступная интеграция или невалидная authoritative конфигурация.
 Полный список кодов — в документе backend-data-economy.md.
 Повтор debit/credit/score/reward с теми же параметрами возвращает успех,
 с другой суммой/очками — IDEMPOTENCY_CONFLICT.
@@ -245,7 +293,7 @@ Leaderboard entry: `position,userId,username,score`. Top-3 и `currentPlayer` н
 маскируются, имя текущего игрока возвращается без маскирования.
 
 Tournament errors: `{code,message}`. Коды: `INVALID_ARGUMENT`,
-`INVALID_PAGINATION`, `AUTHENTICATION_REQUIRED`, `TOURNAMENT_NOT_FOUND`,
+`INVALID_PAGINATION`, `AUTH_REQUIRED`, `TOURNAMENT_NOT_FOUND`,
 `PLAYER_NOT_FOUND`, `TOURNAMENT_NOT_ACTIVE`, `SCORE_SOURCE_UNAVAILABLE`.
 
 ## Tournament WebSocket
@@ -268,6 +316,13 @@ Reconnect: подписаться, выполнить HTTP GET snapshot, отб�
 update Core публикуется `ScoreChanged(PlayerScore)`. Tournament не пересчитывает
 level, booster или cashout points; duplicate/retry отсекается версией и уникальным
 идентификатором score event.
+
+Authoritative per-round total — сумма immutable `score_events` этого round:
+level points + activated booster tier bonus + successful cashout bonus. Engine
+включает те же versioned config values в snapshot в момент события. Поэтому после
+completion `RoundView.roundScore == result.score == personalHistory.items[].score
+== SUM(score_events.points)`. `users.game_score` — cumulative сумма всех принятых
+score events пользователя, а Tournament проецирует именно этот cumulative total.
 
 ## Frontend binding
 

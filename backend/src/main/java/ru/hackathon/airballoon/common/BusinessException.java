@@ -19,4 +19,7 @@ public class BusinessException extends RuntimeException {
     public static BusinessException conflict(String code, String message) {
         return new BusinessException(code, message, HttpStatus.CONFLICT);
     }
+    public static BusinessException forbidden(String code, String message) {
+        return new BusinessException(code, message, HttpStatus.FORBIDDEN);
+    }
 }

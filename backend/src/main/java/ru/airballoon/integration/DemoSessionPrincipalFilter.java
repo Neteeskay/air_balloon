@@ -22,7 +22,8 @@ public class DemoSessionPrincipalFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                                FilterChain chain) throws ServletException, IOException {
         HttpSession session = request.getSession(false);
-        UUID id = session == null ? null : (UUID) session.getAttribute(DemoAuthController.SESSION_USER);
+        Object stored = session == null ? null : session.getAttribute(DemoAuthController.SESSION_USER);
+        UUID id = stored instanceof UUID uuid ? uuid : null;
         if (id == null || request.getUserPrincipal() != null) {
             chain.doFilter(request, response);
             return;

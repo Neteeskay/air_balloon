@@ -8,7 +8,7 @@ public record GameConfig(
     String gameId, String gameName, String gameType, boolean active,
     int greenLevelCount, int redLevelCount,
     BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier, double growthRate, double alpha,
-    int updateIntervalMs, List<Integer> boosterValues,
+    int updateIntervalMs, BigDecimal minBet, BigDecimal maxBet, List<Integer> boosterValues,
     List<Integer> greenBoosterWeights, List<Integer> redBoosterWeights,
     long pointsPerLevel, long pointsCashoutBonus, long pointsX2Bonus, long pointsX3Bonus, long pointsX4Bonus,
     boolean fixedSeedEnabled, Long fixedSeed

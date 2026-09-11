@@ -33,7 +33,7 @@ public class TournamentController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void join(@PathVariable UUID id, Principal principal) {
         UUID userId = identity.resolve(principal).orElseThrow(() -> new TournamentException(
-                HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "An authenticated player is required"));
+                HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "A valid authenticated session is required"));
         service.join(id, userId);
     }
 

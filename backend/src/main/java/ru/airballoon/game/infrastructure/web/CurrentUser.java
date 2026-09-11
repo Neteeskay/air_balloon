@@ -12,6 +12,6 @@ public final class CurrentUser {
         try {
             if (principal != null) return UUID.fromString(principal.getName());
         } catch (IllegalArgumentException ignored) { /* Uniform authentication error. */ }
-        throw new GameException(GameError.UNAUTHENTICATED, "A trusted UUID principal is required");
+        throw new GameException(GameError.AUTH_REQUIRED, "A valid authenticated session is required");
     }
 }

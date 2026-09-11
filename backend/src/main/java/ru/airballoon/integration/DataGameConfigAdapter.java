@@ -44,9 +44,9 @@ public class DataGameConfigAdapter implements GameConfigProvider {
         GameConfig base = deploymentDefaults.config();
         return new GameConfig(
                 data.minCrashMultiplier(), data.maxCrashMultiplier(), data.alpha(),
-                BigDecimal.valueOf(data.growthRate()), base.minBet(), base.maxBet(),
+                BigDecimal.valueOf(data.growthRate()), data.minBet(), data.maxBet(),
                 base.boosterPointsPerMultiplier(), data.pointsX2Bonus(), data.pointsX3Bonus(), data.pointsX4Bonus(),
-                0,
+                data.pointsCashoutBonus(), 0,
                 theme(base.green(), data.greenBoosterWeights(), data.pointsPerLevel()),
                 theme(base.red(), data.redBoosterWeights(), data.pointsPerLevel()));
     }
