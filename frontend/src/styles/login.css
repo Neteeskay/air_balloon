@@ -9,8 +9,8 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; overflow: hidden; }
-button, input { font: inherit; }
-button { border: 0; }
+.auth-page button, .auth-page input { font: inherit; }
+.auth-page button { border: 0; }
 
 .auth-page {
   position: relative;

@@ -1,8 +1,22 @@
-import type { AuthResult, LoginPayload } from '../types/auth';
+import type { AuthResult, CurrentUser, LoginPayload } from '../types/auth';
 
 const DEMO_USERS = [
-  { login: 'demo', password: 'demo123' },
-  { login: 'demo@airballoon.ru', password: 'demo123' }
+  {
+    login: 'demo',
+    password: 'demo123',
+    user: {
+      userId: '00000000-0000-4000-8000-000000000001',
+      displayName: 'Игрок Demo'
+    }
+  },
+  {
+    login: 'demo@airballoon.ru',
+    password: 'demo123',
+    user: {
+      userId: '00000000-0000-4000-8000-000000000002',
+      displayName: 'Игрок Air Balloon'
+    }
+  }
 ];
 
 export async function mockLogin(payload: LoginPayload): Promise<AuthResult> {
@@ -17,6 +31,6 @@ export async function mockLogin(payload: LoginPayload): Promise<AuthResult> {
   );
 
   return user
-    ? { ok: true, message: 'Вход выполнен. Backend будет подключён позже.' }
+    ? { ok: true, message: 'Вход выполнен.', user: user.user satisfies CurrentUser }
     : { ok: false, message: 'Неверный логин или пароль' };
 }

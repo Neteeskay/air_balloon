@@ -1,6 +1,6 @@
-# Воздушный шар — экран входа
+# Воздушный шар — интегрированный frontend
 
-Frontend экрана авторизации на React + TypeScript + Vite. Сейчас работает на мок-данных, без backend.
+Ветка объединяет готовые экраны авторизации и выбора режима полёта с пошаговым onboarding.
 
 ## Запуск
 
@@ -9,19 +9,25 @@ npm install
 npm run dev
 ```
 
-Открыть адрес, который покажет Vite (обычно `http://localhost:5173`).
+Vite по умолчанию открывает приложение на `http://localhost:5173`.
 
-## Проверка мок-входа
+## Demo-пользователи
 
 - `demo` / `demo123`
 - `demo@airballoon.ru` / `demo123`
 
-## Где заменить мок на backend
+У пользователей разные стабильные `userId`, поэтому session, выбранный режим и завершение onboarding проверяются независимо.
 
-`src/services/mockAuth.ts` — единственная точка, которую нужно заменить реальным API-вызовом. UI менять не требуется.
+## Проверки
+
+```bash
+npm run typecheck
+npm run build
+```
 
 ## Основные файлы
 
-- `src/pages/LoginPage.tsx` — страница и логика формы.
-- `src/styles/login.css` — адаптивный дизайн экрана.
-- `src/assets/` — изображения из предоставленного архива и перекрашенные в золотой SVG-иконки.
+- `src/pages/LoginPage.tsx` — форма входа.
+- `src/pages/FlightModePage.tsx` — выбор красного/зелёного режима и onboarding.
+- `src/app/App.tsx` — минимальная связка auth session → current user → flight mode.
+- `src/styles/login.css` и `src/styles/index.css` — раздельные стили экранов.

@@ -7,10 +7,11 @@ import lockIcon from '../assets/icons/lock-alt.svg';
 import eyeShowIcon from '../assets/icons/eye-show.svg';
 import eyeOffIcon from '../assets/icons/eye-off.svg';
 import { mockLogin } from '../services/mockAuth';
+import type { CurrentUser } from '../types/auth';
 
 void backgroundAsset;
 
-export default function LoginPage() {
+export default function LoginPage({ onAuthenticated }: { onAuthenticated: (user: CurrentUser) => void }) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +27,7 @@ export default function LoginPage() {
     setBusy(false);
     setSuccess(result.ok);
     setMessage(result.message);
+    if (result.ok && result.user) onAuthenticated(result.user);
   };
 
   const goBack = () => {
