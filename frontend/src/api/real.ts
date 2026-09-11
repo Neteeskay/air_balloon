@@ -1,4 +1,4 @@
-import type { Api, Connection, GameEvent, HistoryPage } from './types'
+import type { Api, GameEvent, HistoryPage } from './types'
 
 export function createRealApi(base = ''): Api {
   async function request<T>(path: string, init?: RequestInit): Promise<T> {

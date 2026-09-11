@@ -1,6 +1,6 @@
 import type { Catalog, Round, Theme } from '../api/types'
+import { multiplier, number } from '../game/format'
 import { Balloon } from './App'
-import { multiplier, number } from './Panels'
 
 export function Setup({ theme, onTheme, catalog, stake, onStake, booster, onBooster, balance, busy, onStart, onRules, onHistory }: { theme: Theme; onTheme: (t: Theme) => void; catalog: Catalog; stake: number; onStake: (n: number) => void; booster: number; onBooster: (n: number) => void; balance: number; busy: boolean; onStart: () => void; onRules: () => void; onHistory: () => void }) {
   const insufficient = stake > balance

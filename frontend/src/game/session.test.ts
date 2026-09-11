@@ -12,11 +12,14 @@ describe('GameSession reconnect', () => {
     const backend = new MockBackend(storage, () => now, false); const session = new GameSession(backend.api.game)
     await session.start({ theme: 'GREEN', betAmount: 100, boosterMultiplier: 1 })
     now += 2500; backend.tick(); const before = session.getSnapshot().round!.sequence
+    await session.cashout(); const fixedMultiplier = session.getSnapshot().round!.cashoutMultiplier
     backend.api.dev!.disconnect(); expect(session.getSnapshot().connection).toBe('disconnected')
     now += 3000; await vi.advanceTimersByTimeAsync(2500); await Promise.resolve(); await Promise.resolve()
     expect(session.getSnapshot().connection).toBe('connected')
-    expect(session.getSnapshot().recovered).toBeGreaterThan(0)
+    expect(session.getSnapshot().recovered).toBe(1)
     expect(session.getSnapshot().round!.sequence).toBeGreaterThan(before)
+    expect(session.getSnapshot().round!.cashoutPerformed).toBe(true)
+    expect(session.getSnapshot().round!.cashoutMultiplier).toBe(fixedMultiplier)
     session.dispose(); backend.dispose()
   })
 })
