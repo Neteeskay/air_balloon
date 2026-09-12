@@ -410,6 +410,30 @@ class EconomyIntegrationTest extends PostgresSupport {
         assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
     }
 
+    @Test void oneHundredConcurrentScenario8PurchasesMutateEconomyOnce() throws Exception {
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var offer = scenario8.offer(anna, win.id());
+        long scoreBefore = users.getState(anna).gameScore();
+        var gate = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(20)) {
+            var futures = new ArrayList<Future<Scenario8OfferService.PurchaseResult>>();
+            for (int i=0;i<100;i++) futures.add(pool.submit(() -> {
+                gate.await();
+                return scenario8.purchase(anna, offer.offerId(), "scenario8-concurrent-key");
+            }));
+            gate.countDown();
+            for (var future : futures) assertThat(future.get(30, TimeUnit.SECONDS).offerId()).isEqualTo(offer.offerId());
+        }
+        assertThat(users.getState(anna).bonusBalance()).isEqualTo(5000L - 100L + 600L - 150L);
+        assertThat(users.getState(anna).lotteryTicketCount()).isEqualTo(3);
+        assertThat(users.getState(anna).gameScore()).isEqualTo(scoreBefore);
+        assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM economy_transactions
+                WHERE round_id=? AND type='SCENARIO8_TICKET_PURCHASE'
+                """, Long.class, win.id())).isEqualTo(1);
+    }
+
     @Test void winningRoundGrantsOneFragmentAndLossGrantsNone() throws Exception {
         var loss = transactions.finishAndReward(finish(start(anna,100,1)));
         assertThat(puzzleRewards.findByRound(loss.id())).isEmpty();

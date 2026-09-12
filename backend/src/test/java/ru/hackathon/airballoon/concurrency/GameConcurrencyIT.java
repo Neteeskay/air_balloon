@@ -22,9 +22,9 @@ class GameConcurrencyIT extends GameAcceptanceSupport {
         }
     }
 
-    @Test void fiftySimultaneousCashoutsProduceExactlyOneWinCredit() throws Exception {
+    @Test void oneHundredSimultaneousCashoutsProduceExactlyOneWinCredit() throws Exception {
         Player user = user("CashoutRace", 1000); Round round = start(user, 1); driver.reachLevel(round.id(), 1);
-        var responses = parallel(50, () -> driver.cashout(user.id(), round.id(), Map.of()));
+        var responses = parallel(100, () -> driver.cashout(user.id(), round.id(), Map.of()));
         assertThat(responses).anyMatch(Response::successful);
         assertThat(responses).allMatch(r -> r.successful() || r.status() == 409 || r.status() == 400);
         Round current = driver.round(round.id());
