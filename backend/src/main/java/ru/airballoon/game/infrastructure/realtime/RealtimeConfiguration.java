@@ -13,7 +13,7 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.*;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import ru.airballoon.game.application.port.GameEventPublisher;
-import ru.airballoon.game.infrastructure.config.GameProperties;
+import ru.airballoon.game.infrastructure.config.CorsProperties;
 import ru.airballoon.game.infrastructure.web.CurrentUser;
 import java.util.Map;
 
@@ -21,17 +21,17 @@ import java.util.Map;
 @EnableWebSocket
 public class RealtimeConfiguration implements WebSocketConfigurer, WebMvcConfigurer {
     private final RoundWebSocketHandler handler;
-    private final GameProperties properties;
+    private final CorsProperties cors;
 
-    public RealtimeConfiguration(ObjectMapper mapper, GameProperties properties) {
+    public RealtimeConfiguration(ObjectMapper mapper, CorsProperties cors) {
         this.handler = new RoundWebSocketHandler(mapper);
-        this.properties = properties;
+        this.cors = cors;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(handler, "/ws/rounds")
-                .setAllowedOrigins(properties.allowedOrigins().toArray(String[]::new))
+                .setAllowedOrigins(cors.allowedOriginList().toArray(String[]::new))
                 .addInterceptors(new HandshakeInterceptor() {
                     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
@@ -45,8 +45,10 @@ public class RealtimeConfiguration implements WebSocketConfigurer, WebMvcConfigu
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**").allowedOrigins(properties.allowedOrigins().toArray(String[]::new))
-                .allowedMethods("GET", "POST", "PUT", "DELETE").allowCredentials(true);
+        registry.addMapping("/api/**").allowedOrigins(cors.allowedOriginList().toArray(String[]::new))
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("Content-Type", "Authorization", "Idempotency-Key", "X-Trace-Id")
+                .allowCredentials(true).maxAge(3600);
     }
 
     @Bean

@@ -1,6 +1,7 @@
 export const settings = {
   apiUrl: process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080',
-  frontendUrl: process.env.ACCEPTANCE_FRONTEND_URL ?? 'http://127.0.0.1:5173',
+  frontendUrl: process.env.ACCEPTANCE_FRONTEND_URL
+    ?? `http://${process.env.FRONTEND_HOST ?? '127.0.0.1'}:${process.env.FRONTEND_PORT ?? '5173'}`,
   wsUrl: process.env.ACCEPTANCE_WS_URL ?? wsFromHttp(process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080'),
   username: process.env.ACCEPTANCE_USERNAME ?? 'anna',
   password: process.env.ACCEPTANCE_PASSWORD ?? 'balloon1',

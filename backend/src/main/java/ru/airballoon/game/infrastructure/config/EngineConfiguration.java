@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({GameProperties.class, ResilienceProperties.class})
+@EnableConfigurationProperties({GameProperties.class, ResilienceProperties.class, CorsProperties.class})
 @EnableScheduling
 public class EngineConfiguration {
     private static final Set<String> DEMO_PROFILES = Set.of("test", "dev", "demo");

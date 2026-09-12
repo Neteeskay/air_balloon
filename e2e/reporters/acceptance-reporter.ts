@@ -20,7 +20,8 @@ export default class AcceptanceReporter implements Reporter {
       startedAt: new Date().toISOString(),
       workers: config.workers,
       apiUrl: process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080',
-      frontendUrl: process.env.ACCEPTANCE_FRONTEND_URL ?? 'http://127.0.0.1:5173'
+      frontendUrl: process.env.ACCEPTANCE_FRONTEND_URL
+        ?? `http://${process.env.FRONTEND_HOST ?? '127.0.0.1'}:${process.env.FRONTEND_PORT ?? '5173'}`
     }, null, 2));
   }
 

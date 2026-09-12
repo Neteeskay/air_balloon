@@ -9,7 +9,10 @@ npm install
 npm run dev
 ```
 
-Vite по умолчанию открывает приложение на `http://localhost:5173`.
+Vite по умолчанию открывает приложение на `http://localhost:${FRONTEND_PORT:-5173}`.
+Для прямого подключения к backend задайте `VITE_API_BASE_URL` (например,
+`http://localhost:${BACKEND_PORT:-8080}`) в окружении Vite; Docker/Nginx
+использует относительные `/api` и `/ws` маршруты.
 
 ## Demo-пользователи
 

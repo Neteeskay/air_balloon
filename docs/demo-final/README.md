@@ -19,7 +19,7 @@ docker compose up -d --build --wait
 
 The default URLs are:
 
-- Frontend: http://127.0.0.1:5173
+- Frontend: `http://127.0.0.1:${FRONTEND_PORT:-5173}` (значение задаётся в `.env`)
 - Backend health: http://127.0.0.1:8080/actuator/health
 
 PostgreSQL and Flyway migrations start automatically. The demo profile provides these login-enabled profiles:

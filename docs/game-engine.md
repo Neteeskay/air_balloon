@@ -251,7 +251,9 @@ publisher; потребитель дедуплицирует `(roundId, sequence
 50–1000 ms. `game.scheduler-enabled=false` отключает scheduler для управляемых
 тестов. Критические события отправляются сразу. GET/cashout также могут создавать
 catch-up события; frontend не должен опрашивать GET вместо подписки.
-`game.allowed-origins` ограничивает HTTP CORS и WebSocket Origin.
+`CORS_ALLOWED_ORIGINS` ограничивает HTTP CORS и WebSocket Origin. Если список
+не задан, backend строит его из `FRONTEND_SCHEME`, `FRONTEND_HOST` и
+`FRONTEND_PORT`.
 
 Изменение config через провайдер влияет только на новые раунды. Уже запущенный
 раунд использует собственный snapshot, включая thresholds, points и growth.

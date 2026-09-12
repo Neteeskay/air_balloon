@@ -84,7 +84,7 @@ docker compose -p air-balloon-acceptance stop
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ACCEPTANCE_API_URL` | `http://127.0.0.1:8080` | Real backend base URL |
-| `ACCEPTANCE_FRONTEND_URL` | `http://127.0.0.1:5173` | Real browser target |
+| `ACCEPTANCE_FRONTEND_URL` | `http://127.0.0.1:${FRONTEND_PORT:-5173}` | Real browser target; can be overridden explicitly |
 | `ACCEPTANCE_WS_URL` | API URL converted to `ws` + `/ws/rounds` | Native game socket |
 | `ACCEPTANCE_WS_ORIGIN` | unset | Explicit allowed WebSocket Origin when required |
 | `ACCEPTANCE_USERNAME` / `ACCEPTANCE_PASSWORD` | `anna` / `balloon1` | Browser/API demo user |

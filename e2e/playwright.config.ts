@@ -3,7 +3,8 @@ import path from 'node:path';
 
 const artifactsRoot = path.resolve(__dirname, '..', 'artifacts', 'acceptance');
 const apiBaseUrl = process.env.ACCEPTANCE_API_URL ?? 'http://127.0.0.1:18080';
-const frontendBaseUrl = process.env.ACCEPTANCE_FRONTEND_URL ?? 'http://127.0.0.1:5173';
+const frontendBaseUrl = process.env.ACCEPTANCE_FRONTEND_URL
+  ?? `http://${process.env.FRONTEND_HOST ?? '127.0.0.1'}:${process.env.FRONTEND_PORT ?? '5173'}`;
 const authFile = path.resolve(__dirname, '.auth', 'anna.json');
 const timeout = Number(process.env.ACCEPTANCE_TIMEOUT_MS ?? 120_000);
 

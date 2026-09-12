@@ -189,7 +189,9 @@ local-demo-admin. Пустой ADMIN_TOKEN в standalone закрывает до
 
 Native WebSocket: `ws://localhost:8080/ws/rounds` (HTTPS → `wss`). STOMP topics нет.
 Principal наследуется из handshake; соединение получает только события своего
-пользователя. Допустимые Origin задаются `game.allowed-origins`.
+пользователя. Допустимые Origin задаются через `CORS_ALLOWED_ORIGINS` либо
+автоматически выводятся из `FRONTEND_SCHEME`, `FRONTEND_HOST` и
+`FRONTEND_PORT` в `.env`.
 
 Сначала открыть соединение и дождаться `{"type":"CONNECTION_READY"}`, затем вызвать
 POST start. Не отправлять клиентские игровые сообщения в WebSocket: код закрытия 1008.

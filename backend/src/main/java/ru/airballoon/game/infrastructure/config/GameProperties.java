@@ -14,9 +14,9 @@ public record GameProperties(GameConfig config, RandomMode randomMode, Long fixe
                              List<String> allowedOrigins) {
     public GameProperties {
         if (tickMillis < 50 || tickMillis > 1000 || randomMode == null || config == null
-                || allowedOrigins == null || allowedOrigins.isEmpty() || allowedOrigins.contains("*"))
+                || allowedOrigins != null && allowedOrigins.contains("*"))
             throw new GameException(GameError.INVALID_GAME_CONFIG, "Invalid tick interval, mode, config or allowed origins");
-        allowedOrigins = List.copyOf(allowedOrigins);
+        allowedOrigins = allowedOrigins == null ? List.of() : List.copyOf(allowedOrigins);
     }
     public enum RandomMode { NORMAL, FIXED_SEED }
 }

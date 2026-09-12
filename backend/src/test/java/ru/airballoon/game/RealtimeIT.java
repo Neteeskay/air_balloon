@@ -85,6 +85,18 @@ class RealtimeIT extends IntegrationSupport {
         }
     }
 
+    @Test void configuredFrontendOriginCanOpenNativeWebSocket() throws Exception {
+        var listener = new SocketListener();
+        var socket = TestNativeWebSocket.connect(port, Map.of(
+                "X-Test-User", UUID.randomUUID().toString(),
+                "Origin", "http://localhost:5173"), listener);
+        try {
+            assertThat(listener.next().path("type").asText()).isEqualTo("CONNECTION_READY");
+        } finally {
+            socket.abort();
+        }
+    }
+
     private TestNativeWebSocket connect(UUID user, SocketListener listener) throws Exception {
         return TestNativeWebSocket.connect(port, Map.of("X-Test-User", user.toString()), listener);
     }

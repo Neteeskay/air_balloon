@@ -24,8 +24,28 @@
 [данные и экономика](docs/backend-data-economy.md), [REST API](docs/API_CONTRACT.md).
 
 Локальный запуск всех сервисов: `docker compose up -d --build --wait`.
-Frontend: http://127.0.0.1:5173, backend: http://127.0.0.1:8080.
-Переменные портов и demo-токен admin приведены в .env.example.
+Порты и browser origin задаются в `.env` на основе `.env.example`:
+
+```dotenv
+FRONTEND_SCHEME=http
+FRONTEND_HOST=localhost
+FRONTEND_PORT=5174
+BACKEND_PORT=8081
+# Необязательный authoritative allow-list:
+CORS_ALLOWED_ORIGINS=
+```
+
+После изменения только `.env` выполните `docker compose up -d --build --wait`.
+Frontend будет доступен на `http://127.0.0.1:5174`, backend — на
+`http://127.0.0.1:8081`. Backend автоматически разрешает frontend origins
+`localhost` и `127.0.0.1` с заданным frontend-портом. Для нестандартных или
+нескольких hosts задайте точный comma-separated `CORS_ALLOWED_ORIGINS`; этот
+список имеет приоритет, wildcard не поддерживается из-за cookie credentials.
+
+В Docker browser использует same-origin Nginx-маршруты `/api` и `/ws`. При
+прямом запуске Vite задайте `VITE_API_BASE_URL` (например,
+`http://localhost:8081`) согласно `BACKEND_PORT`.
+Переменные портов и demo-токен admin приведены в `.env.example`.
 Миграции и PostgreSQL запускаются автоматически.
 В demo-профиле создаются anna, maks, liza с 5000 бонусами.
 Frontend использует серверную demo-сессию (`anna/balloon1`, `maks/balloon2`,

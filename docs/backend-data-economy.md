@@ -318,7 +318,7 @@ SQL-детали не возвращаются клиенту при наруш�
 docker compose up -d --build --wait
 ~~~
 
-По умолчанию: frontend http://127.0.0.1:5173, backend http://127.0.0.1:8080,
+По умолчанию из `.env.example`: frontend http://127.0.0.1:5173, backend http://127.0.0.1:8080,
 PostgreSQL 127.0.0.1:5432. Порты опубликованы только на loopback.
 Frontend ожидает healthy backend, backend — healthy PostgreSQL.
 PostgreSQL использует именованный volume; остановка Compose без -v его сохраняет.
