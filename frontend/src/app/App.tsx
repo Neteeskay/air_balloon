@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSkySounds } from '../components/sky/useSkySounds'
 import { AvatarProfile } from '../features/avatar/AvatarProfile'
 import { BetSelectionPage } from '../features/betting/pages/BetSelectionPage'
-import { MockGameplay } from '../features/game/MockGameplay'
+import { CrashGamePage } from '../features/game/pages/CrashGamePage'
+import { createCrashRoundMock } from '../features/game/mocks/crashRound'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { ResultScreen } from '../features/results'
 import {
   EMPTY_MOCK_STATE,
+  applyFortunePrize,
   beginMockRound,
   clearMockRound,
   createMockUser,
   finishActiveMockRound,
-  finishMockRound,
   cashOutMockRound,
   readMockState,
   saveMockAvatar,
@@ -21,7 +23,6 @@ import {
 import FlightModePage, { type FlightMode } from '../pages/FlightModePage'
 import LoginPage from '../pages/LoginPage'
 import type { CurrentUser } from '../types/auth'
-import type { RoundOutcome } from '../types/result'
 
 const KNOWN_ROUTES = new Set([
   '/', '/login', '/mode', '/bet', '/game', '/result/win', '/result/loss', '/tournament', '/rating', '/profile',
@@ -40,7 +41,9 @@ function Redirect({ to, navigate }: { to: string; navigate: (path: string, repla
 export default function App() {
   const [path, setPath] = useState(currentPath)
   const [state, setState] = useState(readMockState)
+  const [soundOn, setSoundOn] = useState(true)
   const profileReturnPath = useRef('/mode')
+  const { unlockSkySounds } = useSkySounds({ enabled: soundOn, flightActive: path === '/game' })
 
   useEffect(() => {
     const onPopState = () => setPath(currentPath())
@@ -103,29 +106,32 @@ export default function App() {
   }
 
   const startRound = (stake: number, booster: 1 | 2 | 3 | 4) => {
-    setState((current) => beginMockRound(current, stake, booster))
+    const crashMultiplier = createCrashRoundMock().crashAt
+    setState((current) => beginMockRound(current, stake, booster, { crashMultiplier }))
     navigate('/game')
   }
 
-  const cashOutRound = (multiplier: number) => {
+  const cashOutRound = useCallback((multiplier: number) => {
     setState((current) => cashOutMockRound(current, multiplier))
-  }
+  }, [])
 
-  const finishRound = (forcedOutcome?: RoundOutcome) => {
+  const finishRound = useCallback(() => {
     setState((current) => {
-      const next = forcedOutcome ? finishMockRound(current, forcedOutcome) : finishActiveMockRound(current)
+      const next = finishActiveMockRound(current)
       const outcome = next.mockResult?.result
       if (outcome) navigate(`/result/${outcome}`)
       return next
     })
-  }
+  }, [navigate])
 
-  const returnToBet = () => {
+  const returnToBet = useCallback(() => {
     setState((current) => clearMockRound(current))
     navigate('/bet')
-  }
+  }, [navigate])
 
-  if (path === '/') return <LandingPage onPlay={() => navigate('/login')} />
+  const toggleSound = useCallback(() => setSoundOn((value) => !value), [])
+
+  if (path === '/') return <LandingPage onPlay={() => navigate('/login')} onUnlockAudio={unlockSkySounds} />
   if (path === '/login') return <LoginPage onAuthenticated={authenticate} onBack={() => navigate('/')} />
 
   if (!state.currentUser) return <Redirect to="/login" navigate={navigate} />
@@ -133,7 +139,9 @@ export default function App() {
   if (path === '/mode') {
     return (
       <FlightModePage
+        key={state.currentUser.userId}
         currentUser={state.currentUser}
+        onUnlockAudio={unlockSkySounds}
         onLogout={() => {
           setState(EMPTY_MOCK_STATE)
           // Remove the persisted session before replacing the current route.
@@ -158,7 +166,6 @@ export default function App() {
   if ((path === '/bet' || path === '/tournament' || path === '/rating') && state.selectedTheme) {
     return (
       <BetSelectionPage
-        key={state.selectedTheme}
         theme={state.selectedTheme}
         balance={state.currentUser.balance}
         tournamentOpen={path === '/tournament'}
@@ -173,19 +180,36 @@ export default function App() {
         }) : current)}
         onOpenTournament={() => navigate('/tournament')}
         onCloseTournament={() => navigate(path === '/rating' ? '/mode' : '/bet')}
+        onToggleSound={toggleSound}
+        onUnlockAudio={unlockSkySounds}
+        soundOn={soundOn}
       />
     )
   }
 
   if (path === '/game' && state.mockRound) {
     return (
-      <MockGameplay
-        round={state.mockRound}
-        user={state.currentUser}
-        onCashout={cashOutRound}
-        onComplete={finishRound}
+      <CrashGamePage
+        balance={state.currentUser.balance}
+        bet={state.mockRound.stake}
+        boosterMultiplier={state.mockRound.booster}
+        crashAt={state.mockRound.crashMultiplier}
+        initialCashoutMultiplier={state.mockRound.cashoutMultiplier}
         onBack={returnToBet}
+        onCashout={cashOutRound}
+        onFinish={finishRound}
         onProfile={openProfile}
+        onToggleSound={toggleSound}
+        onTopUp={() => setState((current) => current.currentUser ? ({
+          ...current,
+          currentUser: { ...current.currentUser, balance: current.currentUser.balance + 50 },
+        }) : current)}
+        onUnlockAudio={unlockSkySounds}
+        roundId={state.mockRound.id}
+        showCashoutHint={state.roundCount === 1}
+        soundOn={soundOn}
+        startedAt={state.mockRound.startedAt}
+        theme={state.mockRound.theme}
       />
     )
   }
@@ -201,12 +225,18 @@ export default function App() {
             if (!state.selectedStake || !state.selectedBooster || state.currentUser!.balance < state.selectedStake) {
               return Promise.reject(new Error('Insufficient mock balance'))
             }
-            setState((current) => beginMockRound(clearMockRound(current), state.selectedStake!, state.selectedBooster!))
+            const crashMultiplier = createCrashRoundMock().crashAt
+            setState((current) => beginMockRound(
+              clearMockRound(current),
+              state.selectedStake!,
+              state.selectedBooster!,
+              { crashMultiplier },
+            ))
             navigate('/game')
           },
           onHome: () => {
             setState((current) => clearMockRound(current))
-            navigate('/')
+            navigate('/mode')
           },
           onAutoReturn: returnToBet,
           onMenu: () => navigate('/mode'),
@@ -220,13 +250,21 @@ export default function App() {
     const puzzle = state.currentUser.puzzles[0]
     return (
       <AvatarProfile
+        userId={state.currentUser.userId}
         userName={state.currentUser.displayName}
         balance={state.currentUser.balance}
+        favoriteTheme={state.currentUser.favoriteTheme}
+        gamesPlayed={state.currentUser.gamesPlayed}
         score={state.currentUser.score}
+        wins={state.currentUser.wins}
         petName={state.currentUser.petName}
         puzzle={puzzle}
         unlockedClothingIds={state.currentUser.unlockedClothingIds}
         equippedClothing={state.currentUser.equippedClothing}
+        soundOn={soundOn}
+        onFortunePrize={(prize) => setState((current) => applyFortunePrize(current, prize))}
+        onToggleSound={toggleSound}
+        onUnlockAudio={unlockSkySounds}
         onSave={(petName, equipped) => setState((current) => saveMockAvatar(current, petName, equipped))}
         onClose={() => navigate(profileReturnPath.current)}
       />

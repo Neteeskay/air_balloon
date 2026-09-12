@@ -31,12 +31,12 @@ vi.mock('../features/betting/pages/BetSelectionPage', () => ({
   ),
 }))
 
-vi.mock('../features/game/MockGameplay', () => ({
-  MockGameplay: ({ onCashout, onComplete, onProfile }: any) => <><button onClick={() => { onCashout(2.2); onComplete('win') }}>WIN</button><button onClick={() => onComplete('loss')}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
+vi.mock('../features/game/pages/CrashGamePage', () => ({
+  CrashGamePage: ({ onCashout, onFinish, onProfile }: any) => <><button onClick={() => { onCashout(2.2); onFinish({ payout: 33, cashoutMultiplier: 2.2, crashMultiplier: 3, reachedLevels: 4 }) }}>WIN</button><button onClick={() => onFinish({ payout: 0, cashoutMultiplier: null, crashMultiplier: 1.4, reachedLevels: 1 })}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
 }))
 
 vi.mock('../features/results', () => ({
-  ResultScreen: ({ data, actions }: any) => <><span>{data.result} Result</span><span>{data.reward.collectedFragments} / {data.reward.totalFragments}</span><button onClick={() => actions.onPlayAgain(data.theme)}>Play Again</button><button onClick={actions.onProfile}>Result Profile</button></>,
+  ResultScreen: ({ data, actions }: any) => <><span>{data.result} Result</span><span>{data.reward.collectedFragments} / {data.reward.totalFragments}</span><button onClick={() => actions.onPlayAgain(data.theme)}>Play Again</button><button onClick={actions.onHome}>Home</button><button onClick={actions.onProfile}>Result Profile</button></>,
 }))
 
 vi.mock('../features/avatar/AvatarProfile', () => ({
@@ -81,6 +81,16 @@ describe('full mock application flow', () => {
     expect(window.location.pathname).toBe('/bet')
   })
 
+  it('returns from a result to mode selection instead of the landing page', () => {
+    render(<App />)
+    loginAndChoose('Green')
+    fireEvent.click(screen.getByText('Start'))
+    fireEvent.click(screen.getByText('LOSS'))
+    fireEvent.click(screen.getByText('Home'))
+    expect(window.location.pathname).toBe('/mode')
+    expect(screen.getByText('Green')).toBeInTheDocument()
+  })
+
   it('opens Tournament and returns with the bet flow intact', () => {
     render(<App />)
     loginAndChoose('Green')
@@ -102,10 +112,10 @@ describe('full mock application flow', () => {
 
     fireEvent.click(screen.getByText('Start'))
     fireEvent.click(screen.getByText('WIN'))
-    expect(screen.getByText('6 / 6')).toBeInTheDocument()
+    expect(screen.getByText('9 / 12')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Result Profile'))
     expect(window.location.pathname).toBe('/profile')
-    expect(screen.getByText('6 / 6')).toBeInTheDocument()
+    expect(screen.getByText('9 / 12')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Profile Back'))
     expect(window.location.pathname).toBe('/result/win')
   })

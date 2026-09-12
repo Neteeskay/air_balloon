@@ -36,6 +36,12 @@ describe('FlightModePage onboarding and mode selection', () => {
     expect(screen.getByRole('button', { name: /Выбрать зелёный шар/ })).toBeVisible()
   })
 
+  it('shows the welcome after integration even when the legacy standalone flag exists', () => {
+    window.localStorage.setItem('air-balloon-flight-mode-onboarding-complete:test-user', 'true')
+    renderPage()
+    expect(screen.getByText('Привет! Я Шиншилот 🐭')).toBeVisible()
+  })
+
   it('allows GREEN and RED selection once onboarding is complete', () => {
     const onModeSelected = vi.fn()
     renderPage(onModeSelected)
@@ -47,13 +53,13 @@ describe('FlightModePage onboarding and mode selection', () => {
   })
 
   it('renders the source trophy asset on the rating card', () => {
-    window.localStorage.setItem('air-balloon-flight-mode-onboarding-complete:test-user', 'true')
+    window.localStorage.setItem('air-balloon:flight-mode-onboarding:v2:test-user', 'true')
     renderPage()
     expect(document.querySelector('img[src="/assets/icons/кубок_старт.png"]')).toBeInTheDocument()
   })
 
   it('uses the shared white card surface for rating', () => {
-    window.localStorage.setItem('air-balloon-flight-mode-onboarding-complete:test-user', 'true')
+    window.localStorage.setItem('air-balloon:flight-mode-onboarding:v2:test-user', 'true')
     renderPage()
     const rating = screen.getByRole('button', { name: /Открыть глобальный рейтинг/ })
     expect(rating).toHaveClass('surface-card')

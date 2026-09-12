@@ -4,24 +4,34 @@ import { AvatarProfile, PetPreview } from './AvatarProfile'
 import { renderAssets } from './catalog'
 
 const puzzle = {
-  id: 'sky-journey',
-  name: 'Небесное путешествие',
-  totalFragments: 6,
-  collectedFragments: 5,
+  id: 'high-flight',
+  name: 'Высокий полёт',
+  totalFragments: 12,
+  collectedFragments: 8,
   rewardClothingId: 'cloud-scarf',
   completed: false,
 }
 const onSave = vi.fn()
+const onClose = vi.fn()
+const onToggleSound = vi.fn()
 const props = {
+  userId: 'anna',
   userName: 'Анна',
   balance: 5000,
+  favoriteTheme: 'red' as const,
+  gamesPlayed: 86,
   score: 100,
+  wins: 31,
   petName: 'Пушок',
   puzzle,
   unlockedClothingIds: ['aviator', 'sunhat', 'bow'],
   equippedClothing: { headId: 'aviator', neckId: 'bow' },
+  onFortunePrize: vi.fn(),
+  soundOn: true,
+  onToggleSound,
+  onUnlockAudio: vi.fn(),
   onSave,
-  onClose: vi.fn(),
+  onClose,
 }
 
 const openWardrobe = () => fireEvent.click(screen.getByRole('button', { name: 'Открыть гардероб' }))
@@ -31,12 +41,30 @@ describe('profile wardrobe', () => {
     HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
     HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
   })
-  beforeEach(() => onSave.mockClear())
+  beforeEach(() => {
+    onSave.mockClear()
+    onClose.mockClear()
+    onToggleSound.mockClear()
+    props.onFortunePrize.mockClear()
+    window.localStorage.clear()
+  })
 
   it('shows real puzzle progress and its clothing reward', () => {
     render(<AvatarProfile {...props} />)
-    expect(screen.getByText('5 / 6 фрагментов')).toBeInTheDocument()
-    expect(screen.getByText('Награда: Облачный шарфик')).toBeInTheDocument()
+    expect(screen.getByText('🧩 8 / 12')).toBeInTheDocument()
+    expect(screen.getByText('🎁 Награда: Облачный шарфик')).toBeInTheDocument()
+  })
+
+  it('keeps the profile icon on the profile page', () => {
+    render(<AvatarProfile {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Профиль' }))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('uses the shared top menu to toggle sound', () => {
+    render(<AvatarProfile {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Выключить звук' }))
+    expect(onToggleSound).toHaveBeenCalledTimes(1)
   })
 
   it('shows a locked item but cannot equip it', () => {
@@ -82,5 +110,30 @@ describe('profile wardrobe', () => {
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Выйти без сохранения' }))
     expect(screen.getByRole('heading', { name: 'Мой профиль' })).toBeInTheDocument()
     expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('opens the fortune wheel and applies the sector reached by the animation', () => {
+    const random = vi.spyOn(Math, 'random').mockReturnValue(.999)
+    const { container } = render(<AvatarProfile {...props} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Крутить колесо' }))
+    expect(screen.getByRole('dialog', { name: 'Колесо фортуны' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Крутить' }))
+    expect(screen.getByRole('button', { name: 'Колесо вращается…' })).toBeDisabled()
+
+    fireEvent.transitionEnd(container.querySelector('.fortune-wheel-rotor')!, { propertyName: 'transform' })
+    expect(props.onFortunePrize).toHaveBeenCalledWith(expect.objectContaining({ type: 'puzzle', amount: 1 }))
+    expect(screen.getByText('Фрагмент пазла добавлен в коллекцию!')).toBeInTheDocument()
+
+    random.mockRestore()
+  })
+
+  it('opens the full puzzle collection from the profile preview', () => {
+    render(<AvatarProfile {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /Вся коллекция/ }))
+    const collection = screen.getByRole('dialog', { name: 'Коллекция пазлов' })
+    expect(within(collection).getByRole('heading', { name: 'Высокий полёт' })).toBeInTheDocument()
+    expect(within(collection).getByRole('heading', { name: 'Скоро' })).toBeInTheDocument()
+    expect(within(collection).getByText('8 / 12 фрагментов')).toBeInTheDocument()
   })
 })

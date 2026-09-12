@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { AnimatedSkyBackground } from '../../../components/sky/AnimatedSkyBackground';
 import { BalloonLayer, type Balloon } from '../components/BalloonLayer';
 import { BenefitIcon } from '../components/BenefitIcon';
 import { CONTENT } from '../config/content';
@@ -180,7 +181,13 @@ function CloudImages({
 //   3. Выбор режима
 // ============================================
 
-export function LandingPage({ onPlay }: { onPlay: () => void }) {
+export function LandingPage({
+  onPlay,
+  onUnlockAudio,
+}: {
+  onPlay: () => void
+  onUnlockAudio?: () => void
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroContentRef = useRef<HTMLDivElement>(null);
   const screen2Ref = useRef<HTMLElement>(null);
@@ -379,7 +386,13 @@ export function LandingPage({ onPlay }: { onPlay: () => void }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="landing-page">
+    <div
+      ref={containerRef}
+      className="landing-page"
+      onKeyDownCapture={onUnlockAudio}
+      onPointerDownCapture={onUnlockAudio}
+    >
+      <AnimatedSkyBackground />
       {/* Far layer — small, blurred, slow */}
       <CloudImages clouds={FAR_CLOUDS} depth="far" layerClass="far-clouds" />
 

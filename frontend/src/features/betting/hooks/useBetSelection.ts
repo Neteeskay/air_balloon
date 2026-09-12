@@ -33,7 +33,6 @@ export function useBetSelection({ initialTheme, balance, onThemeChange, onStart,
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [selectedId, setSelectedId] = useState<number | null>(2)
   const [puzzleIds, setPuzzleIds] = useState(() => pickRandomPuzzleIds(4))
-  const [soundOn, setSoundOn] = useState(true)
   const [modal, setModal] = useState<BetSelectionModal>(null)
   const [notice, setNotice] = useState('')
   const [activatingId, setActivatingId] = useState<number | null>(null)
@@ -120,11 +119,9 @@ export function useBetSelection({ initialTheme, balance, onThemeChange, onStart,
     selectedId,
     selectedMultiplier: selectedOption?.multiplier ?? null,
     selectOption,
-    soundOn,
     startGame,
     switchTheme,
     theme,
-    toggleSound: () => setSoundOn((value) => !value),
     topUpBalance: onTopUp,
   }
 }

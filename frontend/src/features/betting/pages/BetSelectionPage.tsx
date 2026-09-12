@@ -1,6 +1,5 @@
 import { HelpCircle } from 'lucide-react'
 import { AnimatedSkyBackground } from '../../../components/sky/AnimatedSkyBackground'
-import { useSkySounds } from '../../../components/sky/useSkySounds'
 import { Toast } from '../../../components/ui/Toast'
 import { BET_OPTIONS } from '../data/betOptions'
 import { useBetSelection } from '../hooks/useBetSelection'
@@ -19,6 +18,7 @@ import type { Theme } from '../types'
 type BetSelectionPageProps = {
   theme: Theme
   balance: number
+  soundOn: boolean
   tournamentOpen?: boolean
   ratingOpen?: boolean
   onBack: () => void
@@ -28,11 +28,14 @@ type BetSelectionPageProps = {
   onTopUp: () => void
   onOpenTournament: () => void
   onCloseTournament: () => void
+  onToggleSound: () => void
+  onUnlockAudio: () => void
 }
 
 export function BetSelectionPage({
   theme: initialTheme,
   balance: currentBalance,
+  soundOn,
   tournamentOpen = false,
   ratingOpen = false,
   onBack,
@@ -42,6 +45,8 @@ export function BetSelectionPage({
   onTopUp,
   onOpenTournament,
   onCloseTournament,
+  onToggleSound,
+  onUnlockAudio,
 }: BetSelectionPageProps) {
   const {
     balance,
@@ -57,11 +62,9 @@ export function BetSelectionPage({
     selectedId,
     selectedMultiplier,
     selectOption,
-    soundOn,
     startGame,
     switchTheme,
     theme,
-    toggleSound,
     topUpBalance,
   } = useBetSelection({
     initialTheme,
@@ -70,13 +73,11 @@ export function BetSelectionPage({
     onStart,
     onTopUp,
   })
-  const { unlockSkySounds } = useSkySounds({ enabled: soundOn })
-
   return (
     <main
       className={`game-shell theme-${theme}`}
-      onKeyDownCapture={unlockSkySounds}
-      onPointerDownCapture={unlockSkySounds}
+      onKeyDownCapture={onUnlockAudio}
+      onPointerDownCapture={onUnlockAudio}
     >
       <div className="sky-glow" />
       <AnimatedSkyBackground />
@@ -84,7 +85,7 @@ export function BetSelectionPage({
         balance={balance}
         onOpenRules={openRules}
         onOpenTournament={onOpenTournament}
-        onToggleSound={toggleSound}
+        onToggleSound={onToggleSound}
         onTopUp={topUpBalance}
         onBack={onBack}
         onProfile={onProfile}

@@ -73,6 +73,7 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
   }, [data, isWin]);
 
   const balloon = getResultBalloon(data.theme, data.result);
+  const fragmentAwarded = data.reward.count > 0;
 
   const markInteraction = () => {
     userInteracted.current = true;
@@ -183,11 +184,18 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
             </div>
           </div>
           <div className="result-rewards__divider" aria-hidden="true" />
-          <div className="result-reward result-reward--fragment">
+          <div
+            className={`result-reward result-reward--fragment${fragmentAwarded ? '' : ' is-unearned'}`}
+            data-testid="fragment-reward"
+          >
             <img src={resultAssets.puzzle} alt="" />
             <div>
               <span>{data.reward.label ?? 'Новый фрагмент'}</span>
-              <strong>{data.reward.collectedFragments ?? data.reward.count} / {data.reward.totalFragments ?? '—'}</strong>
+              <strong>
+                {fragmentAwarded
+                  ? `${data.reward.collectedFragments ?? data.reward.count} / ${data.reward.totalFragments ?? '—'}`
+                  : '×0'}
+              </strong>
             </div>
           </div>
         </div>

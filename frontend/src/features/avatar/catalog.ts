@@ -7,6 +7,7 @@ export type Item = {
   description: string
   sheet: string
   crop: [number, number, number, number]
+  imageSize?: [number, number]
   reward?: boolean
 }
 
@@ -18,10 +19,10 @@ export const categories: { id: Category; name: string; title: string; hint: stri
 ]
 
 export const items: Item[] = [
-  { id: 'aviator', category: 'head', name: 'Авиатор', description: 'Очки авиатора для воздушных путешествий.', sheet: 'headwear', crop: [550, 40, 335, 140] },
+  { id: 'aviator', category: 'head', name: 'Авиатор', description: 'Повышает удачу в полёте.', sheet: 'aviator', crop: [0, 0, 461, 400], imageSize: [461, 400] },
   { id: 'sunhat', category: 'head', name: 'Соломенная шляпа', description: 'Солнечное настроение и ромашка на память о лете.', sheet: 'headwear', crop: [0, 35, 485, 390] },
   { id: 'bow', category: 'neck', name: 'Красная бабочка', description: 'Праздничный акцент на каждый день.', sheet: 'neckwear', crop: [500, 85, 480, 330] },
-  { id: 'cloud-scarf', category: 'neck', name: 'Облачный шарфик', description: 'Награда за пазл «Небесное путешествие».', sheet: 'neckwear', crop: [25, 25, 465, 405], reward: true },
+  { id: 'cloud-scarf', category: 'neck', name: 'Облачный шарфик', description: 'Даёт буст ×2 на один раунд.', sheet: 'neckwear', crop: [25, 25, 465, 405], reward: true },
 ]
 
 export const defaultOutfit: Outfit = { name: 'Пушок', head: 'aviator', neck: 'bow' }

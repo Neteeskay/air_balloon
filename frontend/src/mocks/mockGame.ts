@@ -1,5 +1,6 @@
 import type { CurrentUser } from '../types/auth'
 import type { ResultScreenData, RoundOutcome } from '../types/result'
+import type { FortuneWheelPrize } from './fortuneWheelPrizes'
 
 export type MockTheme = 'green' | 'red'
 export type MockBooster = 1 | 2 | 3 | 4
@@ -20,7 +21,10 @@ export type MockEquippedClothing = {
 
 export type MockUser = CurrentUser & {
   balance: number
+  favoriteTheme: MockTheme
+  gamesPlayed: number
   score: number
+  wins: number
   lotteryTickets: number
   petName: string
   puzzles: MockPuzzle[]
@@ -42,6 +46,7 @@ export type MockRound = {
 
 export type MockGameState = {
   currentUser: MockUser | null
+  roundCount: number
   selectedTheme: MockTheme | null
   selectedStake: number | null
   selectedBooster: MockBooster | null
@@ -50,7 +55,7 @@ export type MockGameState = {
 }
 
 export const MOCK_STATE_KEY = 'air-balloon:full-mock:v1'
-export const DEMO_PUZZLE_ID = 'sky-journey'
+export const DEMO_PUZZLE_ID = 'high-flight'
 export const DEMO_REWARD_CLOTHING_ID = 'cloud-scarf'
 
 const DEFAULT_UNLOCKED_CLOTHING = ['aviator', 'sunhat', 'bow']
@@ -58,6 +63,7 @@ const DEFAULT_EQUIPPED_CLOTHING: MockEquippedClothing = { headId: 'aviator', nec
 
 export const EMPTY_MOCK_STATE: MockGameState = {
   currentUser: null,
+  roundCount: 0,
   selectedTheme: null,
   selectedStake: null,
   selectedBooster: null,
@@ -68,9 +74,9 @@ export const EMPTY_MOCK_STATE: MockGameState = {
 function createDemoPuzzle(): MockPuzzle {
   return {
     id: DEMO_PUZZLE_ID,
-    name: 'Небесное путешествие',
-    totalFragments: 6,
-    collectedFragments: 5,
+    name: 'Высокий полёт',
+    totalFragments: 12,
+    collectedFragments: 8,
     rewardClothingId: DEMO_REWARD_CLOTHING_ID,
     completed: false,
   }
@@ -80,7 +86,10 @@ export function createMockUser(user: CurrentUser): MockUser {
   return {
     ...user,
     balance: 500,
+    favoriteTheme: 'red',
+    gamesPlayed: 86,
     score: 1280,
+    wins: 31,
     lotteryTickets: 3,
     petName: 'Пушок',
     puzzles: [createDemoPuzzle()],
@@ -92,15 +101,21 @@ export function createMockUser(user: CurrentUser): MockUser {
 function normalizePuzzle(value: unknown): MockPuzzle {
   if (!value || typeof value !== 'object') return createDemoPuzzle()
   const candidate = value as Partial<MockPuzzle>
-  const totalFragments = Number.isInteger(candidate.totalFragments) && Number(candidate.totalFragments) > 0
-    ? Number(candidate.totalFragments)
-    : 6
+  const legacyDemo = candidate.id === 'sky-journey' || candidate.totalFragments === 6
+  const isDemo = legacyDemo || candidate.id === DEMO_PUZZLE_ID
+  const totalFragments = isDemo
+    ? 12
+    : Number.isInteger(candidate.totalFragments) && Number(candidate.totalFragments) > 0
+      ? Number(candidate.totalFragments)
+      : 12
+  const savedCollected = Number.isInteger(candidate.collectedFragments) ? Number(candidate.collectedFragments) : 8
+  const migratedCollected = legacyDemo ? Math.round((savedCollected / 6) * 12) : savedCollected
   const collectedFragments = Math.max(0, Math.min(totalFragments,
-    Number.isInteger(candidate.collectedFragments) ? Number(candidate.collectedFragments) : 5,
+    migratedCollected,
   ))
   return {
-    id: typeof candidate.id === 'string' ? candidate.id : DEMO_PUZZLE_ID,
-    name: typeof candidate.name === 'string' ? candidate.name : 'Небесное путешествие',
+    id: isDemo ? DEMO_PUZZLE_ID : typeof candidate.id === 'string' ? candidate.id : DEMO_PUZZLE_ID,
+    name: isDemo ? 'Высокий полёт' : typeof candidate.name === 'string' ? candidate.name : 'Высокий полёт',
     totalFragments,
     collectedFragments,
     rewardClothingId: typeof candidate.rewardClothingId === 'string' ? candidate.rewardClothingId : DEMO_REWARD_CLOTHING_ID,
@@ -127,7 +142,10 @@ function normalizeMockUser(value: unknown): MockUser | null {
     userId: user.userId,
     displayName: user.displayName,
     balance: user.balance,
+    favoriteTheme: user.favoriteTheme === 'green' ? 'green' : 'red',
+    gamesPlayed: typeof user.gamesPlayed === 'number' ? user.gamesPlayed : 86,
     score: typeof user.score === 'number' ? user.score : 1280,
+    wins: typeof user.wins === 'number' ? user.wins : 31,
     lotteryTickets: typeof user.lotteryTickets === 'number' ? user.lotteryTickets : 3,
     petName: typeof user.petName === 'string' && user.petName.trim() ? user.petName.trim().slice(0, 24) : 'Пушок',
     puzzles: Array.isArray(user.puzzles) && user.puzzles.length > 0 ? user.puzzles.map(normalizePuzzle) : [createDemoPuzzle()],
@@ -157,7 +175,10 @@ export function readMockState(): MockGameState {
           status: parsedRound.status === 'cashed-out' || parsedRound.status === 'finished' ? parsedRound.status : 'flying' as const,
         }
       : null
-    return { ...EMPTY_MOCK_STATE, ...parsed, currentUser, mockRound }
+    const roundCount = typeof parsed.roundCount === 'number' && parsed.roundCount >= 0
+      ? Math.floor(parsed.roundCount)
+      : 0
+    return { ...EMPTY_MOCK_STATE, ...parsed, currentUser, mockRound, roundCount }
   } catch {
     return EMPTY_MOCK_STATE
   }
@@ -175,12 +196,19 @@ export function beginMockRound(
   state: MockGameState,
   stake: number,
   booster: MockBooster,
+  options: { crashMultiplier?: number } = {},
 ): MockGameState {
   if (!state.currentUser || !state.selectedTheme || stake <= 0 || stake > state.currentUser.balance) return state
 
   return {
     ...state,
-    currentUser: { ...state.currentUser, balance: state.currentUser.balance - stake },
+    roundCount: state.roundCount + 1,
+    currentUser: {
+      ...state.currentUser,
+      balance: state.currentUser.balance - stake,
+      favoriteTheme: state.selectedTheme,
+      gamesPlayed: state.currentUser.gamesPlayed + 1,
+    },
     selectedStake: stake,
     selectedBooster: booster,
     mockRound: {
@@ -192,7 +220,7 @@ export function beginMockRound(
       // Deterministic UI fixture: the balloon reaches the crash point after a
       // short, refresh-safe flight. This is not production crash mathematics.
       crashAfterMs: state.selectedTheme === 'red' ? 6200 : 5600,
-      crashMultiplier: 1.47,
+      crashMultiplier: options.crashMultiplier ?? 1.47,
       cashoutMultiplier: null,
       status: 'flying',
     },
@@ -225,6 +253,7 @@ export function finishMockRound(state: MockGameState, outcome: RoundOutcome): Mo
     ...currentUser,
     balance: currentUser.balance + payoutAmount,
     score: currentUser.score + earnedPoints,
+    wins: currentUser.wins + (outcome === 'win' ? 1 : 0),
     lotteryTickets: currentUser.lotteryTickets + (outcome === 'win' ? 1 : 0),
     puzzles,
     unlockedClothingIds,
@@ -291,6 +320,36 @@ export function saveMockAvatar(state: MockGameState, petName: string, equipped: 
       petName: petName.trim().slice(0, 24) || currentUser.petName,
       equippedClothing: { headId, neckId },
     },
+  }
+}
+
+export function applyFortunePrize(state: MockGameState, prize: FortuneWheelPrize): MockGameState {
+  if (!state.currentUser) return state
+
+  const { currentUser } = state
+  if (prize.type === 'rating') {
+    return { ...state, currentUser: { ...currentUser, score: currentUser.score + prize.amount } }
+  }
+  if (prize.type === 'coins') {
+    return { ...state, currentUser: { ...currentUser, balance: currentUser.balance + prize.amount } }
+  }
+
+  const puzzleIndex = currentUser.puzzles.findIndex((puzzle) => !puzzle.completed)
+  if (puzzleIndex < 0) return state
+
+  const puzzle = currentUser.puzzles[puzzleIndex]
+  const collectedFragments = Math.min(puzzle.totalFragments, puzzle.collectedFragments + prize.amount)
+  const completed = collectedFragments === puzzle.totalFragments
+  const puzzles = currentUser.puzzles.map((value, index) => index === puzzleIndex
+    ? { ...value, collectedFragments, completed }
+    : value)
+  const unlockedClothingIds = completed
+    ? [...new Set([...currentUser.unlockedClothingIds, puzzle.rewardClothingId])]
+    : currentUser.unlockedClothingIds
+
+  return {
+    ...state,
+    currentUser: { ...currentUser, puzzles, unlockedClothingIds },
   }
 }
 

@@ -42,7 +42,7 @@ body { min-height: 100vh; overflow: hidden; }
   background: linear-gradient(90deg, rgba(255,255,255,.025), transparent 48%, rgba(40,116,180,.028));
 }
 
-.back-button {
+.auth-page .back-button {
   position: absolute;
   z-index: 6;
   top: 18px;
@@ -345,7 +345,7 @@ body { min-height: 100vh; overflow: hidden; }
   .brand-logo { top: 18px; width: 236px; }
   .auth-content { top: 125px; left: 24px; right: 24px; }
   .auth-message { right: 24px; left: 24px; }
-  .back-button { left: 18px; }
+  .auth-page .back-button { left: 18px; }
 }
 
 @media (max-width: 390px) {

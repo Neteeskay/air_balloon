@@ -53,53 +53,6 @@
     radial-gradient(ellipse at 56% 38%, rgba(255,255,255,.55) 0 3.6%, transparent 10%);
 }
 
-.animated-sky {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.sky-element {
-  position: absolute;
-  left: 0;
-  display: block;
-  will-change: transform;
-  animation: sky-flight linear infinite;
-}
-
-.sky-cloud {
-  width: clamp(260px, 31vw, 560px);
-  height: auto;
-  opacity: .3;
-  filter: blur(.15px) drop-shadow(0 10px 24px rgba(255,255,255,.18));
-}
-
-.sky-bird-flight { animation-name: bird-flight; }
-
-.sky-bird {
-  display: block;
-  width: clamp(52px, 5.5vw, 92px);
-  height: auto;
-  opacity: .82;
-  filter: drop-shadow(0 3px 3px rgba(36,67,88,.2));
-}
-
-.sky-bird.is-mirrored { transform: scaleX(-1); }
-
-@keyframes bird-flight {
-  from { transform: translate3d(var(--bird-start-x), var(--bird-start-y), 0) scale(var(--bird-scale)); }
-  50% { transform: translate3d(var(--bird-middle-x), var(--bird-middle-y), 0) scale(var(--bird-scale)); }
-  to { transform: translate3d(var(--bird-end-x), var(--bird-end-y), 0) scale(var(--bird-scale)); }
-}
-
-@keyframes sky-flight {
-  from { transform: translate3d(var(--sky-start-x), 0, 0) scale(var(--sky-scale)); }
-  50% { transform: translate3d(var(--sky-middle-x), var(--sky-drift), 0) scale(var(--sky-scale)); }
-  to { transform: translate3d(var(--sky-end-x), 0, 0) scale(var(--sky-scale)); }
-}
-
 .game-shell::after {
   content: '';
   position: absolute;
@@ -149,6 +102,9 @@
 }
 
 .game-shell .back-button {
+  position: relative;
+  top: auto;
+  left: auto;
   justify-self: start;
   gap: 9px;
   min-width: 124px;
@@ -174,7 +130,7 @@
 
 .top-actions { justify-self: end; gap: 10px; }
 .tournament-button, .rules-button { height: 48px; border-radius: 999px; cursor: pointer; }
-.tournament-button { gap: 9px; padding: 6px 17px; transform-origin: 50% 80%; }
+.tournament-button { gap: 9px; padding: 6px 17px; transform-origin: 50% 80%; animation: tournament-button-float 2.8s ease-in-out infinite; }
 .tournament-icon { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(80,49,4,.2)); transform-origin: 50% 86%; animation: trophy-sway 2.8s ease-in-out infinite; }
 .tournament-button span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.05; }
 .tournament-button small { margin-top: 3px; font-size: .7rem; font-weight: 700; opacity: .8; }
@@ -271,7 +227,21 @@
   align-items: center;
   justify-content: center;
 }
-.hero-balloon > .balloon-crop { animation: float 5.4s ease-in-out infinite; }
+.hero-balloon__visual { position: relative; width: clamp(250px, 28vw, 430px); aspect-ratio: 3 / 4; line-height: 0; animation: float 5.4s ease-in-out infinite; }
+.hero-balloon__theme { position: absolute; inset: 0; opacity: 0; transform: translate3d(18%, -30%, 0) scale(.88) rotate(3deg); will-change: transform, opacity; transition: opacity 380ms cubic-bezier(.4,0,.6,1), transform 560ms cubic-bezier(.4,0,.3,1); }
+.hero-balloon__theme > .balloon-crop { width: 100%; }
+.game-shell.is-theme-preparing.is-switching-to-green .hero-balloon__theme--green,
+.game-shell.is-theme-preparing.is-switching-to-red .hero-balloon__theme--red { opacity: 0; transform: translate3d(-18%, 30%, 0) scale(.88) rotate(-3deg); transition: none; }
+.game-shell.theme-green:not(.is-theme-switching) .hero-balloon__theme--green,
+.game-shell.theme-red:not(.is-theme-switching) .hero-balloon__theme--red,
+.game-shell.is-theme-switching.is-switching-to-green .hero-balloon__theme--green,
+.game-shell.is-theme-switching.is-switching-to-red .hero-balloon__theme--red { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+.game-shell.is-theme-switching.is-switching-to-green .hero-balloon__theme--green,
+.game-shell.is-theme-switching.is-switching-to-red .hero-balloon__theme--red { transition-duration: 380ms; transition-delay: 220ms; }
+.game-shell.is-theme-leaving .theme-label,
+.game-shell.is-theme-leaving .level-track { animation: theme-data-fade-out 220ms cubic-bezier(.4,0,.6,1) both; }
+.game-shell.is-theme-entering .theme-label,
+.game-shell.is-theme-entering .level-track { animation: theme-data-fade-in 280ms cubic-bezier(.22,1,.36,1) both; }
 .hero-balloon p {
   position: absolute;
   right: 100%;
@@ -287,6 +257,15 @@
 .theme-red .hero-balloon p { color: #7c2941; }
 
 @keyframes float { 0%, 100% { transform: translateY(0) rotate(-.7deg); } 50% { transform: translateY(-10px) rotate(.8deg); } }
+
+@keyframes theme-data-fade-out {
+  to { opacity: 0; transform: translateY(-5px); }
+}
+
+@keyframes theme-data-fade-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .bet-panel {
   position: absolute;
@@ -307,7 +286,22 @@
 .panel-heading h1 { margin: 0; color: #432c27; font-size: 1.08rem; font-weight: 900; }
 .hint-button { margin-left: 8px; padding: 0; border: 0; color: #68717a; background: none; cursor: pointer; }
 .theme-switch { position: absolute; right: 0; top: -5px; display: flex; align-items: center; gap: 5px; height: 38px; padding: 2px 10px 2px 3px; border: 1px solid rgba(255,255,255,.8); border-radius: 13px; color: #6b4c39; background: rgba(255,255,255,.67); cursor: pointer; overflow: hidden; }
-.theme-switch .balloon-crop { width: 35px; flex: none; }
+.theme-switch-balloon { position: relative; display: block; width: 35px; height: 34px; flex: 0 0 35px; overflow: hidden; }
+.theme-switch-balloon .balloon-crop { position: absolute; inset: 0; width: 35px; flex: none; }
+.theme-switch-balloon__layer { position: absolute; inset: 0; display: block; }
+.theme-switch-balloon__layer--from { animation: theme-balloon-fly-out 280ms cubic-bezier(.4,0,.3,1) both; }
+.theme-switch-balloon__layer--to { opacity: 0; animation: theme-balloon-fly-in 320ms 280ms cubic-bezier(.22,1,.36,1) both; }
+
+@keyframes theme-balloon-fly-out {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+  to { opacity: 0; transform: translate3d(13px, -24px, 0) scale(.72) rotate(8deg); }
+}
+
+@keyframes theme-balloon-fly-in {
+  from { opacity: 0; transform: translate3d(-12px, 24px, 0) scale(.74) rotate(-7deg); }
+  84% { opacity: 1; transform: translate3d(1px, -1px, 0) scale(1.02) rotate(.5deg); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+}
 
 .puzzle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 7px; }
 .tooltip-anchor { position: relative; display: block; min-width: 0; }
@@ -504,7 +498,7 @@
   .history-list span:nth-child(-n+5) { display: none; }
   .levels { top: auto; bottom: calc(100% - var(--mobile-panel-top) + 42px); left: 16px; height: 310px; transform: scale(.82); transform-origin: bottom left; }
   .hero-balloon { top: 100px; left: 58%; }
-  .hero-balloon > .balloon-crop { width: 238px; }
+  .hero-balloon__visual { width: 238px; }
   .bet-panel { position: absolute; top: 460px; bottom: auto; padding: 11px; border-radius: 24px; }
   .panel-heading { justify-content: flex-start; }
   .panel-heading h1 { font-size: 1.05rem; }
@@ -582,7 +576,7 @@
   .history-list span:nth-child(-n+6) { display: none; }
   .levels { bottom: calc(100% - var(--mobile-panel-top) + 22px); transform: scale(.72); }
   .hero-balloon { left: 61%; }
-  .hero-balloon > .balloon-crop { width: 218px; }
+  .hero-balloon__visual { width: 218px; }
   .bet-panel { top: 430px; width: calc(100% - 16px); padding: 9px 8px; }
   .tournament-mobile-badge { top: 348px; right: 12px; }
   .tournament-mobile-badge > img { width: 64px; height: 52px; }
@@ -599,7 +593,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-balloon > .balloon-crop { animation: none; }
+  .hero-balloon__visual { animation: none; }
+  .hero-balloon__theme { transition: none; }
+  .theme-switch-balloon__layer,
+  .game-shell.is-theme-leaving .theme-label,
+  .game-shell.is-theme-leaving .level-track,
+  .game-shell.is-theme-entering .theme-label,
+  .game-shell.is-theme-entering .level-track { animation: none; }
   .tournament-button, .tournament-icon { animation: none; }
   .sky-element { display: none; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }

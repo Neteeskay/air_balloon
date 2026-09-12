@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { AnimatedSkyBackground } from '../components/sky/AnimatedSkyBackground'
 import type { CurrentUser } from '../types/auth'
 
 export type FlightMode = 'RED' | 'GREEN'
 type TutorialStep = 1 | 2 | 3 | 4 | 5
 
-const ONBOARDING_KEY_PREFIX = 'air-balloon-flight-mode-onboarding-complete:'
+const ONBOARDING_KEY_PREFIX = 'air-balloon:flight-mode-onboarding:v2:'
 const THEME_KEY_PREFIX = 'air-balloon-theme:'
 
 
@@ -101,12 +102,14 @@ export default function FlightModePage({
   onModeSelected,
   onOpenRating,
   onProfile,
+  onUnlockAudio,
 }: {
   currentUser: CurrentUser
   onLogout: () => void
   onModeSelected: (mode: FlightMode) => void
   onOpenRating: () => void
   onProfile: () => void
+  onUnlockAudio?: () => void
 }) {
   const [tutorialVisible, setTutorialVisible] = useState(
     () => readStorage(onboardingKey(currentUser.userId)) !== 'true',
@@ -117,6 +120,12 @@ export default function FlightModePage({
     const mode = readStorage(themeKey(currentUser.userId))
     return mode === 'RED' || mode === 'GREEN' ? mode : null
   })
+
+  useEffect(() => {
+    setTutorialVisible(readStorage(onboardingKey(currentUser.userId)) !== 'true')
+    setTutorialStep(1)
+    setShowChooseGameMessage(false)
+  }, [currentUser.userId])
 
 
   const completeTutorial = () => {
@@ -163,6 +172,8 @@ export default function FlightModePage({
       className={`flight-mode-page ${tutorialVisible ? 'is-tutorial' : ''}`}
       tabIndex={tutorialVisible ? 0 : undefined}
       onClick={tutorialVisible ? advanceTutorial : undefined}
+      onKeyDownCapture={onUnlockAudio}
+      onPointerDownCapture={onUnlockAudio}
       onKeyDown={tutorialVisible ? (event) => {
         if (event.target !== event.currentTarget) return
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -171,6 +182,7 @@ export default function FlightModePage({
       } : undefined}
     >
       <div className="scene-background" aria-hidden="true" />
+      <AnimatedSkyBackground />
       <img className="birds birds--standard" src="/assets/flight-mode/birds-3.png" alt="" draggable="false" />
 
       <div className="flight-stage">
@@ -289,4 +301,3 @@ export default function FlightModePage({
     </main>
   )
 }
-

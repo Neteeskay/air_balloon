@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 
 type UseSkySoundsOptions = {
   enabled: boolean
+  flightActive?: boolean
 }
 
 const MIN_BIRD_DELAY = 1800
@@ -11,18 +12,22 @@ function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
 
-export function useSkySounds({ enabled }: UseSkySoundsOptions) {
+export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOptions) {
   const contextRef = useRef<AudioContext | null>(null)
   const masterGainRef = useRef<GainNode | null>(null)
   const ambientSourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const windSourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const windGainRef = useRef<GainNode | null>(null)
   const birdTimerRef = useRef<number | null>(null)
   const birdBusyUntilRef = useRef(0)
   const seagullBufferRef = useRef<AudioBuffer | null>(null)
   const seagullLoadRef = useRef<Promise<void> | null>(null)
   const enabledRef = useRef(enabled)
+  const flightActiveRef = useRef(flightActive)
   const disposedRef = useRef(false)
 
   enabledRef.current = enabled
+  flightActiveRef.current = flightActive
 
   const clearBirdTimer = useCallback(() => {
     if (birdTimerRef.current !== null) {
@@ -158,6 +163,37 @@ export function useSkySounds({ enabled }: UseSkySoundsOptions) {
     ambientSourceRef.current = source
   }, [])
 
+  const startWind = useCallback((context: AudioContext, output: AudioNode) => {
+    if (windSourceRef.current) return
+
+    const buffer = context.createBuffer(1, context.sampleRate * 3, context.sampleRate)
+    const channel = buffer.getChannelData(0)
+    let smoothed = 0
+
+    for (let index = 0; index < channel.length; index += 1) {
+      smoothed = smoothed * 0.72 + (Math.random() * 2 - 1) * 0.28
+      channel[index] = smoothed
+    }
+
+    const source = context.createBufferSource()
+    const highpass = context.createBiquadFilter()
+    const lowpass = context.createBiquadFilter()
+    const windGain = context.createGain()
+
+    source.buffer = buffer
+    source.loop = true
+    highpass.type = 'highpass'
+    highpass.frequency.value = 180
+    lowpass.type = 'lowpass'
+    lowpass.frequency.value = 1850
+    windGain.gain.value = 0.0001
+    source.connect(highpass).connect(lowpass).connect(windGain).connect(output)
+    source.start()
+    windSourceRef.current = source
+    windGainRef.current = windGain
+    windGain.gain.setTargetAtTime(flightActiveRef.current ? 0.11 : 0.0001, context.currentTime, 0.22)
+  }, [])
+
   const unlockSkySounds = useCallback(async () => {
     if (!enabledRef.current) return
 
@@ -179,9 +215,10 @@ export function useSkySounds({ enabled }: UseSkySoundsOptions) {
 
     masterGain.gain.setTargetAtTime(1, context.currentTime, 0.04)
     startAmbient(context, masterGain)
+    startWind(context, masterGain)
     loadSeagull(context)
     if (birdTimerRef.current === null) scheduleBirdCall(context, masterGain)
-  }, [loadSeagull, scheduleBirdCall, startAmbient])
+  }, [loadSeagull, scheduleBirdCall, startAmbient, startWind])
 
   useEffect(() => {
     const context = contextRef.current
@@ -201,13 +238,38 @@ export function useSkySounds({ enabled }: UseSkySoundsOptions) {
   }, [clearBirdTimer, enabled, scheduleBirdCall])
 
   useEffect(() => {
+    const context = contextRef.current
+    const windGain = windGainRef.current
+    if (!context || !windGain) return
+
+    windGain.gain.setTargetAtTime(
+      enabled && flightActive ? 0.11 : 0.0001,
+      context.currentTime,
+      flightActive ? 0.28 : 0.45,
+    )
+  }, [enabled, flightActive])
+
+  useEffect(() => {
     disposedRef.current = false
 
     return () => {
       disposedRef.current = true
       clearBirdTimer()
-      ambientSourceRef.current?.stop()
-      void contextRef.current?.close()
+      try {
+        ambientSourceRef.current?.stop()
+        windSourceRef.current?.stop()
+      } catch {
+        // A StrictMode cleanup may observe sources that have already stopped.
+      }
+      const context = contextRef.current
+      ambientSourceRef.current = null
+      windSourceRef.current = null
+      windGainRef.current = null
+      masterGainRef.current = null
+      contextRef.current = null
+      seagullBufferRef.current = null
+      seagullLoadRef.current = null
+      if (context && context.state !== 'closed') void context.close()
     }
   }, [clearBirdTimer])
 
