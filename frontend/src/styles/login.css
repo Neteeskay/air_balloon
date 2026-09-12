@@ -60,14 +60,14 @@ body { min-height: 100vh; overflow: hidden; }
   text-shadow: 0 1px 2px rgba(19,81,139,.26);
 }
 
-.back-button__arrow {
+.auth-page .back-button__arrow {
   margin-top: -2px;
   font-size: 26px;
   line-height: 20px;
   font-weight: 300;
 }
 
-.hero__balloon {
+.auth-page .hero__balloon {
   position: absolute;
   z-index: 1;
   top: clamp(150px, 26vh, 280px);
@@ -81,7 +81,7 @@ body { min-height: 100vh; overflow: hidden; }
   filter: drop-shadow(0 8px 10px rgba(87,48,16,.10));
 }
 
-.hero__copy {
+.auth-page .hero__copy {
   position: absolute;
   z-index: 2;
   top: 65.7vh;
@@ -93,7 +93,7 @@ body { min-height: 100vh; overflow: hidden; }
   text-shadow: 0 1px 0 rgba(255,255,255,.20);
 }
 
-.hero__copy h1 {
+.auth-page .hero__copy h1 {
   margin: 0;
   font-size: 38.5px;
   line-height: 1.08;
@@ -308,8 +308,8 @@ body { min-height: 100vh; overflow: hidden; }
 }
 
 @media (max-width: 1050px) {
-  .hero__balloon,
-  .hero__copy { left: 26vw; }
+  .auth-page .hero__balloon,
+  .auth-page .hero__copy { left: 26vw; }
   .auth-card { right: 3.5vw; }
 }
 
@@ -324,14 +324,14 @@ body { min-height: 100vh; overflow: hidden; }
     background-size: cover;
     background-position: 50% 63%;
   }
-  .hero__balloon {
+  .auth-page .hero__balloon {
     top: 48px;
     left: 50%;
     width: 190px;
     transform: translateX(-50%);
     opacity: .98;
   }
-  .hero__copy { display: none; }
+  .auth-page .hero__copy { display: none; }
   .auth-card {
     top: 245px;
     right: auto;

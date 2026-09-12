@@ -5,6 +5,14 @@
   background: #4aa7e5;
 }
 
+/* Keep the post-cashout notice below the upper coefficient block. This is
+   scoped to the crash screen so the shared toast keeps its other placements. */
+.crash-shell .toast {
+  top: clamp(250px, 34vh, 360px);
+  max-width: min(92vw, 360px);
+  text-align: center;
+}
+
 .crash-shell::after { display: none; }
 
 .crash-scenery-blur {
