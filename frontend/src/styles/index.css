@@ -28,6 +28,21 @@
 .sound-toggle span { font-size: 16px; line-height: 1; }
 .cashout-onboarding { margin-bottom: 8px; padding: 9px 11px; border: 1px solid #c9d8bd; border-radius: 9px; background: #f0f5e9; color: #315e41; font-size: 10px; font-weight: 600; line-height: 1.4; text-align: center; pointer-events: none; animation: toast-in .3s ease-out; }
 
+.verifier-card { max-width: 980px; }
+.verifier-help { display: grid; gap: 5px; padding: 16px 18px; margin: 22px 0; border: 1px solid #d5e5d7; border-radius: 12px; background: #f2f8ef; color: #486755; font-size: 12px; }
+.verifier-input { display: grid; gap: 8px; color: var(--muted); font-size: 11px; }
+.verifier-input textarea { min-height: 235px; width: 100%; box-sizing: border-box; resize: vertical; border: 1px solid var(--border); border-radius: 12px; padding: 15px; font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--accent); background: #fbfcf9; }
+.verifier-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 14px; }
+.file-button { position: relative; overflow: hidden; cursor: pointer; }
+.file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.verifier-result { margin-top: 24px; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: #fffdf8; }
+.verifier-result-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.verifier-result-heading h3 { margin: 4px 0 0; }
+.verifier-badge { padding: 7px 10px; border-radius: 999px; background: #f0eee7; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+.verifier-badge.ok { background: #e2f2e2; color: #3d7650; }
+.verifier-badge.fail { background: #fae8e2; color: #a34d3e; }
+.verifier-card .proof-details { margin-top: 18px; }
+
 @media (max-width: 600px) {
   .sound-toggle { margin-left: auto; }
   .mode-badge { margin-left: 0; }

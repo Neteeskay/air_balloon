@@ -1,4 +1,5 @@
 import type { Api, Fairness, GameEvent, TournamentUpdate, User } from './types'
+import { calculateCrash, verifyCommitment } from '../fairness/verifier'
 
 type ErrorBody = { code?: string; message?: string }
 type UserState = { userId: string; username: string; displayName: string; bonusBalance: number; gameScore: number }
@@ -36,26 +37,6 @@ const stakeOptions = ({ minimum, maximum, decimalPlaces }: CatalogDto['stakes'])
   const values = [...new Set([maximum * .1, maximum * .25, maximum * .5, maximum].map(rounded))].sort((a, b) => a - b)
   if (values.length !== 4) throw new Error('Каталог не позволяет показать ровно четыре связанных варианта ставки и бустера.')
   return values
-}
-
-const localFairness = async (proof: Fairness): Promise<boolean | undefined> => {
-  if (proof.status !== 'REVEALED' || proof.serverSeed === undefined || proof.crashMultiplier === undefined) return undefined
-  if (!globalThis.crypto?.subtle) return undefined
-  const canonical = `air-balloon-fairness:v1\nroundId=${proof.roundId}\nserverSeed=${proof.serverSeed}\ncrashMultiplier=${String(proof.crashMultiplier)}\nboosterLevel=${proof.boosterLevel ?? 'null'}\n`
-  if (proof.canonicalInput !== canonical) return false
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
-  const hex = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
-  return proof.commitment.toLowerCase() === `sha256:${hex}`
-}
-
-const localFormula = (proof: Fairness): boolean | undefined => {
-  if (proof.status !== 'REVEALED' || proof.uniformSample === undefined || proof.crashMultiplier === undefined
-    || proof.minCrashMultiplier === undefined || proof.maxCrashMultiplier === undefined || proof.alpha === undefined) return undefined
-  if (proof.formulaVersion !== 'HOUSE_EDGE_V1') return undefined
-  const { uniformSample: u, alpha, minCrashMultiplier: min, maxCrashMultiplier: max } = proof
-  const raw = min === max ? min : u < alpha ? min : Math.min(max, (1 - alpha) / (1 - u))
-  const calculated = Math.floor((raw + Number.EPSILON) * 10000) / 10000
-  return Math.abs(calculated - proof.crashMultiplier) < 0.0000001
 }
 
 export function createRealApi(base = ''): Api {
@@ -112,7 +93,7 @@ export function createRealApi(base = ''): Api {
       cashout: (id, key) => request(`${roundPath(id)}/cashout`, { method: 'POST', headers: { 'Idempotency-Key': key } }),
       getSnapshot: id => request(roundPath(id)),
       getReplay: (id, after) => request(`${roundPath(id)}/events?afterSequence=${after}`),
-      getFairness: async id => { const proof = await request<Fairness>(`${roundPath(id)}/fairness`); return { ...proof, verified: await localFairness(proof), formulaVerified: localFormula(proof) } },
+      getFairness: async id => { const proof = await request<Fairness>(`${roundPath(id)}/fairness`); const calculated = calculateCrash(proof); return { ...proof, verified: await verifyCommitment(proof), formulaVerified: calculated !== undefined && proof.crashMultiplier !== undefined ? Math.abs(calculated - proof.crashMultiplier) < 0.0000001 : undefined } },
       getResult: id => request(`${roundPath(id)}/result`),
       connect: (event, connection) => new Promise((resolve, reject) => {
         let socket: WebSocket; let stopped = false; let initiallyReady = false; let retries = 0
