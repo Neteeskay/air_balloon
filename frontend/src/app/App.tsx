@@ -122,6 +122,7 @@ export default function App() {
         tournamentOpen={path === '/tournament'}
         ratingOpen={path === '/rating'}
         onBack={() => navigate('/mode')}
+        onProfile={() => navigate('/mode')}
         onThemeChange={(selectedTheme) => setState((current) => ({ ...current, selectedTheme }))}
         onStart={startRound}
         onTopUp={() => setState((current) => current.currentUser ? ({

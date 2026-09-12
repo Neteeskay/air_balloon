@@ -10,6 +10,7 @@ type BetSelectionHeaderProps = {
   onToggleSound: () => void
   onTopUp: () => void
   onBack: () => void
+  onProfile: () => void
 }
 
 export function BetSelectionHeader({
@@ -20,6 +21,7 @@ export function BetSelectionHeader({
   onToggleSound,
   onTopUp,
   onBack,
+  onProfile,
 }: BetSelectionHeaderProps) {
   return (
     <header className="topbar">
@@ -47,7 +49,7 @@ export function BetSelectionHeader({
         >
           {soundOn ? <Volume2 size={23} /> : <VolumeX size={23} />}
         </IconButton>
-        <IconButton label="Профиль">
+        <IconButton label="Профиль" onClick={onProfile}>
           <UserRound size={23} />
         </IconButton>
       </nav>

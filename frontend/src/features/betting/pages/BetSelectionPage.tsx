@@ -22,6 +22,7 @@ type BetSelectionPageProps = {
   tournamentOpen?: boolean
   ratingOpen?: boolean
   onBack: () => void
+  onProfile: () => void
   onThemeChange: (theme: Theme) => void
   onStart: (stake: number, booster: 1 | 2 | 3 | 4) => void
   onTopUp: () => void
@@ -35,6 +36,7 @@ export function BetSelectionPage({
   tournamentOpen = false,
   ratingOpen = false,
   onBack,
+  onProfile,
   onThemeChange,
   onStart,
   onTopUp,
@@ -85,6 +87,7 @@ export function BetSelectionPage({
         onToggleSound={toggleSound}
         onTopUp={topUpBalance}
         onBack={onBack}
+        onProfile={onProfile}
         soundOn={soundOn}
       />
 
