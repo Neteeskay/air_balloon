@@ -61,6 +61,7 @@ management:
 app:
   admin-token: ${ADMIN_TOKEN:}
   allow-fixed-seed: false
+  puzzle-rewards-enabled: ${PUZZLE_REWARDS_ENABLED:true}
 tournament:
   mask-other-player-names: true
   live-top-size: 20

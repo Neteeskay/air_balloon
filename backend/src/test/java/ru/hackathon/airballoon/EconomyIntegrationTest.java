@@ -21,6 +21,7 @@ import ru.hackathon.airballoon.config.*;
 import ru.hackathon.airballoon.economy.*;
 import ru.hackathon.airballoon.game.*;
 import ru.hackathon.airballoon.history.*;
+import ru.hackathon.airballoon.profile.*;
 import ru.hackathon.airballoon.reward.*;
 import ru.hackathon.airballoon.score.*;
 import ru.hackathon.airballoon.user.*;
@@ -45,6 +46,8 @@ class EconomyIntegrationTest {
     @Autowired UserService users;
     @Autowired HistoryService history;
     @Autowired Scenario8OfferService scenario8;
+    @Autowired PuzzleRewardService puzzleRewards;
+    @Autowired ProfileService profiles;
     @Autowired PlatformTransactionManager manager;
     @Autowired MockMvc http;
     @Autowired ObjectMapper json;
@@ -54,6 +57,7 @@ class EconomyIntegrationTest {
         // Refuse cleanup against a developer or production database.
         assertThat(jdbc.queryForObject("SELECT current_database()",String.class)).isEqualTo("balloon_test");
         jdbc.execute("TRUNCATE users CASCADE");
+        jdbc.update("UPDATE clothing_items SET active=true");
         jdbc.update("""
                 UPDATE game_config_active
                 SET version=(SELECT min(version) FROM game_config_versions WHERE config_json->>'alpha'='0.03')
@@ -254,13 +258,13 @@ class EconomyIntegrationTest {
         assertThat(history.getResult(finished.id()).result()).isEqualTo("WIN");
         assertThat(history.getHistory(0,20).items().getFirst().result()).isEqualTo("WIN");
     }
-    @Test void rewardIsPersistedAndReadDoesNotRegenerate() throws Exception {
+    @Test void legacyRewardReceiptIsPersistedButLossHasNoPlayerFacingReward() throws Exception {
         var r=transactions.finishAndReward(finish(start(anna,100,1)));
         var a=rewards.generateReward(r);var b=rewards.generateReward(r);
         assertThat(a).isEqualTo(b);
-        assertThat(history.getResult(r.id()).reward().id()).isEqualTo(a.id());
+        assertThat(history.getResult(r.id()).reward()).isNull();
         http.perform(get("/api/rounds/"+r.id()+"/result").principal(()->anna.toString()))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.reward.id").value(a.id().toString()));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.reward").doesNotExist());
     }
     @Test void parallelRewardGeneratesOnlyOne() throws Exception {
         var r=rounds.save(finish(start(anna,100,1)));
@@ -317,6 +321,7 @@ class EconomyIntegrationTest {
         r=transactions.finishAndReward(finish(r));
         assertThat(history.getResult(r.id()).score()).isEqualTo(400);
         assertThat(history.getResult(r.id()).reward()).isNotNull();
+        assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
         configs.update(configs.getCurrentConfig().version(),changed(500));
         var next=start(anna,100,1);
         scores.awardLevelPoints(anna,next.id(),1,500);
@@ -385,6 +390,7 @@ class EconomyIntegrationTest {
 
     @Test void scenario8IsWinOnlyAndPurchaseIsIdempotent() {
         var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        assertThat(puzzleRewards.findByRound(win.id())).get().extracting(PuzzleRewardService.RewardView::fragments).isEqualTo(1);
         var offer = scenario8.offer(anna, win.id());
         assertThat(offer).isNotNull().extracting(Scenario8OfferService.OfferView::price,
                 Scenario8OfferService.OfferView::ticketCount).containsExactly(150L, 3);
@@ -393,8 +399,150 @@ class EconomyIntegrationTest {
         assertThat(replay.replayed()).isTrue();
         assertThat(purchased.bonusBalance()).isEqualTo(5000L - 100L + 600L - 150L);
         assertThat(users.getState(anna).lotteryTicketCount()).isEqualTo(3);
+        assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
         var loss = transactions.finishAndReward(finish(start(anna,100,1)));
         assertThat(scenario8.offer(anna, loss.id())).isNull();
+        assertThat(puzzleRewards.findByRound(loss.id())).isEmpty();
+        assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
+    }
+
+    @Test void winningRoundGrantsOneFragmentAndLossGrantsNone() throws Exception {
+        var loss = transactions.finishAndReward(finish(start(anna,100,1)));
+        assertThat(puzzleRewards.findByRound(loss.id())).isEmpty();
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        assertThat(puzzleRewards.findByRound(win.id())).get().satisfies(reward -> {
+            assertThat(reward.type()).isEqualTo("PUZZLE_FRAGMENT");
+            assertThat(reward.puzzleId()).isEqualTo("SKY_JOURNEY");
+            assertThat(reward.fragments()).isEqualTo(1);
+            assertThat(reward.totalFragments()).isEqualTo(6);
+            assertThat(reward.puzzleCompleted()).isFalse();
+        });
+        http.perform(get("/api/rounds/" + win.id() + "/result").principal(() -> anna.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reward.type").value("PUZZLE_FRAGMENT"))
+                .andExpect(jsonPath("$.reward.puzzleId").value("SKY_JOURNEY"))
+                .andExpect(jsonPath("$.reward.fragments").value(1));
+    }
+
+    @Test void fiveOfSixWinCompletesPuzzleAndUnlocksCloudScarfOnlyOnce() {
+        jdbc.update("""
+                INSERT INTO user_puzzle_progress(user_id,puzzle_id,total_fragments,collected_fragments,completed)
+                SELECT ?,id,total_fragments,5,false FROM puzzle_definitions WHERE code='SKY_JOURNEY'
+                """, anna);
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var reward = puzzleRewards.findByRound(win.id()).orElseThrow();
+        assertThat(reward.fragments()).isEqualTo(6);
+        assertThat(reward.puzzleCompleted()).isTrue();
+        assertThat(reward.unlockedClothing()).extracting(PuzzleRewardService.ClothingReward::id).isEqualTo("CLOUD_SCARF");
+        rewards.generateReward(win);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM user_clothing_items uci JOIN clothing_items c ON c.id=uci.clothing_id
+                WHERE uci.user_id=? AND c.code='CLOUD_SCARF'
+                """, Long.class, anna)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM puzzle_reward_grants WHERE round_id=?", Long.class, win.id())).isEqualTo(1);
+    }
+
+    @Test void completedOnlyPuzzleDoesNotAdvanceOrGrantAgain() {
+        for (int i=0;i<6;i++) transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var extra = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var puzzle = profiles.get(anna).puzzles().getFirst();
+        assertThat(puzzle.collectedFragments()).isEqualTo(6);
+        assertThat(puzzle.completed()).isTrue();
+        assertThat(puzzleRewards.findByRound(extra.id())).isEmpty();
+    }
+
+    @Test void oneHundredConcurrentRetriesGrantExactlyOneFragment() throws Exception {
+        var finished = rounds.save(finish(winReady(start(anna,100,1),600)));
+        var gate = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(20)) {
+            var futures = new ArrayList<Future<?>>();
+            for (int i=0;i<100;i++) futures.add(pool.submit(() -> {
+                gate.await();
+                return puzzleRewards.grantForWinningRound(finished);
+            }));
+            gate.countDown();
+            for (var future : futures) assertThat(future.get(30, TimeUnit.SECONDS)).isInstanceOf(Optional.class);
+        }
+        assertThat(profiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM puzzle_reward_grants WHERE round_id=?", Long.class, finished.id())).isEqualTo(1);
+    }
+
+    @Test void profileReturnsPuzzleWardrobeAndPersistentEquipment() throws Exception {
+        http.perform(get("/api/current-user/profile").principal(() -> anna.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.userId").value(anna.toString()))
+                .andExpect(jsonPath("$.puzzles[0].id").value("SKY_JOURNEY"))
+                .andExpect(jsonPath("$.puzzles[0].collectedFragments").value(0))
+                .andExpect(jsonPath("$.avatar.equipped.headId").value("AVIATOR"))
+                .andExpect(jsonPath("$.avatar.equipped.neckId").value("BOW"))
+                .andExpect(jsonPath("$.wardrobe[3].id").value("CLOUD_SCARF"))
+                .andExpect(jsonPath("$.wardrobe[3].unlocked").value(false));
+        http.perform(put("/api/current-user/avatar/equipment").principal(() -> anna.toString())
+                .contentType("application/json").content("{\"headId\":\"SUNHAT\",\"neckId\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.equipped.headId").value("SUNHAT"))
+                .andExpect(jsonPath("$.equipped.neckId").doesNotExist());
+        assertThat(profiles.get(anna).avatar().equipped()).isEqualTo(new ProfileService.Equipped("SUNHAT", null));
+    }
+
+    @Test void equipRejectsLockedUnknownWrongSlotInactiveAndForeignInventory() throws Exception {
+        http.perform(put("/api/current-user/avatar/equipment").principal(() -> anna.toString())
+                .contentType("application/json").content("{\"headId\":\"AVIATOR\",\"neckId\":\"CLOUD_SCARF\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ITEM_LOCKED"));
+        http.perform(put("/api/current-user/avatar/equipment").principal(() -> anna.toString())
+                .contentType("application/json").content("{\"headId\":\"UNKNOWN\",\"neckId\":null}"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("CLOTHING_NOT_FOUND"));
+        http.perform(put("/api/current-user/avatar/equipment").principal(() -> anna.toString())
+                .contentType("application/json").content("{\"headId\":\"BOW\",\"neckId\":null}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("WRONG_CLOTHING_SLOT"));
+        jdbc.update("UPDATE clothing_items SET active=false WHERE code='SUNHAT'");
+        http.perform(put("/api/current-user/avatar/equipment").principal(() -> anna.toString())
+                .contentType("application/json").content("{\"headId\":\"SUNHAT\",\"neckId\":null}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ITEM_INACTIVE"));
+        UUID maks = DemoBootstrap.id("maks");
+        assertThat(profiles.get(maks).wardrobe().stream().filter(i -> i.id().equals("CLOUD_SCARF")).findFirst().orElseThrow().unlocked()).isFalse();
+    }
+
+    @Test void databaseProtectsProgressInventoryGrantAndEquipmentOwnership() {
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO user_puzzle_progress(user_id,puzzle_id,total_fragments,collected_fragments,completed)
+                SELECT ?,id,total_fragments,7,true FROM puzzle_definitions WHERE code='SKY_JOURNEY'
+                """, anna)).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("""
+                UPDATE user_avatar_equipment SET neck_clothing_id=(SELECT id FROM clothing_items WHERE code='CLOUD_SCARF')
+                WHERE user_id=?
+                """, anna)).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test void rewardAndEquipmentSurviveServiceRecreationAndRewardRetry() {
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        profiles.equip(anna, "SUNHAT", null);
+        var recreatedRewards = new PuzzleRewardService(jdbc, true);
+        var replay = recreatedRewards.grantForWinningRound(win).orElseThrow();
+        var recreatedProfiles = new ProfileService(jdbc, users, java.time.Clock.systemUTC());
+        assertThat(replay.fragments()).isEqualTo(1);
+        assertThat(recreatedProfiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
+        assertThat(recreatedProfiles.get(anna).avatar().equipped()).isEqualTo(new ProfileService.Equipped("SUNHAT", null));
+    }
+
+    @Test void concurrentEquipmentUpdatesLeaveOneValidCommittedOutfit() throws Exception {
+        var gate = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(20)) {
+            var futures = new ArrayList<Future<ProfileService.Avatar>>();
+            for (int i=0;i<100;i++) {
+                int index = i;
+                futures.add(pool.submit(() -> {
+                    gate.await();
+                    return profiles.equip(anna, index % 2 == 0 ? "AVIATOR" : "SUNHAT", index % 3 == 0 ? "BOW" : null);
+                }));
+            }
+            gate.countDown();
+            for (var future : futures) assertThat(future.get(30, TimeUnit.SECONDS)).isNotNull();
+        }
+        var equipped = profiles.get(anna).avatar().equipped();
+        assertThat(equipped.headId()).isIn("AVIATOR", "SUNHAT");
+        assertThat(equipped.neckId()).isIn("BOW", null);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM user_avatar_equipment WHERE user_id=?", Long.class, anna)).isEqualTo(1);
     }
 
     @Test void scenario8InsufficientBalanceDoesNotCreditTickets() {

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import ru.hackathon.airballoon.common.BusinessException;
 import ru.hackathon.airballoon.game.RoundRepository;
-import ru.hackathon.airballoon.reward.*;
+import ru.hackathon.airballoon.profile.PuzzleRewardService;
 
 @Service
 public class HistoryService {
@@ -19,18 +19,18 @@ public class HistoryService {
     public record Page(List<Entry> items,int page,int size,long total) {}
     public record PersonalEntry(UUID roundId,String theme,long betAmount,int boosterMultiplier,
                                 BigDecimal cashoutMultiplier,BigDecimal crashMultiplier,long winAmount,long score,
-                                String result,RewardView reward,Instant completedAt) {}
+                                String result,PuzzleRewardService.RewardView reward,Instant completedAt) {}
     public record PersonalPage(List<PersonalEntry> items,int page,int size,long total,Instant serverTime) {}
-    public record RewardView(UUID id,String type,String rarity,Instant createdAt) {}
     public record Result(UUID roundId,String result,long betAmount,BigDecimal cashoutMultiplier,
-                         BigDecimal crashMultiplier,long winAmount,long potentialWinAmount,long score,long configVersion,RewardView reward,
+                         BigDecimal crashMultiplier,long winAmount,long potentialWinAmount,long score,long configVersion,
+                         PuzzleRewardService.RewardView reward,
                          Instant completedAt,Instant serverTime) {}
     private final JdbcTemplate jdbc;
     private final RoundRepository rounds;
-    private final RewardService rewards;
+    private final PuzzleRewardService puzzleRewards;
     private final Clock clock;
-    public HistoryService(JdbcTemplate jdbc,RoundRepository rounds,RewardService rewards,Clock clock) {
-        this.jdbc=jdbc;this.rounds=rounds;this.rewards=rewards;this.clock=clock;
+    public HistoryService(JdbcTemplate jdbc,RoundRepository rounds,PuzzleRewardService puzzleRewards,Clock clock) {
+        this.jdbc=jdbc;this.rounds=rounds;this.puzzleRewards=puzzleRewards;this.clock=clock;
     }
     @Transactional(readOnly=true, isolation=Isolation.REPEATABLE_READ)
     public Page getHistory(int page,int size) {
@@ -57,17 +57,20 @@ public class HistoryService {
             SELECT r.*,
             (cfg.config_json->'boosterValues'->>(r.booster_tier-1))::integer AS booster_value,
             COALESCE((SELECT SUM(points) FROM score_events s WHERE s.round_id=r.id),0) AS round_score,
-            rw.id AS reward_id,rw.type AS reward_type,rw.rarity AS reward_rarity,rw.created_at AS reward_created_at
+            pg.reward_type,pg.fragment_delta,pg.collected_fragments_after,pg.total_fragments,
+            pg.puzzle_completed,pg.clothing_unlocked,pg.created_at AS reward_created_at,
+            pd.code AS puzzle_code,pd.name AS puzzle_name,ci.code AS clothing_code,ci.display_name AS clothing_name
             FROM game_rounds r JOIN game_config_versions cfg ON cfg.version=r.config_version
-            LEFT JOIN round_rewards rw ON rw.round_id=r.id
+            LEFT JOIN puzzle_reward_grants pg ON pg.round_id=r.id
+            LEFT JOIN puzzle_definitions pd ON pd.id=pg.puzzle_id
+            LEFT JOIN clothing_items ci ON ci.id=pd.reward_clothing_id
             WHERE r.user_id=? AND r.finished_at IS NOT NULL
             ORDER BY r.finished_at DESC,r.id LIMIT ? OFFSET ?
             """,(rs,n)->new PersonalEntry(rs.getObject("id",UUID.class),rs.getString("theme"),
                 rs.getLong("bet_amount"),rs.getInt("booster_value"),rs.getBigDecimal("cashout_multiplier"),
                 rs.getBigDecimal("crash_multiplier"),rs.getLong("win_amount"),rs.getLong("round_score"),
                 rs.getTimestamp("cashout_at")!=null?"WIN":"LOSS",
-                rs.getObject("reward_id",UUID.class)==null?null:new RewardView(rs.getObject("reward_id",UUID.class),
-                    rs.getString("reward_type"),rs.getString("reward_rarity"),rs.getTimestamp("reward_created_at").toInstant()),
+                rs.getString("reward_type")==null?null:rewardView(rs),
                 rs.getTimestamp("finished_at").toInstant()),userId,size,(long)page*size);
         long total=jdbc.queryForObject("SELECT count(*) FROM game_rounds WHERE user_id=? AND finished_at IS NOT NULL",Long.class,userId);
         return new PersonalPage(entries,page,size,total,clock.instant());
@@ -86,13 +89,20 @@ public class HistoryService {
 
     private Result result(ru.hackathon.airballoon.game.GameRound r) {
         if (r.finishedAt()==null) throw BusinessException.conflict("ROUND_NOT_FINISHED","Раунд ещё не завершён");
-        Reward reward=rewards.findByRound(r.id()).orElseThrow(()->BusinessException.conflict(
-                "REWARD_NOT_READY","Раунд завершён без награды: используйте finishAndReward"));
         long potentialWinAmount=BigDecimal.valueOf(r.betAmount()).multiply(r.crashMultiplier())
             .setScale(0,java.math.RoundingMode.DOWN).longValueExact();
         return new Result(r.id(),r.cashoutAt()!=null?"WIN":"LOSS",r.betAmount(),r.cashoutMultiplier(),
             r.crashMultiplier(),r.winAmount(),potentialWinAmount,r.roundScore(),r.configVersion(),
-            new RewardView(reward.id(),reward.type(),reward.rarity(),reward.createdAt()),r.finishedAt(),clock.instant());
+            puzzleRewards.findByRound(r.id()).orElse(null),r.finishedAt(),clock.instant());
+    }
+
+    private static PuzzleRewardService.RewardView rewardView(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var clothing = rs.getBoolean("clothing_unlocked")
+                ? new PuzzleRewardService.ClothingReward(rs.getString("clothing_code"), rs.getString("clothing_name")) : null;
+        return new PuzzleRewardService.RewardView(rs.getString("reward_type"),rs.getString("puzzle_code"),
+                rs.getString("puzzle_name"),rs.getInt("fragment_delta"),rs.getInt("collected_fragments_after"),
+                rs.getInt("total_fragments"),rs.getBoolean("puzzle_completed"),clothing,
+                rs.getTimestamp("reward_created_at").toInstant());
     }
 
     private static void validatePage(int page,int size) {
