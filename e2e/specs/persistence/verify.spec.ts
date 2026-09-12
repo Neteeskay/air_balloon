@@ -22,6 +22,10 @@ test('PERSISTENCE-VERIFY user, balance, history and completed result survive bac
   expect(decimalToScale(state.bonusBalance, 2)).toBe(expectedBalance);
   if (checkpoint.activeRoundId) expect(Number(state.gameScore)).toBeGreaterThanOrEqual(Number(checkpoint.gameScore));
   else expect(String(state.gameScore)).toBe(checkpoint.gameScore);
+  expect(String(state.lotteryTicketCount ?? 0)).toBe(checkpoint.lotteryTicketCount);
+  const replayedPurchase = await api.scenario8Purchase(checkpoint.scenario8OfferId, checkpoint.scenario8PurchaseKey);
+  expect(replayedPurchase.response.status()).toBe(200);
+  expect(replayedPurchase.body).toEqual({ ...checkpoint.scenario8Purchase, replayed: true });
   const result = await api.result(checkpoint.roundId);
   const { serverTime: currentServerTime, ...durableResult } = result;
   const { serverTime: checkpointServerTime, ...expectedResult } = checkpoint.result;

@@ -11,6 +11,7 @@ setup('REAL cookie session for API acceptance', async ({ request }) => {
     data: { username: settings.username, password: settings.password }
   });
   expect(response.status(), await response.text()).toBe(200);
+  expect((await response.json()).username).toBe(settings.username);
   fs.mkdirSync(path.dirname(authFile), { recursive: true });
   await request.storageState({ path: authFile });
 

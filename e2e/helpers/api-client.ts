@@ -8,6 +8,27 @@ export type UserState = {
   displayName: string;
   bonusBalance: string | number;
   gameScore: string | number;
+  lotteryTicketCount?: string | number;
+};
+
+export type Scenario8Offer = {
+  offerId: string;
+  roundId: string;
+  price: number;
+  ticketCount: number;
+  minWinAmount: number;
+  expiresAt: string;
+  status: 'AVAILABLE' | 'EXPIRED' | 'CONSUMED';
+};
+
+export type Scenario8Purchase = {
+  offerId: string;
+  roundId: string;
+  price: number;
+  ticketCount: number;
+  bonusBalance: number;
+  lotteryTicketCount: number;
+  replayed: boolean;
 };
 
 export type RoundView = {
@@ -145,6 +166,24 @@ export class ApiClient {
   async result(roundId: string): Promise<any> {
     const response = await this.request.get(`/api/rounds/${roundId}/result`, { headers: this.headers });
     return this.requiredJson<any>(response, 'Persistent round-result API is not integrated');
+  }
+
+  async scenario8Offer(roundId: string): Promise<{ response: APIResponse; body: Scenario8Offer | null }> {
+    const response = await this.request.get('/api/current-user/upsell/lottery-tickets/offer', {
+      headers: this.headers,
+      params: { roundId }
+    });
+    if ([404, 405, 501].includes(response.status())) blocked(`Scenario 8 offer API is not integrated (HTTP ${response.status()})`);
+    return { response, body: response.status() === 204 ? null : await safeJson(response) as Scenario8Offer };
+  }
+
+  async scenario8Purchase(offerId: string, idempotencyKey: string, extra: Record<string, unknown> = {}): Promise<{ response: APIResponse; body: any }> {
+    const response = await this.request.post('/api/current-user/upsell/lottery-tickets/purchase', {
+      headers: { ...this.headers, 'Idempotency-Key': idempotencyKey },
+      data: { offerId, ...extra }
+    });
+    if ([404, 405, 501].includes(response.status())) blocked(`Scenario 8 purchase API is not integrated (HTTP ${response.status()})`);
+    return { response, body: await safeJson(response) };
   }
 
   async adminConfig(adminToken: string): Promise<any> {

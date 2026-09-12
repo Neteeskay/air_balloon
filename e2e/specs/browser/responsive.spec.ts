@@ -25,7 +25,13 @@ test('RESPONSIVE setup, dialogs, cashout, result, history and profile have no ho
   await game.booster(1).click(); await game.start().click();
   await expect(game.cashout()).toBeVisible();
   for (const size of sizes) { await page.setViewportSize(size); await expect(game.cashout()).toBeVisible(); await expectNoOverflow(page); }
+  await expect(game.cashout()).toBeEnabled({ timeout: settings.eventTimeoutMs });
+  await game.cashout().click();
   await result.expectVisible();
+  const offer = page.getByRole('dialog', { name: /закрепить успех/i });
+  await expect(offer).toBeVisible();
+  for (const size of sizes) { await page.setViewportSize(size); await expect(offer).toBeVisible(); await expectNoOverflow(page); }
+  await offer.getByRole('button', { name: /нет, спасибо/i }).click();
   for (const size of sizes) { await page.setViewportSize(size); await expect(game.result()).toBeVisible(); await expectNoOverflow(page); }
   await game.history().click();
   for (const size of sizes) { await page.setViewportSize(size); await expect(page.getByRole('heading', { name: /история всех игроков/i })).toBeVisible(); await expectNoOverflow(page); }

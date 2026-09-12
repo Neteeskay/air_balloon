@@ -34,7 +34,7 @@ export default defineConfig({
       name: 'auth-setup',
       testMatch: /setup\/auth\.setup\.ts/,
       teardown: 'acceptance-cleanup',
-      use: { baseURL: apiBaseUrl }
+      use: { baseURL: apiBaseUrl, storageState: { cookies: [], origins: [] } }
     },
     {
       name: 'acceptance-cleanup',

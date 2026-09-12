@@ -24,9 +24,9 @@ Game Engine и WebSocket остаются зоной Backend №1.
 
 | Таблица | Назначение |
 | --- | --- |
-| users | UUID, username, display_name, bonus_balance, game_score, created_at, updated_at |
+| users | UUID, username, display_name, bonus_balance, game_score, lottery_ticket_count, created_at, updated_at |
 | game_rounds | Владелец, тема, ставка, tier/уровень бустера, коэффициенты, cashout, результат, timestamps, seed/hash, config_version, optimistic version |
-| economy_transactions | Журнал BET_DEBIT/WIN_CREDIT с суммой и балансами до/после |
+| economy_transactions | Журнал BET_DEBIT/WIN_CREDIT/SCENARIO8_TICKET_PURCHASE с суммой и балансами до/после |
 | score_events | LEVEL/BOOSTER/CASHOUT, ключ события, очки |
 | round_rewards | Одна коллекционная награда на раунд |
 | game_config_versions | Исторические JSONB-конфигурации с версией и временем |
@@ -42,6 +42,13 @@ roundScore вычисляется из score_events, чтобы сохранен
 2. V2__initial_config.sql — исходная конфигурация с pointsPerLevel=100.
 3. V3__explicit_tier_and_event_constraints.sql — явное имя booster_tier,
    проверки timestamps, состояний и ключей score events.
+4. V4__core_resilience_persistence.sql — durable round events, fairness and restart data.
+5. V300__tournaments.sql — tournament tables and ranking state.
+6. V301__tournament_core_score_bridge.sql — score projection bridge.
+7. V302__frontend_catalog_stake_bounds.sql — catalog/config bounds.
+8. V303__start_idempotency.sql — start-round idempotency.
+9. V304__house_edge_crash_distribution.sql — persisted crash model configuration.
+10. V305__scenario8_lottery_tickets.sql — ticket counter, offers and atomic purchase ledger.
 
 Применённые миграции не редактируются; дальнейшие изменения — новыми файлами.
 Flyway проверяет checksums при каждом запуске.
@@ -76,6 +83,11 @@ UNIQUE(round_id,type) в economy_transactions гарантирует, что п�
 Повтор с другой суммой — 409 IDEMPOTENCY_CONFLICT. Другой userId — 409
 ROUND_USER_MISMATCH. Ошибки BET_ALREADY_DEBITED/WIN_ALREADY_CREDITED заменены
 успешным идемпотентным ответом, а не вторым списанием.
+
+Scenario 8 не изменяет crash-математику: только завершённый WIN с ticketCount>0
+создаёт owner-only offer. Покупка атомарно списывает цену, уменьшает остаток
+билетов и начисляет приз; цена и ticketCount берутся из сохранённого offer,
+а не из запроса. Повтор с тем же Idempotency-Key возвращает исходный receipt.
 
 ## Очки
 
@@ -189,8 +201,9 @@ expectedVersion защищает от потери правок двух адм�
 | gameId / gameName / gameType | латинский id до 64; имя 1–100; тип CRASH |
 | active | boolean |
 | greenLevelCount / redLevelCount | строго 9 / 12 |
-| min / maxCrashMultiplier | 0 < min < max <= 1 000 000; <= 8 знаков |
-| growthRate / alpha | конечные числа (0, 100] |
+| min / maxCrashMultiplier | 0 < min <= max <= 1 000 000; <= 8 знаков; равенство только fixed-seed |
+| growthRate | конечное число 0.0001–10 |
+| alpha | конечное число 0 <= alpha < 1 |
 | updateIntervalMs | 16–1000 ms |
 | boosterValues | четыре целых 1–100, первое=1 |
 | green/redBoosterWeights | 9/12 неотрицательных целых, сумма 10 000 |
@@ -272,7 +285,7 @@ ON CONFLICT(username) DO NOTHING предотвращает дубликаты �
 
 GET /api/demo/users (только demo) возвращает эти три серверных профиля и UUID.
 GET /api/users/{id}/state возвращает username, displayName, bonusBalance,
-gameScore, createdAt, updatedAt.
+gameScore, lotteryTicketCount, createdAt, updatedAt.
 
 Существующие frontend-пароли anna/balloon1, maks/balloon2, liza/balloon3
 по-прежнему демонстрационные: серверную auth/регистрацию этот модуль не добавляет.

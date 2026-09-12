@@ -300,7 +300,8 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
                 url = connection.getMetaData().getURL();
                 user = connection.getMetaData().getUserName();
             }
-            String password = System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "");
+            String password = environment.getProperty("spring.datasource.password",
+                    System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", ""));
             try (ConfigurableApplicationContext ignored = new SpringApplicationBuilder(ru.airballoon.AirBalloonApplication.class)
                     .web(WebApplicationType.NONE)
                     .profiles("integration")
@@ -360,7 +361,8 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
         return new GameConfig(c.gameId(), c.gameName(), c.gameType(), c.active(), c.greenLevelCount(),
                 c.redLevelCount(), minCrash, maxCrash, c.growthRate(), c.alpha(), c.updateIntervalMs(),
                 c.minBet(), c.maxBet(), c.boosterValues(), greenWeights, redWeights, points, c.pointsCashoutBonus(), c.pointsX2Bonus(),
-                c.pointsX3Bonus(), c.pointsX4Bonus(), false, null);
+                c.pointsX3Bonus(), c.pointsX4Bonus(), false, null,
+                c.scenario8Enabled(), c.scenario8MinWinAmount(), c.scenario8Price(), c.scenario8TicketCount());
     }
 
     private Response<Round> roundResponse(ResponseEntity<JsonNode> response) {

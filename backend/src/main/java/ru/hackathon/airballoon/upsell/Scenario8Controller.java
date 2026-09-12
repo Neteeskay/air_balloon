@@ -2,6 +2,7 @@ package ru.hackathon.airballoon.upsell;
 
 import java.security.Principal;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.airballoon.game.infrastructure.web.CurrentUser;
@@ -18,6 +19,8 @@ public class Scenario8Controller {
         return offer == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(offer);
     }
 
+    /** Client-supplied price/ticket/win claims are deliberately ignored. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record PurchaseRequest(UUID offerId) {}
 
     @PostMapping("/purchase")

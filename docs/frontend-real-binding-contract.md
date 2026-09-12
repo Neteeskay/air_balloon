@@ -19,6 +19,8 @@ identity — UUID Principal из server-side HTTP session. Не отправля
 | Snapshot | `/api/rounds/{roundId}` | GET | Required/owner | Empty | `RoundView` | `401`, `403`, `404`, `503` |
 | Replay | `/api/rounds/{roundId}/events?afterSequence=N` | GET | Required/owner | `N >= 0` | `ReplayView` | `400`, `401`, `403`, `404`, `503` |
 | Result | `/api/rounds/{roundId}/result` | GET | Required/owner | Empty | `Result` | `401`, `403 NOT_OWNER`, `404`, `409 ROUND_NOT_FINISHED/REWARD_NOT_READY` |
+| Scenario 8 offer | `/api/current-user/upsell/lottery-tickets/offer?roundId={roundId}` | GET | Required/owner | Empty | `OfferView` or `204` when no offer | `401`, `403`, `404` |
+| Scenario 8 purchase | `/api/current-user/upsell/lottery-tickets/purchase` | POST | Required/owner | `{offerId}` and `Idempotency-Key` | `PurchaseResult` | `400`, `401`, `403`, `404`, `409` |
 | Personal history | `/api/current-user/history?page=0&size=20` | GET | Required | `page >= 0`, `size 1..100` | `PersonalPage` | `400 INVALID_PAGINATION`, `401 AUTH_REQUIRED` |
 | Global history | `/api/history?page=0&size=20` | GET | No | `page >= 0`, `size 1..100` | Existing global `Page` | `400 INVALID_PAGINATION` |
 | Fairness | `/api/rounds/{roundId}/fairness` | GET | Required/owner | Empty | `FairnessView` | `401`, `403`, `404` |
@@ -30,7 +32,10 @@ identity — UUID Principal из server-side HTTP session. Не отправля
 
 ## DTO shapes
 
-`UserState`: `userId,username,displayName,bonusBalance,gameScore,createdAt,updatedAt`.
+`UserState`: `userId,username,displayName,bonusBalance,gameScore,lotteryTicketCount,createdAt,updatedAt`.
+
+`OfferView`: `offerId,roundId,price,ticketCount,minWinAmount,expiresAt,status`.
+`PurchaseResult`: `offerId,roundId,price,ticketCount,bonusBalance,lotteryTicketCount,replayed`.
 
 `Catalog`: `configVersion,gameId,gameName,active,themes,stakes,boosters,serverTime`.
 `themes[]`: `theme,levels,active`; current values are GREEN/9 and RED/12.

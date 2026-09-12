@@ -134,6 +134,10 @@ try {
     } finally { Pop-Location }
   }
 
+  # Auth setup must always create a fresh server session; a stale cookie can
+  # belong to another demo user after a previous local run.
+  $authState = Join-Path $e2eRoot '.auth\anna.json'
+  if (Test-Path -LiteralPath $authState) { Remove-Item -LiteralPath $authState -Force }
   if (-not $SkipBrowserInstall) {
     if (-not (Invoke-NpmPhase 'browser-install' @('run', 'install:browsers'))) { Save-RunnerSummary; exit $exitCode }
   }

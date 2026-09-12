@@ -129,19 +129,20 @@ class FrontendContractIT extends GameAcceptanceSupport {
     }
 
     @Test
-    void tournamentSchemaUpgradesFrom301To302WithoutDataLoss() {
+    void scenario8SchemaUpgradesFrom304To305WithoutDataLoss() {
         try (var postgres=new PostgreSQLContainer<>("postgres:17-alpine")) {
             postgres.start();
             Flyway.configure().dataSource(postgres.getJdbcUrl(),postgres.getUsername(),postgres.getPassword())
-                    .locations("classpath:db/migration").target("301").load().migrate();
+                    .locations("classpath:db/migration").target("304").load().migrate();
             JdbcTemplate upgrade=new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(
                     postgres.getJdbcUrl(),postgres.getUsername(),postgres.getPassword()));
             upgrade.update("INSERT INTO users(id,username,display_name) VALUES (?,?,?)",UUID.randomUUID(),"upgrade-user","Upgrade User");
-            assertThat(upgrade.queryForObject("SELECT config_json ? 'minBet' FROM game_config_versions WHERE version=1",Boolean.class)).isFalse();
+            assertThat(upgrade.queryForObject("SELECT config_json ? 'scenario8Enabled' FROM game_config_versions WHERE version=1",Boolean.class)).isFalse();
 
             Flyway.configure().dataSource(postgres.getJdbcUrl(),postgres.getUsername(),postgres.getPassword())
                     .locations("classpath:db/migration").load().migrate();
-            assertThat(upgrade.queryForObject("SELECT config_json->>'minBet' FROM game_config_versions WHERE version=1",String.class)).isEqualTo("1");
+            assertThat(upgrade.queryForObject("SELECT config_json->>'scenario8Enabled' FROM game_config_versions WHERE version=1",String.class)).isEqualTo("true");
+            assertThat(upgrade.queryForObject("SELECT lottery_ticket_count FROM users WHERE username='upgrade-user'",Long.class)).isZero();
             assertThat(upgrade.queryForObject("SELECT count(*) FROM users WHERE username='upgrade-user'",Long.class)).isEqualTo(1);
         }
     }
