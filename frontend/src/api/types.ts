@@ -12,7 +12,7 @@ export type Round = {
   id: string; roundId: string; theme: Theme; betAmount: number; boosterMultiplier: number
   boosterActivated: boolean; boosterLevel?: number; currentMultiplier: number; currentLevel: number
   totalLevels: number; levelThresholds: number[]; cashoutAvailable: boolean; cashoutPerformed: boolean
-  cashoutMultiplier?: number; winAmount: number; roundScore: number
+  cashoutPreviewAmount?: number; cashoutMultiplier?: number; winAmount: number; roundScore: number
   status: 'RUNNING' | 'CASHED_OUT' | 'CRASHED' | 'FINISHED'; outcome?: 'CASHED_OUT' | 'LOSS'
   startedAt: string; timestamp: string; serverTime: string; finishedAt?: string; sequence: number
   fairnessCommitment: string; fairnessReveal?: Fairness; crashMultiplier?: number

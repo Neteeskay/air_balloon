@@ -21,7 +21,11 @@ test('S4-BROWSER x2 booster activation is rendered with multiplier and points', 
   await game.selectTheme('GREEN', 9);
   await game.booster(2).click();
   await game.start().click();
-  await expect(page.getByTestId('booster-state')).toContainText(/active|активирован|×\s*2/i, { timeout: settings.eventTimeoutMs });
+  await expect(game.cashout()).toBeEnabled({ timeout: settings.eventTimeoutMs });
+  const before = await game.cashout().textContent();
+  await expect(page.getByTestId('booster-state')).toContainText(/active|активирован/i, { timeout: settings.eventTimeoutMs });
+  await expect(game.cashout()).not.toHaveText(before ?? '', { timeout: settings.eventTimeoutMs });
+  await expect(game.cashout()).toContainText(/Забрать\s+[\d\s]+(?:[,.]\d+)?\s+бонусов/i);
   await expect.poll(async () => Number((await page.getByTestId('round-points').textContent())?.replace(/\D/g, '') ?? 0)).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(() => (window as Window & { __airBalloonAudioStarts?: number }).__airBalloonAudioStarts ?? 0)).toBeGreaterThan(1);
   await page.getByRole('button', { name: /выключить звук/i }).click();

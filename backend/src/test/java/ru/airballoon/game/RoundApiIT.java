@@ -56,17 +56,21 @@ class RoundApiIT extends IntegrationSupport {
         clock.atMillis(1000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("currentMultiplier").value(1.1))
-                .andExpect(jsonPath("cashoutAvailable").value(false));
+                .andExpect(jsonPath("cashoutAvailable").value(false))
+                .andExpect(jsonPath("cashoutPreviewAmount").value(110.0));
         clock.atMillis(2000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
-                .andExpect(jsonPath("currentLevel").value(1)).andExpect(jsonPath("cashoutAvailable").value(true));
+                .andExpect(jsonPath("currentLevel").value(1)).andExpect(jsonPath("cashoutAvailable").value(true))
+                .andExpect(jsonPath("cashoutPreviewAmount").value(120.0));
         clock.atMillis(10000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
-                .andExpect(jsonPath("currentMultiplier").value(6.0)).andExpect(jsonPath("boosterActivated").value(true));
+                .andExpect(jsonPath("currentMultiplier").value(6.0)).andExpect(jsonPath("boosterActivated").value(true))
+                .andExpect(jsonPath("cashoutPreviewAmount").value(600.0));
         clock.atMillis(10100);
         JsonNode cashout = json(mvc.perform(post("/api/rounds/" + id + "/cashout").principal(() -> user.toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("cashoutMultiplier").value(6.03))
-                .andExpect(jsonPath("winAmount").value(603.0)).andExpect(jsonPath("status").value("CASHED_OUT")).andReturn());
+                .andExpect(jsonPath("winAmount").value(603.0)).andExpect(jsonPath("status").value("CASHED_OUT"))
+                .andExpect(jsonPath("cashoutPreviewAmount").doesNotExist()).andReturn());
         assertThat(balances.balance(user)).isEqualByComparingTo("1503.00");
         clock.atMillis(11000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
@@ -92,7 +96,7 @@ class RoundApiIT extends IntegrationSupport {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"currentMultiplier", "cashoutMultiplier", "winAmount", "seed", "crashMultiplier", "boosterLevel", "score", "elapsedTime", "status", "userId"})
+    @ValueSource(strings = {"currentMultiplier", "cashoutPreviewAmount", "cashoutMultiplier", "winAmount", "seed", "crashMultiplier", "boosterLevel", "score", "elapsedTime", "status", "userId"})
     void rejectsClientAuthorityFieldsAtStart(String field) throws Exception {
         String request = "{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3,\"" + field + "\":999}";
         mvc.perform(post("/api/rounds").principal(() -> user.toString()).contentType(MediaType.APPLICATION_JSON).content(request))

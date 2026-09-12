@@ -1,7 +1,6 @@
 package ru.airballoon.game.domain;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -103,8 +102,7 @@ public final class RoundEngine {
         f.updated = later(f.updated, now.truncatedTo(ChronoUnit.MILLIS));
         f.status = states.transition(f.status, RoundStatus.CASHED_OUT);
         f.cashoutMultiplier = f.multiplier;
-        f.win = round.betAmount().multiply(f.cashoutMultiplier)
-                .setScale(round.config().effectiveEconomyScale(), RoundingMode.DOWN);
+        f.win = PayoutCalculator.calculate(round, f.cashoutMultiplier);
         f.cashoutAt = f.updated;
         f.score += round.config().cashoutPoints();
         f.emit(GameEvent.Type.CASHOUT_SUCCESS, Map.of("cashoutMultiplier", f.cashoutMultiplier,

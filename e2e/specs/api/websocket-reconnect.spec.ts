@@ -25,6 +25,7 @@ test('WS-RECONNECT disconnect, snapshot and replay restore multiplier, level, bo
     expect(snapshot.currentLevel).toBeGreaterThanOrEqual(progressed.currentLevel);
     expect(Number(snapshot.boosterActivated)).toBeGreaterThanOrEqual(Number(progressed.boosterActivated));
     expect(snapshot.cashoutPerformed).toBe(progressed.cashoutPerformed);
+    expect(snapshot.cashoutPreviewAmount).toBeDefined();
     expect(snapshot.sequence).toBeGreaterThanOrEqual(progressed.sequence);
 
     const replay = await api.replay(round.id, oldSequence);

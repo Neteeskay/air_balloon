@@ -23,6 +23,7 @@ export type RoundView = {
   totalLevels: number;
   levelThresholds: Array<string | number>;
   cashoutAvailable: boolean;
+  cashoutPreviewAmount?: string | number;
   cashoutMultiplier?: string | number;
   cashoutPerformed: boolean;
   winAmount: string | number;

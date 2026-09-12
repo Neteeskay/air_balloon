@@ -28,11 +28,21 @@ describe('game components', () => {
   })
   it('keeps cashout visible but disabled before level one', () => {
     render(<Flight round={round()} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)
-    expect(screen.getByRole('button', { name: /Забрать/i })).toBeDisabled()
+    const cashout = screen.getByRole('button', { name: /Забрать/i })
+    expect(cashout).toBeDisabled()
+    expect(cashout).toHaveTextContent(/Забрать 100 бонусов.*×1\.00/i)
   })
   it('enables cashout after level one', () => {
-    render(<Flight round={round('GREEN', { currentLevel: 1, currentMultiplier: 1.2, cashoutAvailable: true })} connection="connected" busy={false} notice="" onCashout={vi.fn()} onFairness={() => {}} onReconnect={() => {}} />)
-    expect(screen.getByRole('button', { name: /Забрать/i })).toBeEnabled()
+    render(<Flight round={round('GREEN', { currentLevel: 1, currentMultiplier: 1.2, cashoutPreviewAmount: 120, cashoutAvailable: true })} connection="connected" busy={false} notice="" onCashout={vi.fn()} onFairness={() => {}} onReconnect={() => {}} />)
+    const cashout = screen.getByRole('button', { name: /Забрать/i })
+    expect(cashout).toBeEnabled()
+    expect(cashout).toHaveTextContent(/Забрать 120 бонусов.*×1\.20/i)
+  })
+  it('keeps a large authoritative amount inside the compact cashout CTA', () => {
+    render(<Flight round={round('GREEN', { currentLevel: 8, currentMultiplier: 9999.99, cashoutPreviewAmount: 999999, cashoutAvailable: true })} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)
+    const cashout = screen.getByRole('button', { name: /Забрать/i })
+    expect(cashout).toHaveClass('cashout-button')
+    expect(cashout).toHaveTextContent(/999\s999 бонусов/i)
   })
   it.each([2, 3, 4])('shows the authoritative ×%i marker from the start', booster => {
     render(<Flight round={round('GREEN', { boosterMultiplier: booster, boosterLevel: 3 })} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)

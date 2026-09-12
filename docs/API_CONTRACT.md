@@ -79,6 +79,7 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
   "totalLevels":9,
   "levelThresholds":[1.2,1.5,2,3,4,6,8,10,12],
   "cashoutAvailable":false,
+  "cashoutPreviewAmount":100.00,
   "winAmount":0.00,
   "roundScore":0,
   "status":"RUNNING",
@@ -107,7 +108,10 @@ Start не идемпотентен: каждый POST списывает нов
 догоняет состояние до текущего серверного времени. Используется после reconnect.
 `roundId` — alias прежнего `id`, `sequence` — cursor snapshot. `cashoutPerformed`
 явно указывает, зафиксирована ли выплата. `serverTime` — текущее время сервера,
-а `timestamp` — время последнего изменения состояния.
+а `timestamp` — время последнего изменения состояния. Пока `status=RUNNING`,
+`cashoutPreviewAmount` содержит authoritative сумму, которую сервер выплатил бы
+при cashout в представленном snapshot state. Поле рассчитывается transiently и
+не вызывает отдельной записи или чтения PostgreSQL на tick.
 
 ### Cashout
 
@@ -116,6 +120,10 @@ Start не идемпотентен: каждый POST списывает нов
 предыдущего cashout. После успеха появляются `cashoutMultiplier`, `cashoutAt`,
 `winAmount`, status=CASHED_OUT. Шар летит дальше; finishedAt пока отсутствует.
 `roundScore` сразу включает cashout bonus из immutable config version раунда.
+`cashoutPreviewAmount` после фиксации опускается. Фактический `winAmount` может
+быть немного больше последнего показанного preview, если authoritative multiplier
+вырос между последним realtime event и обработкой команды сервером; клиентский
+timestamp не участвует в settlement.
 
 Повторный cashout до crash: `409 ALREADY_CASHED_OUT`. После crash: `409 ROUND_ALREADY_CRASHED`.
 В обоих случаях повторного начисления нет. При `503 INTEGRATION_UNAVAILABLE`
@@ -185,16 +193,16 @@ POST start. Не отправлять клиентские игровые соо
   "eventId":"00000000-0000-0000-0000-000000000123:12",
   "timestamp":"2026-09-11T00:00:10.100Z",
   "serverTime":"2026-09-11T00:00:10.100Z",
-  "data":{"multiplier":6.0300,"level":6}
+  "data":{"multiplier":6.0300,"level":6,"cashoutPreviewAmount":603}
 }
 ```
 
 | type | data |
 | --- | --- |
-| ROUND_STARTED | `round: RoundView`, `fairnessCommitment` |
-| MULTIPLIER_UPDATE | `multiplier, level` |
-| LEVEL_REACHED | `level, multiplier, points, pointsToAward` |
-| BOOSTER_ACTIVATED | `booster, level, beforeMultiplier, afterMultiplier, points, pointsToAward` |
+| ROUND_STARTED | `round: RoundView`, `fairnessCommitment`, `cashoutPreviewAmount` |
+| MULTIPLIER_UPDATE | `multiplier, level, cashoutPreviewAmount` до cashout |
+| LEVEL_REACHED | `level, multiplier, cashoutPreviewAmount, points, pointsToAward` до cashout |
+| BOOSTER_ACTIVATED | `booster, level, beforeMultiplier, afterMultiplier, cashoutPreviewAmount, points, pointsToAward` |
 | CASHOUT_SUCCESS | `multiplier, cashoutMultiplier, winAmount` |
 | CRASH | `crashMultiplier`, `fairnessReveal` |
 | ROUND_FINISHED | `round: RoundView` с полным финальным состоянием, `fairnessReveal` |
@@ -206,7 +214,9 @@ POST start. Не отправлять клиентские игровые соо
 Пример бустера: `data={"booster":3,"level":3,"beforeMultiplier":2.00,"afterMultiplier":6.00,"points":300,"pointsToAward":300}`.
 После cashout LEVEL_REACHED используется для отображения, `pointsToAward=0`.
 Обычные фоновые updates идут примерно 10 раз/секунду; специальные события — сразу.
-Frontend интерполирует между значениями, FPS не влияет на авторитетное состояние.
+Frontend отображает последнее серверное `cashoutPreviewAmount` без расчёта
+`stake × multiplier`; при разрыве связи сумма замораживается до snapshot/replay.
+FPS не влияет на авторитетное состояние.
 
 `sequence` монотонен внутри roundId. Дедуплицировать повторные доставки по
 `(roundId,sequence)`. После reconnect: открыть socket, буферизовать события,

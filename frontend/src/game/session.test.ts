@@ -23,6 +23,38 @@ describe('GameSession reconnect', () => {
     expect(session.getSnapshot().round!.cashoutMultiplier).toBe(fixedMultiplier)
     session.dispose(); backend.dispose()
   })
+
+  it('freezes the last authoritative preview while disconnected', async () => {
+    const round: Round = {
+      id: 'round-freeze', roundId: 'round-freeze', theme: 'GREEN', betAmount: 100, boosterMultiplier: 1,
+      boosterActivated: false, currentMultiplier: 1.2, currentLevel: 1, totalLevels: 9,
+      levelThresholds: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], cashoutAvailable: true,
+      cashoutPerformed: false, cashoutPreviewAmount: 120, winAmount: 0, roundScore: 100, status: 'RUNNING',
+      startedAt: '2026-09-11T00:00:00Z', timestamp: '2026-09-11T00:00:01Z',
+      serverTime: '2026-09-11T00:00:01Z', sequence: 10, fairnessCommitment: 'commitment'
+    }
+    let receive!: (value: GameEvent) => void
+    let connection!: (value: 'connected' | 'disconnected' | 'connecting' | 'recovering') => void
+    const game = {
+      connect: vi.fn(async (onEvent, onConnection) => {
+        receive = onEvent; connection = onConnection; onConnection('connected'); return () => {}
+      }),
+      getSnapshot: vi.fn(async () => structuredClone(round)), getReplay: vi.fn(),
+      startRound: vi.fn(), cashout: vi.fn(), getFairness: vi.fn(), getResult: vi.fn()
+    } as unknown as GameApi
+    const session = new GameSession(game)
+    await session.recover(round.id)
+
+    connection('disconnected')
+    receive({
+      type: 'MULTIPLIER_UPDATE', roundId: round.id, sequence: 11, eventId: `${round.id}:11`,
+      timestamp: '2026-09-11T00:00:02Z', serverTime: '2026-09-11T00:00:02Z',
+      data: { level: 1, multiplier: 1.3, cashoutPreviewAmount: 130 }
+    })
+
+    expect(session.getSnapshot().round).toMatchObject({ sequence: 10, currentMultiplier: 1.2, cashoutPreviewAmount: 120 })
+    session.dispose()
+  })
 })
 
 describe('GameSession event ordering', () => {
@@ -31,7 +63,7 @@ describe('GameSession event ordering', () => {
       id: 'round-1', roundId: 'round-1', theme: 'GREEN', betAmount: 4, boosterMultiplier: 1,
       boosterActivated: false, currentMultiplier: 1.2, currentLevel: 1, totalLevels: 9,
       levelThresholds: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], cashoutAvailable: true,
-      cashoutPerformed: false, winAmount: 0, roundScore: 100, status: 'RUNNING',
+      cashoutPerformed: false, cashoutPreviewAmount: 4.8, winAmount: 0, roundScore: 100, status: 'RUNNING',
       startedAt: '2026-09-11T00:00:00Z', timestamp: '2026-09-11T00:00:01Z',
       serverTime: '2026-09-11T00:00:01Z', sequence: 10, fairnessCommitment: 'commitment'
     }
@@ -40,8 +72,8 @@ describe('GameSession event ordering', () => {
       timestamp: `2026-09-11T00:00:${sequence}Z`, serverTime: `2026-09-11T00:00:${sequence}Z`, data
     })
     const replayEvents = [
-      event(11, 'LEVEL_REACHED', { level: 2, multiplier: 1.5, pointsToAward: 100 }),
-      event(12, 'MULTIPLIER_UPDATE', { level: 2, multiplier: 1.6 })
+      event(11, 'LEVEL_REACHED', { level: 2, multiplier: 1.5, cashoutPreviewAmount: 6, pointsToAward: 100 }),
+      event(12, 'MULTIPLIER_UPDATE', { level: 2, multiplier: 1.6, cashoutPreviewAmount: 6.4 })
     ]
     let receive!: (value: GameEvent) => void
     const game = {
@@ -61,10 +93,10 @@ describe('GameSession event ordering', () => {
     receive(event(10, 'LEVEL_REACHED', { level: 99, multiplier: 99, pointsToAward: 9999 }))
     expect(session.getSnapshot().round?.roundScore).toBe(100)
 
-    receive(event(12, 'MULTIPLIER_UPDATE', { level: 2, multiplier: 1.6 }))
+    receive(event(12, 'MULTIPLIER_UPDATE', { level: 2, multiplier: 1.6, cashoutPreviewAmount: 6.4 }))
     await vi.waitFor(() => expect(session.getSnapshot().recovered).toBe(2))
     expect(game.getReplay).toHaveBeenCalledWith(round.id, 10)
-    expect(session.getSnapshot().round).toMatchObject({ sequence: 12, currentLevel: 2, currentMultiplier: 1.6, roundScore: 200 })
+    expect(session.getSnapshot().round).toMatchObject({ sequence: 12, currentLevel: 2, currentMultiplier: 1.6, cashoutPreviewAmount: 6.4, roundScore: 200 })
     expect(session.getSnapshot().sound).toBeNull()
 
     receive(event(11, 'LEVEL_REACHED', { level: 50, multiplier: 50, pointsToAward: 5000 }))
@@ -77,7 +109,7 @@ describe('GameSession event ordering', () => {
       id: 'round-live', roundId: 'round-live', theme: 'GREEN', betAmount: 100, boosterMultiplier: 2,
       boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: 9,
       levelThresholds: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], cashoutAvailable: false,
-      cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', sequence: 10,
+      cashoutPerformed: false, cashoutPreviewAmount: 100, winAmount: 0, roundScore: 0, status: 'RUNNING', sequence: 10,
       startedAt: '2026-09-11T00:00:00Z', timestamp: '2026-09-11T00:00:01Z',
       serverTime: '2026-09-11T00:00:01Z', fairnessCommitment: 'commitment'
     }
@@ -101,11 +133,12 @@ describe('GameSession event ordering', () => {
       previous = cue
     })
 
-    const level = event(11, 'LEVEL_REACHED', { level: 1, multiplier: 1.2, pointsToAward: 100 })
+    const level = event(11, 'LEVEL_REACHED', { level: 1, multiplier: 1.2, cashoutPreviewAmount: 120, pointsToAward: 100 })
     receive(level); receive(level)
-    receive(event(12, 'BOOSTER_ACTIVATED', { booster: 2, level: 1, afterMultiplier: 2.4, pointsToAward: 200 }))
+    receive(event(12, 'BOOSTER_ACTIVATED', { booster: 2, level: 1, afterMultiplier: 2.4, cashoutPreviewAmount: 240, pointsToAward: 200 }))
 
     expect(cues).toEqual(['LEVEL_REACHED:11', 'BOOSTER_ACTIVATED:12'])
+    expect(session.getSnapshot().round?.cashoutPreviewAmount).toBe(240)
     session.dispose()
   })
 })

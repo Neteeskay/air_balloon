@@ -28,6 +28,10 @@
 .sound-toggle:hover { background: var(--soft); border-color: var(--accent); }
 .sound-toggle span { font-size: 16px; line-height: 1; }
 .cashout-onboarding { margin-bottom: 8px; padding: 9px 11px; border: 1px solid #c9d8bd; border-radius: 9px; background: #f0f5e9; color: #315e41; font-size: 10px; font-weight: 600; line-height: 1.4; text-align: center; pointer-events: none; animation: toast-in .3s ease-out; }
+.cashout-button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px 12px; min-height: 52px; padding-block: 9px; font-variant-numeric: tabular-nums; }
+.cashout-button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cashout-button > small { font-size: 10px; font-weight: 500; opacity: .8; }
+.cashout-button > i { grid-column: 2; grid-row: 1 / span 2; font-style: normal; }
 
 @media (max-width: 600px) {
   .sound-toggle { margin-left: auto; }

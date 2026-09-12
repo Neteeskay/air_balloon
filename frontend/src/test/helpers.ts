@@ -14,7 +14,7 @@ export function round(theme: Theme = 'GREEN', patch: Partial<Round> = {}): Round
   const levels = theme === 'GREEN' ? [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12] : [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20]
   return { id: 'round-1', roundId: 'round-1', theme, betAmount: 100, boosterMultiplier: 1, boosterActivated: false,
     currentMultiplier: 1, currentLevel: 0, totalLevels: levels.length, levelThresholds: levels,
-    cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING',
+    cashoutAvailable: false, cashoutPerformed: false, cashoutPreviewAmount: 100, winAmount: 0, roundScore: 0, status: 'RUNNING',
     startedAt: '2026-09-11T00:00:00Z', timestamp: '2026-09-11T00:00:00Z', serverTime: '2026-09-11T00:00:00Z',
     sequence: 1, fairnessCommitment: 'demo-commitment', ...patch }
 }

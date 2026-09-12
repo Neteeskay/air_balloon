@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import ru.airballoon.game.domain.*;
+import ru.airballoon.game.infrastructure.web.RoundView;
 import java.util.List;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
@@ -110,6 +111,47 @@ class GameEngineTest {
         assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("6.0369");
         assertThat(cashout.winAmount()).isEqualByComparingTo("603.69");
         assertThat(cashout.cashoutAt()).isEqualTo(START.plusMillis(10123));
+    }
+
+    @Test void previewAndCashoutShareTheExactKnownPayoutVector() {
+        var f = new Fixture();
+        var started = f.service.start(f.user, Theme.GREEN, dec("1.01"), 1);
+        var represented = f.at(started, 3456);
+        var preview = RoundView.from(represented).cashoutPreviewAmount();
+        var cashout = f.service.cashout(f.user, represented.id());
+
+        assertThat(represented.currentMultiplier()).isEqualByComparingTo("1.3456");
+        assertThat(preview).isEqualByComparingTo("1.35");
+        assertThat(cashout.winAmount()).isEqualByComparingTo(preview);
+    }
+
+    @Test void previewExcludesFutureBoosterAndIncludesItImmediatelyAfterActivation() {
+        var f = new Fixture(); var started = f.start(3);
+        var before = f.at(started, 3000);
+        var after = f.at(started, 10000);
+
+        assertThat(before.boosterActivated()).isFalse();
+        assertThat(RoundView.from(before).cashoutPreviewAmount()).isEqualByComparingTo("130.00");
+        assertThat(after.boosterActivated()).isTrue();
+        assertThat(RoundView.from(after).cashoutPreviewAmount()).isEqualByComparingTo("600.00");
+    }
+
+    @Test void laterServerReceiptCanPayMoreButNeverLessThanLastMonotonicPreview() {
+        var f = new Fixture(); var started = f.start(1);
+        var represented = f.at(started, 3000);
+        var lastPreview = RoundView.from(represented).cashoutPreviewAmount();
+        f.clock.atMillis(3123);
+        var cashout = f.service.cashout(f.user, represented.id());
+
+        assertThat(lastPreview).isEqualByComparingTo("130.00");
+        assertThat(cashout.winAmount()).isEqualByComparingTo("131.23");
+        assertThat(cashout.winAmount()).isGreaterThanOrEqualTo(lastPreview);
+    }
+
+    @Test void canonicalCalculatorHandlesConfiguredScaleAndPayoutExtremes() {
+        var f = new Fixture(); var round = f.start(1);
+        assertThat(PayoutCalculator.calculate(round, dec("1.0000"))).isEqualByComparingTo("100.00");
+        assertThat(PayoutCalculator.calculate(round, dec("30.0000"))).isEqualByComparingTo("3000.00");
     }
 
     @Test void cashoutDisablesFutureBoosterAndScoreAwards() {
