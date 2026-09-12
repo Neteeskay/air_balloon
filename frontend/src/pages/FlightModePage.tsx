@@ -178,7 +178,7 @@ export default function FlightModePage({
       <header className="flight-header">
         <img className="flight-logo" src="/assets/flight-mode/logo.png" alt="Воздушный шар" draggable="false" />
         <h1>Выбери режим полёта</h1>
-        <p>{tutorialVisible
+        <p aria-live="polite">{tutorialVisible
           ? 'Шиншилот поможет быстро разобраться.'
           : showChooseGameMessage
             ? 'Выберите игру'
