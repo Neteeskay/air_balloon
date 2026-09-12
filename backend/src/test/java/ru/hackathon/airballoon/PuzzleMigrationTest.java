@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import ru.hackathon.airballoon.support.PostgresSupport;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Proves a populated V305 database upgrades without backfilling historical round rewards. */
+/** Proves a populated V305 database upgrades through the current schema without historical reward backfill. */
 class PuzzleMigrationTest {
-    @Test void populatedV305UpgradesToV306WithoutDataLossOrHistoricalRewardBackfill() throws Exception {
+    @Test void populatedV305UpgradesToLatestWithoutDataLossOrHistoricalRewardBackfill() throws Exception {
         var properties = PostgresSupport.connectionProperties();
         String baseUrl = (String) properties.get("spring.datasource.url");
         String user = (String) properties.get("spring.datasource.username");
@@ -48,7 +48,7 @@ class PuzzleMigrationTest {
             }
 
             var result = Flyway.configure().dataSource(testUrl, user, password).load().migrate();
-            assertThat(result.targetSchemaVersion).isEqualTo("306");
+            assertThat(result.targetSchemaVersion).isEqualTo("307");
             try (var connection = DriverManager.getConnection(testUrl, user, password);
                  var statement = connection.createStatement()) {
                 try (var rs = statement.executeQuery("SELECT bonus_balance,game_score,lottery_ticket_count FROM users WHERE id='" + userId + "'")) {

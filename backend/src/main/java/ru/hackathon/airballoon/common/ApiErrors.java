@@ -10,7 +10,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
 @RestControllerAdvice
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class ApiErrors {
     public record Error(String code, String message, Instant timestamp) {}
     @ExceptionHandler(BusinessException.class)

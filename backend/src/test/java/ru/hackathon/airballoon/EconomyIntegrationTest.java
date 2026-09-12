@@ -2,6 +2,7 @@ package ru.hackathon.airballoon;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +24,7 @@ import ru.hackathon.airballoon.economy.*;
 import ru.hackathon.airballoon.game.*;
 import ru.hackathon.airballoon.history.*;
 import ru.hackathon.airballoon.profile.*;
+import ru.hackathon.airballoon.rating.service.GlobalRatingService;
 import ru.hackathon.airballoon.reward.*;
 import ru.hackathon.airballoon.score.*;
 import ru.hackathon.airballoon.user.*;
@@ -49,9 +52,11 @@ class EconomyIntegrationTest extends PostgresSupport {
     @Autowired Scenario8OfferService scenario8;
     @Autowired PuzzleRewardService puzzleRewards;
     @Autowired ProfileService profiles;
+    @Autowired GlobalRatingService globalRating;
     @Autowired PlatformTransactionManager manager;
     @Autowired MockMvc http;
     @Autowired ObjectMapper json;
+    @Autowired ru.hackathon.airballoon.admin.config.service.ConfigAdminService adminConfigs;
     UUID anna=DemoBootstrap.id("anna");
 
     @BeforeEach void reset() {
@@ -222,25 +227,195 @@ class EconomyIntegrationTest extends PostgresSupport {
     }
     @Test void scenarioFiveAdminHttpToNewRoundAndOldSnapshot() throws Exception {
         var old=start(anna,100,1);
-        http.perform(get("/api/admin/config").header("X-Admin-Token","test-admin-token"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(100));
-        var body=Map.of("expectedVersion",configs.getCurrentConfig().version(),"config",changed(500));
-        http.perform(put("/api/admin/config").header("X-Admin-Token","test-admin-token").contentType("application/json").content(json.writeValueAsString(body)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(500));
-        http.perform(get("/api/admin/config").header("X-Admin-Token","test-admin-token"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(500));
-        assertThat(configs.getCurrentConfig().config().pointsPerLevel()).isEqualTo(500);
+        var oldLive=configs.getCurrentConfig();
+        UUID tournamentId=UUID.randomUUID();
+        Instant now=Instant.now();
+        jdbc.update("""
+                INSERT INTO tournament.tournaments
+                    (id,name,description,starts_at,ends_at,created_at,updated_at)
+                VALUES (?,?,?,?::timestamptz,?::timestamptz,?::timestamptz,?::timestamptz)
+                """,tournamentId,"Admin config acceptance","",now.minusSeconds(60).toString(),
+                now.plusSeconds(3600).toString(),now.toString(),now.toString());
+        jdbc.update("""
+                INSERT INTO tournament.participants
+                    (tournament_id,user_id,username,score,score_version,joined_at,updated_at)
+                VALUES (?,?,?,?,?,?,?)
+                """,tournamentId,anna,"anna",0,0,Timestamp.from(now),Timestamp.from(now));
+        String token=adminToken();
+        var currentResult=http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andReturn();
+        var current=json.readTree(currentResult.getResponse().getContentAsString());
+        var body=json.createObjectNode();
+        for(String field:List.of("gameId","gameName","gameType","isActive","crash","boosters","points")) {
+            body.set(field,current.path(field));
+        }
+        body.put("revision",current.path("revision").asLong()+1);
+        ((com.fasterxml.jackson.databind.node.ObjectNode)body.path("points")).put("pointsPerLine",500);
+        var created=http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+            .andExpect(status().isCreated())
+            .andExpect(header().exists("ETag")).andReturn();
+        String location=created.getResponse().getHeader("Location");
+        assertThat(location).isNotNull();
+        String id=location.substring(location.lastIndexOf('/')+1);
+        http.perform(post("/api/admin/config/"+id+"/activate").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACTIVE"));
+        var liveNow = configs.getCurrentConfig().config();
+        assertThat(liveNow.pointsPerLevel()).isEqualTo(500);
+        assertThat(liveNow.pointsX2Bonus()).isEqualTo(oldLive.config().pointsX2Bonus());
+        assertThat(liveNow.pointsX3Bonus()).isEqualTo(oldLive.config().pointsX3Bonus());
+        assertThat(liveNow.pointsX4Bonus()).isEqualTo(oldLive.config().pointsX4Bonus());
+        assertThat(liveNow.updateIntervalMs()).isEqualTo(oldLive.config().updateIntervalMs());
+        assertThat(liveNow.minBet()).isEqualByComparingTo(oldLive.config().minBet());
+        assertThat(liveNow.maxBet()).isEqualByComparingTo(oldLive.config().maxBet());
+        assertThat(liveNow.scenario8Enabled()).isEqualTo(oldLive.config().scenario8Enabled());
+        assertThat(liveNow.scenario8MinWinAmount()).isEqualTo(oldLive.config().scenario8MinWinAmount());
+        assertThat(liveNow.scenario8Price()).isEqualTo(oldLive.config().scenario8Price());
+        assertThat(liveNow.scenario8TicketCount()).isEqualTo(oldLive.config().scenario8TicketCount());
+        assertThat(configs.getVersion(old.configVersion()).config().pointsPerLevel()).isEqualTo(100);
         var next=start(anna,100,1);
         scores.awardLevelPoints(anna,next.id(),1,500);
         assertThat(rounds.findById(next.id()).orElseThrow().roundScore()).isEqualTo(500);
         scores.awardLevelPoints(anna,old.id(),1,100);
         assertThat(rounds.findById(old.id()).orElseThrow().roundScore()).isEqualTo(100);
+        var finished=transactions.finishAndReward(finish(winReady(next,600)));
+        assertThat(history.getResult(finished.id()).score()).isEqualTo(500);
+        assertThat(globalRating.rating(anna,0,100).currentPlayer().score()).isEqualTo(600);
+        assertThat(jdbc.queryForObject("""
+                SELECT score FROM tournament.participants WHERE tournament_id=? AND user_id=?
+                """,Long.class,tournamentId,anna)).isEqualTo(600);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM tournament.participants WHERE tournament_id=?",
+                Long.class,tournamentId)).isEqualTo(1);
+        assertThat(puzzleRewards.findByRound(finished.id())).get()
+                .extracting(PuzzleRewardService.RewardView::fragments).isEqualTo(1);
+        assertThat(scenario8.offer(anna,finished.id())).isNotNull()
+                .extracting(Scenario8OfferService.OfferView::price,Scenario8OfferService.OfferView::ticketCount)
+                .containsExactly(oldLive.config().scenario8Price(),oldLive.config().scenario8TicketCount());
     }
+
     @Test void adminRejectsAnonymousAndBadPayload() throws Exception {
-        http.perform(get("/api/admin/config")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ADMIN_ACCESS_DENIED"));
-        http.perform(put("/api/admin/config").header("X-Admin-Token","test-admin-token").contentType("application/json")
-            .content(json.writeValueAsString(Map.of("expectedVersion",configs.getCurrentConfig().version(),"config",changed(-1)))))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_GAME_CONFIG"));
+        http.perform(get("/api/admin/config/versions"))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        String token=adminToken();
+        long revision=activeRevision(token);
+        var bad=(Map<String,Object>)draftBody(revision + 1,500);
+        var boosters=(Map<String,Object>)bad.get("boosters");
+        boosters.put("multiplierTier3Value",5.0);
+        http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(bad)))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+    }
+
+    @Test void adminLifecycleSecurityVersionsRollbackAuditAndLogout() throws Exception {
+        http.perform(post("/api/admin/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("username","admin","password","wrong"))))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+        http.perform(get("/api/admin/config/current").header("Authorization","Bearer invalid"))
+            .andExpect(status().isUnauthorized());
+        http.perform(get("/api/admin/config/current").header("Authorization","Bearer demo-player-token"))
+            .andExpect(status().isForbidden());
+
+        String expired=adminToken();
+        String expiredHash=ru.hackathon.airballoon.admin.service.AdminTokenService.hash(expired);
+        jdbc.update("UPDATE admin_session SET created_at=now()-interval '2 hours', expires_at=now()-interval '1 hour' WHERE token_hash=?",expiredHash);
+        http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+expired))
+            .andExpect(status().isUnauthorized());
+
+        String token=adminToken();
+        String tokenHash=ru.hackathon.airballoon.admin.service.AdminTokenService.hash(token);
+        assertThat(jdbc.queryForObject("SELECT token_hash FROM admin_session WHERE token_hash=?",String.class,tokenHash)).isEqualTo(tokenHash);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM admin_session WHERE token_hash=?",Long.class,token)).isZero();
+
+        var currentResult=http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(header().exists("ETag")).andReturn();
+        var current=json.readTree(currentResult.getResponse().getContentAsString());
+        long revision=current.path("revision").asLong();
+        String currentId=current.path("id").asText();
+        var body=draftBody(revision+1,current.path("points").path("pointsPerLine").asLong()+1);
+
+        http.perform(get("/api/admin/config/metadata").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.parameters").isArray());
+        http.perform(post("/api/admin/config/validate").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true));
+        var created=http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+            .andExpect(status().isCreated()).andExpect(header().exists("Location"))
+            .andReturn();
+        var createdJson=json.readTree(created.getResponse().getContentAsString());
+        String createdId=createdJson.path("id").asText();
+        assertThat(created.getResponse().getHeader("Location")).endsWith("/api/admin/config/versions/"+createdId);
+        http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.currentVersion").value(revision));
+        http.perform(get("/api/admin/config/versions").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").isNumber());
+        http.perform(get("/api/admin/config/versions/"+createdId).header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"));
+        http.perform(get("/api/admin/config/versions/"+currentId+"/diff/"+createdId).header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.changes").isArray());
+        http.perform(post("/api/admin/config/"+createdId+"/activate").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACTIVE"));
+        http.perform(post("/api/admin/config/versions/"+currentId+"/rollback").header("Authorization","Bearer "+token))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("ACTIVE"));
+        http.perform(get("/api/admin/audit").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.content[?(@.action == 'CONFIG_CREATED')]").exists())
+            .andExpect(jsonPath("$.content[?(@.action == 'CONFIG_ACTIVATED')]").exists())
+            .andExpect(jsonPath("$.content[?(@.action == 'CONFIG_ROLLBACK')]").exists());
+        http.perform(post("/api/admin/auth/logout").header("Authorization","Bearer "+token))
+            .andExpect(status().isNoContent());
+        http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+token))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test void concurrentAdminsCannotCreateOrActivateTheSameRevisionTwice() throws Exception {
+        long revision=adminConfigs.activeRevision().orElseThrow();
+        var request=json.convertValue(draftBody(revision+1,777),
+                ru.hackathon.airballoon.admin.config.dto.GameConfigurationWriteRequest.class);
+        var creates=parallel(
+                ()->{try{return adminConfigs.createDraft(request,"admin-a");}catch(RuntimeException e){return e;}},
+                ()->{try{return adminConfigs.createDraft(request,"admin-b");}catch(RuntimeException e){return e;}});
+        assertThat(creates).filteredOn(ru.hackathon.airballoon.admin.config.dto.GameConfigurationResponse.class::isInstance).hasSize(1);
+        assertThat(creates).filteredOn(ru.hackathon.airballoon.common.error.VersionConflictException.class::isInstance).hasSize(1);
+        var draft=(ru.hackathon.airballoon.admin.config.dto.GameConfigurationResponse)creates.stream()
+                .filter(ru.hackathon.airballoon.admin.config.dto.GameConfigurationResponse.class::isInstance).findFirst().orElseThrow();
+        var activations=parallel(
+                ()->{try{return adminConfigs.activate(draft.id(),"admin-a");}catch(RuntimeException e){return e;}},
+                ()->{try{return adminConfigs.activate(draft.id(),"admin-b");}catch(RuntimeException e){return e;}});
+        assertThat(activations).filteredOn(ru.hackathon.airballoon.admin.config.dto.GameConfigurationResponse.class::isInstance).hasSize(1);
+        assertThat(activations).filteredOn(ru.hackathon.airballoon.common.error.ConfigStateException.class::isInstance).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM admin_config WHERE status='ACTIVE'",Long.class)).isEqualTo(1);
+    }
+
+    String adminToken() throws Exception {
+        var result=http.perform(post("/api/admin/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("username","admin","password","admin"))))
+            .andExpect(status().isOk()).andReturn();
+        return json.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
+    }
+    long activeRevision(String token) throws Exception {
+        var result=http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andReturn();
+        return json.readTree(result.getResponse().getContentAsString()).get("revision").asLong();
+    }
+    Map<String,Object> draftBody(long revision,long points) {
+        Map<String,Object> green=new LinkedHashMap<>();
+        for(int i=1;i<=9;i++) green.put("line"+i+"LootProb",100.0/9);
+        Map<String,Object> red=new LinkedHashMap<>();
+        for(int i=1;i<=12;i++) red.put("line"+i+"LootProb",100.0/12);
+        return new LinkedHashMap<>(Map.of(
+            "gameId","air-balloon","gameName","Air Balloon","gameType","CRASH","isActive",true,"revision",revision,
+            "crash",Map.of("alpha",0.85,"maxMultiplier",100.0,"minCrashMultiplier",1.0,"multiplierGrowthRate",0.15,"fps",60.0,"delta",0.0166666667),
+            "boosters",new LinkedHashMap<>(Map.of(
+                "multiplierTier1Value",1.0,"multiplierTier2Value",2.0,"multiplierTier3Value",3.0,"multiplierTier4Value",4.0,
+                "green",green,"red",red)),
+            "points",Map.of("pointsPerLine",points,"pointsCashoutBonus",25,"pointsXNBonus",50)));
+    }
+
+    @Test void demoListingAndUndocumentedAdminPath() throws Exception {
+        http.perform(get("/api/demo/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3))
+            .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
+        http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isUnauthorized());
     }
     @Test void historyIncludesAllUsersSortedAndPaginated() throws Exception {
         for(String name:List.of("anna","maks","liza")) transactions.finishAndReward(finish(start(DemoBootstrap.id(name),100,1)));
@@ -386,12 +561,6 @@ class EconomyIntegrationTest extends PostgresSupport {
             SELECT ?,round_id,user_id,type,rarity FROM round_rewards WHERE round_id=?
             """,UUID.randomUUID(),r.id())).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
-    @Test void demoListingAndEncodedAdminPath() throws Exception {
-        http.perform(get("/api/demo/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3))
-            .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
-        http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isForbidden());
-    }
-
     @Test void scenario8IsWinOnlyAndPurchaseIsIdempotent() {
         var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
         assertThat(puzzleRewards.findByRound(win.id())).get().extracting(PuzzleRewardService.RewardView::fragments).isEqualTo(1);

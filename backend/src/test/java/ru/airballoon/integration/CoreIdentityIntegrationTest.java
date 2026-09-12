@@ -29,6 +29,14 @@ class CoreIdentityIntegrationTest extends PostgresSupport {
     @Autowired JdbcTemplate jdbc;
 
     @Test
+    void adminExceptionAdviceDoesNotCapturePlayerAuthenticationErrors() throws Exception {
+        var response = mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized()).andReturn();
+        assertThat(json.readTree(response.getResponse().getContentAsString()).get("code").asText())
+                .isEqualTo("AUTH_REQUIRED");
+    }
+
+    @Test
     void loginIdentityAndEconomyStateUseTheSameUser() throws Exception {
         var login = mvc.perform(post("/api/auth/demo-login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -1,0 +1,528 @@
+openapi: 3.0.3
+info:
+  title: Air Balloon - Admin API
+  description: |
+    Administrative API: admin authentication, versioned game configuration management,
+    history, diff, rollback and audit log.
+
+    Configurations are stored as immutable versioned drafts (DRAFT) that can be activated (ACTIVE)
+    and archived (ARCHIVED). Activation publishes the draft to the live engine configuration,
+    creating a new `game_config_versions` snapshot. Every configuration update carries a
+    monotonically increasing `revision`; optimistic concurrency uses it (409 CONFIG_VERSION_CONFLICT).
+  version: 1.0.0
+  contact:
+    name: Air Balloon team
+servers:
+  - url: /api/admin
+    description: Current host, admin API prefix
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      operationId: adminLogin
+      summary: Exchange credentials for an admin bearer token
+      description: Returns an opaque token; only its hash is stored server-side. The token is revoked on logout.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login succeeded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      operationId: adminLogout
+      summary: Revoke the current admin token
+      description: Requires a valid bearer token. The session is revoked and the action is written to the audit log.
+      tags: [Authentication]
+      responses:
+        '204':
+          description: Token revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /config/current:
+    get:
+      operationId: getCurrentConfig
+      summary: Get the currently active configuration
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Active configuration
+          headers:
+            ETag:
+              description: Current revision tag "revision-N"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameConfiguration' }
+        '304':
+          description: Not modified when If-None-Match matches the ETag
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No active configuration yet
+  /config/metadata:
+    get:
+      operationId: getConfigMetadata
+      summary: Static metadata for rendering the configuration editor
+      tags: [Configuration]
+      responses:
+        '200':
+          description: Metadata describing every editable parameter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigMetadata' }
+  /config/validate:
+    post:
+      operationId: validateConfig
+      summary: Validate a configuration without persisting it
+      tags: [Configuration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GameConfigurationWrite' }
+      responses:
+        '200':
+          description: Configuration is valid
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigValidationResult' }
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+  /config:
+    post:
+      operationId: createConfigDraft
+      summary: Create a new draft configuration
+      description: |
+        The body's `revision` must match the currently active revision, otherwise a
+        `CONFIG_VERSION_CONFLICT` (409) is returned. The created draft does not affect
+        the running game until activated.
+      tags: [Configuration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GameConfigurationWrite' }
+      responses:
+        '201':
+          description: Draft created
+          headers:
+            Location:
+              description: URL of the created version
+              schema: { type: string }
+            ETag:
+              description: New revision tag "revision-N"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameConfiguration' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+  /config/{id}/activate:
+    post:
+      operationId: activateConfig
+      summary: Activate a draft configuration
+      description: Publishes the draft to the live engine and marks it ACTIVE (previous ACTIVE becomes ARCHIVED).
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: Configuration activated
+          headers:
+            ETag:
+              description: Revision tag "revision-N"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameConfiguration' }
+        '404':
+          description: Configuration version not found
+        '409':
+          description: Already active or activation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+  /config/versions:
+    get:
+      operationId: listConfigVersions
+      summary: List configuration versions newest first, paginated
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Paged version list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigVersionPage' }
+  /config/versions/{id}:
+    get:
+      operationId: getConfigVersion
+      summary: Get a single historical configuration version
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: Full version detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigVersionDetail' }
+        '404':
+          description: Configuration version not found
+  /config/versions/{fromId}/diff/{toId}:
+    get:
+      operationId: compareConfigVersions
+      summary: Compare two configuration versions
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/FromConfigId'
+        - $ref: '#/components/parameters/ToConfigId'
+      responses:
+        '200':
+          description: Field-level diff between before and after
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigDiff' }
+        '404':
+          description: One of the configurations not found
+  /config/versions/{id}/rollback:
+    post:
+      operationId: rollbackConfig
+      summary: Roll back to a previous configuration version
+      description: Creates and immediately activates a new version that restores the given version's values.
+      tags: [Configuration]
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '201':
+          description: New active version created from the rollback target
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigVersionDetail' }
+        '404':
+          description: Configuration version not found
+        '409':
+          description: Rollback failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+  /audit:
+    get:
+      operationId: searchAuditLog
+      summary: Search the audit log
+      tags: [Audit]
+      parameters:
+        - name: action
+          in: query
+          required: false
+          description: Filter by audit action (CONFIG_CREATED, CONFIG_VALIDATED, CONFIG_ACTIVATED, CONFIG_ROLLBACK, ADMIN_LOGIN, ADMIN_LOGOUT)
+          schema: { type: string }
+        - name: administrator
+          in: query
+          required: false
+          description: Filter by administrator username
+          schema: { type: string }
+        - name: version
+          in: query
+          required: false
+          description: Filter by configuration version id
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          required: false
+          description: Only events at or after this instant (ISO-8601)
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: false
+          description: Only events before this instant (ISO-8601)
+          schema: { type: string, format: date-time }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Paged audit events
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditPage' }
+components:
+  parameters:
+    ConfigId:
+      name: id
+      in: path
+      required: true
+      description: Configuration version id (UUID)
+      schema: { type: string, format: uuid }
+    FromConfigId:
+      name: fromId
+      in: path
+      required: true
+      description: Source configuration version id
+      schema: { type: string, format: uuid }
+    ToConfigId:
+      name: toId
+      in: path
+      required: true
+      description: Target configuration version id
+      schema: { type: string, format: uuid }
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      description: ETag from a previous GET /config/current ("revision-N")
+      schema: { type: string }
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, default: 0, minimum: 0 }
+    Size:
+      name: size
+      in: query
+      required: false
+      description: Max 200
+      schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Admin bearer token obtained from POST /auth/login
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    BadRequest:
+      description: Invalid request, validation failed or malformed input
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    VersionConflict:
+      description: Version conflict; the reported revision does not match the active one
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 100 }
+        password: { type: string, minLength: 1, maxLength: 100 }
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresAt: { type: string, format: date-time }
+    ApiError:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        code: { type: string }
+        message: { type: string }
+        fieldErrors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldViolation' }
+        traceId: { type: string }
+        currentVersion: { type: integer, nullable: true }
+    FieldViolation:
+      type: object
+      properties:
+        field: { type: string }
+        message: { type: string }
+        rejectedValue: { nullable: true }
+    CrashSettings:
+      type: object
+      required: [alpha, maxMultiplier, minCrashMultiplier, multiplierGrowthRate, fps, delta]
+      properties:
+        alpha: { type: number, minimum: 0, exclusiveMinimum: false, maximum: 1 }
+        maxMultiplier: { type: number, format: double }
+        minCrashMultiplier: { type: number, format: double }
+        multiplierGrowthRate: { type: number, format: double }
+        fps: { type: number, format: double }
+        delta: { type: number, format: double }
+    BoosterSettings:
+      type: object
+      required: [multiplierTier1Value, multiplierTier2Value, multiplierTier3Value, multiplierTier4Value, green, red]
+      properties:
+        multiplierTier1Value: { type: number, format: double }
+        multiplierTier2Value: { type: number, format: double }
+        multiplierTier3Value: { type: number, format: double }
+        multiplierTier4Value: { type: number, format: double }
+        green:
+          type: object
+          additionalProperties: { type: number, format: double }
+          description: line1LootProb..line9LootProb in percents, sum 100
+        red:
+          type: object
+          additionalProperties: { type: number, format: double }
+          description: line1LootProb..line12LootProb in percents, sum 100
+    PointsSettings:
+      type: object
+      required: [pointsPerLine, pointsCashoutBonus, pointsXNBonus]
+      properties:
+        pointsPerLine: { type: integer, format: int64 }
+        pointsCashoutBonus: { type: integer, format: int64 }
+        pointsXNBonus: { type: integer, format: int64 }
+    GameConfigurationWrite:
+      type: object
+      required: [gameId, gameName, gameType, isActive, revision, crash, boosters, points]
+      properties:
+        gameId: { type: string, enum: [air-balloon] }
+        gameName: { type: string }
+        gameType: { type: string, enum: [CRASH] }
+        isActive: { type: boolean }
+        revision: { type: integer, format: int64, minimum: 1 }
+        crash: { $ref: '#/components/schemas/CrashSettings' }
+        boosters: { $ref: '#/components/schemas/BoosterSettings' }
+        points: { $ref: '#/components/schemas/PointsSettings' }
+    GameConfiguration:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        revision: { type: integer, format: int64 }
+        status: { type: string, enum: [DRAFT, ACTIVE, ARCHIVED] }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        activatedAt: { type: string, format: date-time, nullable: true }
+        activatedBy: { type: string, nullable: true }
+        baseRevision: { type: integer, format: int64, nullable: true }
+        sourceVersionId: { type: string, format: uuid, nullable: true }
+        gameId: { type: string }
+        gameName: { type: string }
+        gameType: { type: string }
+        isActive: { type: boolean }
+        crash: { $ref: '#/components/schemas/CrashSettings' }
+        boosters: { $ref: '#/components/schemas/BoosterSettings' }
+        points: { $ref: '#/components/schemas/PointsSettings' }
+    ConfigMetadata:
+      type: object
+      properties:
+        gameIdPolicy: { type: string }
+        probabilityModel: { type: string }
+        greenLevelCount: { type: integer }
+        redLevelCount: { type: integer }
+        parameters:
+          type: array
+          items: { $ref: '#/components/schemas/ParameterMetadata' }
+    ParameterMetadata:
+      type: object
+      properties:
+        technicalName: { type: string }
+        displayName: { type: string }
+        description: { type: string, nullable: true }
+        dataType: { type: string }
+        unit: { type: string, nullable: true }
+        min: { nullable: true }
+        max: { nullable: true }
+        defaultValue: { nullable: true }
+        required: { type: boolean }
+        mutable: { type: boolean }
+        group: { type: string }
+        semanticType: { type: string }
+        allowedValues:
+          type: array
+          items: { type: string }
+        effectOnGame: { type: string, nullable: true }
+    ConfigValidationResult:
+      type: object
+      properties:
+        valid: { type: boolean }
+        warnings:
+          type: array
+          items: { type: string }
+    ConfigVersionSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        revision: { type: integer, format: int64 }
+        status: { type: string, enum: [DRAFT, ACTIVE, ARCHIVED] }
+        baseRevision: { type: integer, format: int64, nullable: true }
+        sourceVersionId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        activatedAt: { type: string, format: date-time, nullable: true }
+        activatedBy: { type: string, nullable: true }
+    ConfigVersionPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items: { $ref: '#/components/schemas/ConfigVersionSummary' }
+    ConfigVersionDetail:
+      allOf:
+        - $ref: '#/components/schemas/GameConfiguration'
+    ConfigDiffEntry:
+      type: object
+      properties:
+        field: { type: string }
+        before: { nullable: true }
+        after: { nullable: true }
+    ConfigDiff:
+      type: object
+      properties:
+        fromVersionId: { type: string, format: uuid }
+        toVersionId: { type: string, format: uuid }
+        changes:
+          type: array
+          items: { $ref: '#/components/schemas/ConfigDiffEntry' }
+    AuditEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        timestamp: { type: string, format: date-time }
+        administrator: { type: string }
+        action:
+          type: string
+          enum: [CONFIG_CREATED, CONFIG_VALIDATED, CONFIG_ACTIVATED, CONFIG_ROLLBACK, ADMIN_LOGIN, ADMIN_LOGOUT]
+        affectedEntity: { type: string, nullable: true }
+        appId: { type: string, nullable: true }
+        version: { type: string, format: uuid, nullable: true }
+        traceId: { type: string, nullable: true }
+        metadata: { type: object, nullable: true }
+    AuditPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            content:
+              type: array
+              items: { $ref: '#/components/schemas/AuditEvent' }
+    Page:
+      type: object
+      properties:
+        content:
+          type: array
+          items: {}
+        page: { type: integer, default: 0 }
+        size: { type: integer, default: 50 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }

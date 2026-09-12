@@ -59,7 +59,9 @@ management:
       exposure:
         include: health
 app:
-  admin-token: ${ADMIN_TOKEN:}
+  security:
+    admin-token-ttl: ${ADMIN_TOKEN_TTL:PT8H}
+    demo-player-token: ${DEMO_PLAYER_TOKEN:demo-player-token}
   allow-fixed-seed: false
   puzzle-rewards-enabled: ${PUZZLE_REWARDS_ENABLED:true}
 tournament:
