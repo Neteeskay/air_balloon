@@ -46,6 +46,18 @@ class TournamentServiceTest {
         verify(repository, never()).project(any(), any(), any());
         verifyNoInteractions(events);
     }
+    @Test void scoreEventCannotCreateTournamentMembership() {
+        UUID id = UUID.randomUUID(), user = UUID.randomUUID(); var now = clock.instant();
+        var tournament = new Tournament(id, "Race", "", now.minusSeconds(60), now.plusSeconds(3600), now, now, 0);
+        when(repository.activeIds(now)).thenReturn(List.of(id));
+        when(repository.lock(id)).thenReturn(Optional.of(tournament));
+        when(repository.participant(id, user)).thenReturn(Optional.empty());
+
+        service.onScoreChanged(new PlayerScore(user, "A", 1000, 1, now));
+
+        verify(repository, never()).project(any(), any(), any());
+        verifyNoInteractions(events);
+    }
     @Test void transportFailureDoesNotTurnCommittedScoreIntoBusinessFailure() {
         LeaderboardPublisher publisher = mock(LeaderboardPublisher.class);
         var update = new LeaderboardUpdate("LEADERBOARD_UPDATE", UUID.randomUUID(), 1, List.of(), null, 0, clock.instant());

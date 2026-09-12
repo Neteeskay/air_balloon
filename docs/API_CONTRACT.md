@@ -296,6 +296,21 @@ Tournament errors: `{code,message}`. Коды: `INVALID_ARGUMENT`,
 `INVALID_PAGINATION`, `AUTH_REQUIRED`, `TOURNAMENT_NOT_FOUND`,
 `PLAYER_NOT_FOUND`, `TOURNAMENT_NOT_ACTIVE`, `SCORE_SOURCE_UNAVAILABLE`.
 
+## Global Rating HTTP API
+
+Global Rating is intentionally separate from Tournament and reads all registered
+users from canonical `users.game_score`, including users with score `0`.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/rating?page=0&size=50` | `{entries,currentPlayer,totalParticipants,page,size,revision}` |
+
+The endpoint requires the session `Principal`. Entries are ordered by
+`game_score DESC, updated_at ASC, id ASC`; `currentPlayer` is returned even when
+the player is outside the requested page. The response does not expose internal
+user UUIDs, balances, email, or session data. See
+[global-rating-contract.md](global-rating-contract.md).
+
 ## Tournament WebSocket
 
 STOMP endpoint: `/ws`; topic:

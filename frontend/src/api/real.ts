@@ -161,5 +161,8 @@ export function createRealApi(base = ''): Api {
         open()
       }),
     },
+    rating: {
+      get: (page = 0, size = 50) => request(`/api/rating?page=${page}&size=${size}`),
+    },
   }
 }

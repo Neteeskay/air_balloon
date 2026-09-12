@@ -89,7 +89,10 @@ public class TournamentService {
             Instant now = clock.instant();
             if (tournament.statusAt(now) == TournamentStatus.ACTIVE
                     && !player.changedAt().isBefore(tournament.startsAt())
-                    && player.changedAt().isBefore(tournament.endsAt())) project(tournament, player, now);
+                    && player.changedAt().isBefore(tournament.endsAt())
+                    // A score event updates an existing tournament membership only.
+                    // Membership is created exclusively by the explicit join seam.
+                    && repository.participant(id, player.userId()).isPresent()) project(tournament, player, now);
         }
     }
 

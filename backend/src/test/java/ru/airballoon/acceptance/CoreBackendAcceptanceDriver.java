@@ -132,6 +132,11 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
         String setCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
         if (setCookie == null) throw new IllegalStateException("Demo login did not create an HTTP session");
         sessions.put(id, setCookie.split(";", 2)[0]);
+        // Acceptance fixtures join active tournaments explicitly; score events only update members.
+        for (UUID tournamentId : jdbc.query("""
+                SELECT id FROM tournament.tournaments WHERE starts_at<=? AND ends_at>?
+                """, (rs, n) -> rs.getObject(1, UUID.class), Timestamp.from(clock.instant()),
+                Timestamp.from(clock.instant()))) tournaments.join(tournamentId, id);
         return player(id);
     }
 

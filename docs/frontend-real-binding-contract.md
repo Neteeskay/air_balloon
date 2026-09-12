@@ -25,6 +25,7 @@ identity — UUID Principal из server-side HTTP session. Не отправля
 | Game WebSocket | `/ws/rounds` | native WS | Required session | Server-only; client sends nothing | `CONNECTION_READY`, then owner-only `RoundEventView` | Handshake `401`; client message closes `1008` |
 | Active tournament | `/api/tournaments/active` | GET | No | Empty | `{active,tournament?}` | — |
 | Tournament leaderboard | `/api/tournaments/{id}/leaderboard?page=0&size=50` | GET | Optional; required for `currentPlayer` | Pagination | `LeaderboardResponse` | `400`, `404 TOURNAMENT_NOT_FOUND` |
+| Global rating | `/api/rating?page=0&size=50` | GET | Required authenticated session | Pagination; current player is returned even outside page | `GlobalRatingResponse` | `401`, `400 INVALID_PAGINATION` |
 | Join tournament | `/api/tournaments/{id}/participants/me` | POST | Required | Empty; never send user id | `204` | `401 AUTH_REQUIRED`, `404`, `409` tournament state |
 | Tournament WebSocket | `/ws`, topic `/topic/tournaments/{id}/leaderboard` | STOMP SUBSCRIBE | Same session; public payload | SUBSCRIBE only | `LEADERBOARD_UPDATE` invalidation/snapshot frame | SEND/other topic rejected |
 

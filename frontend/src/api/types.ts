@@ -27,6 +27,9 @@ export type Tournament = { id: string; name: string; description: string; status
 export type LeaderboardEntry = { position: number; userId: string; username: string; score: number }
 export type Leaderboard = { tournament: Tournament; top3: LeaderboardEntry[]; participants: LeaderboardEntry[]; currentPlayer?: LeaderboardEntry; totalParticipants: number; page: number; size: number; updatedAt: string }
 export type TournamentUpdate = { type: 'LEADERBOARD_UPDATE'; tournamentId: string; revision: number; topPlayers: Omit<LeaderboardEntry, 'username'>[]; changedPlayer?: Omit<LeaderboardEntry, 'username'>; totalParticipants: number; updatedAt: string }
+/** Global rating is all registered users; it is not the participant-only Tournament leaderboard. */
+export type GlobalRatingEntry = { rank: number; displayName: string; score: number; currentPlayer: boolean }
+export type GlobalRating = { entries: GlobalRatingEntry[]; currentPlayer: GlobalRatingEntry; totalParticipants: number; page: number; size: number; revision: number }
 export interface GameApi {
   startRound(input: StartInput, idempotencyKey?: string): Promise<Round>
   cashout(id: string, key: string): Promise<Round>
@@ -49,5 +52,6 @@ export interface Api {
     join(id: string): Promise<void>
     connect(id: string, update: (value: TournamentUpdate) => void, connection: (state: Connection) => void): Promise<() => void>
   }
+  rating: { get(page?: number, size?: number): Promise<GlobalRating> }
   dev?: { setPreset(p: Preset): void; disconnect(): void; setBalance(id: string, balance: number): void }
 }
