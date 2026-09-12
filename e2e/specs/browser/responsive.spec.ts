@@ -22,9 +22,15 @@ test('RESPONSIVE setup, dialogs, cashout, result, history and profile have no ho
   await expect(page.getByRole('dialog')).toBeVisible();
   await expectNoOverflow(page);
   await page.getByRole('button', { name: 'Закрыть' }).click();
-  await game.booster(1).click(); await game.start().click();
+  await game.booster(3).click(); await game.start().click();
   await expect(game.cashout()).toBeVisible();
-  for (const size of sizes) { await page.setViewportSize(size); await expect(game.cashout()).toBeVisible(); await expectNoOverflow(page); }
+  await expect(page.getByTestId('booster-marker')).toBeVisible();
+  for (const size of sizes) {
+    await page.setViewportSize(size);
+    await expect(page.getByTestId('booster-marker')).toBeVisible();
+    await expect(game.cashout()).toBeVisible();
+    await expectNoOverflow(page);
+  }
   await expect(game.cashout()).toBeEnabled({ timeout: settings.eventTimeoutMs });
   await game.cashout().click();
   await result.expectVisible();
