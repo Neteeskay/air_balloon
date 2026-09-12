@@ -24,8 +24,15 @@ export const SPRITES = {
     green: '/sprites/balloon-green.png',
     red: '/sprites/balloon-red.png',
     blue: '/sprites/balloon-blue.png',
+    balloon1: '/sprites/balloon_1.png',
+    balloon2: '/sprites/balloon_2.png',
+    balloon3: '/sprites/balloon_3.png',
+    balloon4: '/sprites/balloon_4.png',
+    balloon5: '/sprites/balloon_5.png',
+    balloon6: '/sprites/balloon_6.png',
+    balloon7: '/sprites/balloon_7.png',
   },
 } as const;
 
-export type BalloonColor = keyof typeof SPRITES.balloons;
+export type BalloonVariant = keyof typeof SPRITES.balloons;
 export type CloudNumber = keyof typeof SPRITES.clouds;

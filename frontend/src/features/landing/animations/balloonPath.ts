@@ -7,6 +7,10 @@ export interface BalloonPathConfig {
   rotation?: number;
   delay?: number;
   scaleVariation?: number;
+  /** Амплитуда волны в px (по умолчанию 14-30) */
+  wave?: number;
+  /** Частота волны, число полупериодов на весь путь */
+  waveFrequency?: number;
 }
 
 /**
@@ -23,6 +27,8 @@ export function createBalloonPath(
     xOffset = config.xOffset ?? ((Math.random() - 0.5) * 40),
     rotation = config.rotation ?? ((Math.random() - 0.5) * 6),
     delay = config.delay ?? Math.random() * 40, // Случайное начало цикла
+    wave = config.wave ?? (14 + Math.random() * 16), // Амплитуда волны 14-30px
+    waveFrequency = config.waveFrequency ?? 4, // Частота волны на весь путь
   } = config;
 
   // Шар должен гарантированно выйти за верхнюю границу экрана до того,
@@ -54,12 +60,12 @@ export function createBalloonPath(
       duration,
       ease: 'none',
       modifiers: {
-        // Волнистая траектория
+        // Волнистая траектория (амплитуда/частота настраиваются на шар)
         x: (x: string) => {
           const progress = gsap.getProperty(element, 'y') as number;
           const normalized = Math.abs(progress) / riseDistance;
-          const wave = Math.sin(normalized * Math.PI * 3) * 20;
-          return parseFloat(x) + wave + 'px';
+          const waveOffset = Math.sin(normalized * Math.PI * waveFrequency) * wave;
+          return parseFloat(x) + waveOffset + 'px';
         },
       },
     }

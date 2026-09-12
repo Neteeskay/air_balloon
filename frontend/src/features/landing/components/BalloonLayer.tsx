@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { createBalloonPath } from '../animations/balloonPath';
 import { SPRITES } from '../config/sprites';
-import type { BalloonColor } from '../config/sprites';
+import type { BalloonVariant } from '../config/sprites';
 
 export interface Balloon {
   id: string;
-  color: BalloonColor;
+  variant: BalloonVariant;
   x: number; // % от ширины viewport
   y: number; // % от высоты viewport
   scale: number;
@@ -15,6 +15,10 @@ export interface Balloon {
     xOffset?: number;
     yOffset?: number;
     rotation?: number;
+    /** Скорость: длительность полного цикла, сек (меньше = быстрее) */
+    duration?: number;
+    /** Амплитуда волнистого движения, px */
+    wave?: number;
   };
 }
 
@@ -38,6 +42,8 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
           xOffset: balloon.pathConfig?.xOffset,
           yOffset: balloon.pathConfig?.yOffset,
           rotation: balloon.pathConfig?.rotation,
+          duration: balloon.pathConfig?.duration,
+          wave: balloon.pathConfig?.wave,
         });
       })
       .filter((anim): anim is ReturnType<typeof createBalloonPath> => anim !== null);
@@ -64,9 +70,9 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
           <img
             key={balloon.id}
             ref={(el) => (balloonsRef.current[index] = el)}
-            src={SPRITES.balloons[balloon.color]}
+            src={SPRITES.balloons[balloon.variant]}
             alt=""
-            className={`balloon balloon--${balloon.color}`}
+            className={`balloon balloon--${balloon.variant}`}
             style={style}
           />
         );

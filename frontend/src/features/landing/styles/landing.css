@@ -431,6 +431,21 @@ section {
   .cloud-layer--far .cloud:nth-child(n + 6) {
     display: none;
   }
+
+  /* Прореживаем нижние intro-облака — верхние облака
+     «первого экрана» остаются видимыми */
+  .cloud-layer--near .cloud:nth-child(n + 12) {
+    display: none;
+  }
+
+  /* Final content не должен упираться в нижний край экрана */
+  .final-content {
+    bottom: 6vh;
+  }
+
+  .final-content__cta {
+    margin-bottom: 2.5rem;
+  }
 }
 
 /* ========================================
@@ -454,6 +469,55 @@ section {
 
   .cloud-layer--middle .cloud:nth-child(n + 5) {
     display: none;
+  }
+
+  /* Оставляем только заметные intro-облака и 2 шара на слой */
+  .cloud-layer--near .cloud:nth-child(n + 9) {
+    display: none;
+  }
+
+  .balloon-layer .balloon:nth-child(n + 3) {
+    display: none;
+  }
+
+  .hero-content__subtitle {
+    margin-bottom: 1rem;
+  }
+
+  .hero-content__description {
+    margin-bottom: 1.75rem;
+    font-size: 1rem;
+  }
+}
+
+/* ========================================
+   Responsive — Landscape phones (small height)
+   ======================================== */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-content {
+    padding: 0.75rem 1rem;
+    max-width: 640px;
+  }
+
+  .hero-content__title {
+    font-size: clamp(2.5rem, 7vh, 4rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-content__subtitle {
+    font-size: clamp(1.25rem, 4vh, 2rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-content__description {
+    font-size: clamp(1rem, 4vh, 1.25rem);
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-content__cta {
+    padding: 0.75rem 2rem;
+    min-width: 200px;
   }
 }
 

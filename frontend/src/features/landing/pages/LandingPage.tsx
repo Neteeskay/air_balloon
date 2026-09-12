@@ -25,25 +25,25 @@ interface CloudConfig {
 // ============================================
 
 const INTRO_CLOUDS: CloudConfig[] = [
-  { id: 'in-1', x: -9.9, y: 4.5, scale: 1, cloudNum: 1, delay: 0 },
-  { id: 'in-2', x: 34.1, y: -2, scale: 1, cloudNum: 2, delay: 0 },
-  { id: 'in-3', x: -7.3, y: -2.7, scale: 1, cloudNum: 3, delay: 0 },
-  { id: 'in-4', x: 74.9, y: 1.4, scale: 1, cloudNum: 9, delay: 0 },
-  { id: 'in-5', x: -8.8, y: 23.8, scale: 1, cloudNum: 6, delay: 0 },
-  { id: 'in-6', x: 82.3, y: 14.9, scale: 1, cloudNum: 5, delay: 0 },
-  { id: 'in-7', x: -1.9, y: 44.4, scale: 1, cloudNum: 7, delay: 0 },
-  { id: 'in-8', x: -10.5, y: 31.4, scale: 1, cloudNum: 10, delay: 0 },
-  { id: 'in-9', x: -3.7, y: 17.9, scale: 1, cloudNum: 14, delay: 0 },
-  { id: 'in-10', x: 76.6, y: 22.9, scale: 1, cloudNum: 13, delay: 0 },
-  { id: 'in-11', x: 74.1, y: 9.2, scale: 1, cloudNum: 10, delay: 0 },
-  { id: 'in-12', x: -8, y: 62.6, scale: 1, cloudNum: 10, delay: 0 },
-  { id: 'in-13', x: 70.7, y: 67.9, scale: 1, cloudNum: 10, delay: 0 },
-  { id: 'in-14', x: 80.2, y: 97.3, scale: 1, cloudNum: 6, delay: 0 },
-  { id: 'in-15', x: -19, y: 94.8, scale: 1, cloudNum: 6, delay: 0 },
-  { id: 'in-16', x: 1, y: 99.1, scale: 1, cloudNum: 4, delay: 0 },
-  { id: 'in-17', x: 62.1, y: 99.2, scale: 1, cloudNum: 13, delay: 0 },
-  { id: 'in-18', x: -2.7, y: 84.6, scale: 0.5, cloudNum: 8, delay: 0 },
-  { id: 'in-19', x: -10.1, y: 9.8, scale: 0.5, cloudNum: 8, delay: 0 },
+  { id: 'in-1', x: -12.9, y: 4.5, scale: 1, cloudNum: 1, delay: 0 },
+  { id: 'in-2', x: 31.1, y: -2, scale: 1, cloudNum: 2, delay: 0 },
+  { id: 'in-3', x: -10.3, y: -2.7, scale: 1, cloudNum: 3, delay: 0 },
+  { id: 'in-4', x: 72.9, y: 1.4, scale: 1, cloudNum: 9, delay: 0 },
+  { id: 'in-5', x: -11.8, y: 23.8, scale: 1, cloudNum: 6, delay: 0 },
+  { id: 'in-6', x: 80.3, y: 14.9, scale: 1, cloudNum: 5, delay: 0 },
+  { id: 'in-7', x: -4.9, y: 44.4, scale: 1, cloudNum: 7, delay: 0 },
+  { id: 'in-8', x: -13.5, y: 31.4, scale: 1, cloudNum: 10, delay: 0 },
+  { id: 'in-9', x: -6.7, y: 17.9, scale: 1, cloudNum: 14, delay: 0 },
+  { id: 'in-10', x: 74.6, y: 22.9, scale: 1, cloudNum: 13, delay: 0 },
+  { id: 'in-11', x: 72.1, y: 9.2, scale: 1, cloudNum: 10, delay: 0 },
+  { id: 'in-12', x: -11, y: 62.6, scale: 1, cloudNum: 10, delay: 0 },
+  { id: 'in-13', x: 68.7, y: 67.9, scale: 1, cloudNum: 10, delay: 0 },
+  { id: 'in-14', x: 78.2, y: 97.3, scale: 1, cloudNum: 6, delay: 0 },
+  { id: 'in-15', x: -22, y: 94.8, scale: 1, cloudNum: 6, delay: 0 },
+  { id: 'in-16', x: -2, y: 99.1, scale: 1, cloudNum: 4, delay: 0 },
+  { id: 'in-17', x: 60.1, y: 99.2, scale: 1, cloudNum: 13, delay: 0 },
+  { id: 'in-18', x: -5.7, y: 84.6, scale: 0.5, cloudNum: 8, delay: 0 },
+  { id: 'in-19', x: -13.1, y: 9.8, scale: 0.5, cloudNum: 8, delay: 0 },
 ];
 
 // ============================================
@@ -100,22 +100,22 @@ const MIDDLE_CLOUDS: CloudConfig[] = [
 // ============================================
 
 const BALLOONS: Balloon[] = [
-  { id: 'b-1', color: 'red', x: 12, y: 6, scale: 0.45, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 40, rotation: -4 } },
-  { id: 'b-2', color: 'green', x: 78, y: 14, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 22, yOffset: 50, rotation: 5 } },
-  { id: 'b-3', color: 'red', x: 45, y: 22, scale: 0.35, floatDelay: 1, pathConfig: { xOffset: 15, yOffset: 35, rotation: 3 } },
-  { id: 'b-4', color: 'green', x: 88, y: 32, scale: 0.4, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 45, rotation: -5 } },
-  { id: 'b-5', color: 'red', x: 8, y: 42, scale: 0.32, floatDelay: 1.5, pathConfig: { xOffset: 12, yOffset: 38, rotation: 3 } },
-  { id: 'b-6', color: 'green', x: 60, y: 52, scale: 0.42, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 42, rotation: 4 } },
-  { id: 'b-7', color: 'red', x: 25, y: 62, scale: 0.38, floatDelay: 2.5, pathConfig: { xOffset: -15, yOffset: 40, rotation: -3 } },
-  { id: 'b-8', color: 'green', x: 72, y: 72, scale: 0.48, floatDelay: 4, pathConfig: { xOffset: 25, yOffset: 48, rotation: 5 } },
-  { id: 'b-9', color: 'red', x: 18, y: 82, scale: 0.3, floatDelay: 3.5, pathConfig: { xOffset: -12, yOffset: 35, rotation: -4 } },
-  { id: 'b-10', color: 'green', x: 55, y: 92, scale: 0.44, floatDelay: 5, pathConfig: { xOffset: 20, yOffset: 45, rotation: 4 } },
+  { id: 'b-1', variant: 'balloon1', x: 12, y: 6, scale: 0.45, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 40, rotation: -4, duration: 28, wave: 12 } },
+  { id: 'b-2', variant: 'green', x: 78, y: 14, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 22, yOffset: 50, rotation: 5, duration: 52, wave: 22 } },
+  { id: 'b-3', variant: 'balloon2', x: 45, y: 22, scale: 0.35, floatDelay: 1, pathConfig: { xOffset: 15, yOffset: 35, rotation: 3, duration: 44, wave: 10 } },
+  { id: 'b-4', variant: 'red', x: 88, y: 32, scale: 0.4, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 45, rotation: -5, duration: 34, wave: 26 } },
+  { id: 'b-5', variant: 'balloon3', x: 8, y: 42, scale: 0.32, floatDelay: 1.5, pathConfig: { xOffset: 12, yOffset: 38, rotation: 3, duration: 60, wave: 16 } },
+  { id: 'b-6', variant: 'blue', x: 60, y: 52, scale: 0.42, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 42, rotation: 4, duration: 42, wave: 20 } },
+  { id: 'b-7', variant: 'balloon4', x: 25, y: 62, scale: 0.38, floatDelay: 2.5, pathConfig: { xOffset: -15, yOffset: 40, rotation: -3, duration: 50, wave: 14 } },
+  { id: 'b-8', variant: 'balloon5', x: 72, y: 72, scale: 0.48, floatDelay: 4, pathConfig: { xOffset: 25, yOffset: 48, rotation: 5, duration: 32, wave: 24 } },
+  { id: 'b-9', variant: 'balloon6', x: 18, y: 82, scale: 0.3, floatDelay: 3.5, pathConfig: { xOffset: -12, yOffset: 35, rotation: -4, duration: 58, wave: 18 } },
+  { id: 'b-10', variant: 'balloon7', x: 55, y: 92, scale: 0.44, floatDelay: 5, pathConfig: { xOffset: 20, yOffset: 45, rotation: 4, duration: 46, wave: 30 } },
 ];
 
 const FINAL_BALLOONS: Balloon[] = [
-  { id: 'f-b-1', color: 'green', x: 35, y: 68, scale: 0.38, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 38, rotation: 3 } },
-  { id: 'f-b-2', color: 'red', x: 82, y: 78, scale: 0.42, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 42, rotation: -4 } },
-  { id: 'f-b-3', color: 'green', x: 48, y: 88, scale: 0.35, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 36, rotation: 3 } },
+  { id: 'f-b-1', variant: 'balloon1', x: 35, y: 68, scale: 0.38, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 38, rotation: 3, duration: 40, wave: 16 } },
+  { id: 'f-b-2', variant: 'balloon5', x: 82, y: 78, scale: 0.42, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 42, rotation: -4, duration: 30, wave: 26 } },
+  { id: 'f-b-3', variant: 'balloon3', x: 48, y: 88, scale: 0.35, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 36, rotation: 3, duration: 54, wave: 12 } },
 ];
 
 // ============================================
