@@ -260,7 +260,10 @@ class EconomyIntegrationTest {
         assertThat(a).isEqualTo(b);
         assertThat(history.getResult(r.id()).reward().id()).isEqualTo(a.id());
         http.perform(get("/api/rounds/"+r.id()+"/result").principal(()->anna.toString()))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.reward.id").value(a.id().toString()));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reward.id").value(a.id().toString()))
+            .andExpect(jsonPath("$.playerCharacter.code").value("GREEDY"))
+            .andExpect(jsonPath("$.playerCharacter.title").value("Жадина"));
     }
     @Test void parallelRewardGeneratesOnlyOne() throws Exception {
         var r=rounds.save(finish(start(anna,100,1)));

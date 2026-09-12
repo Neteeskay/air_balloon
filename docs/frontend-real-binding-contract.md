@@ -50,7 +50,8 @@ outcome?,crashMultiplier?,startedAt,cashoutAt?,crashedAt?,finishedAt?,timestamp,
 sequence,serverTime,cashoutPerformed,fairnessCommitment,fairnessReveal?`.
 
 `Result`: `roundId,result,betAmount,cashoutMultiplier?,crashMultiplier,winAmount,
-score,configVersion,reward,completedAt,serverTime`.
+score,configVersion,playerCharacter,reward,completedAt,serverTime`. `playerCharacter` is
+the backend-selected `{code,title,description}` for this completed round.
 
 `PersonalPage`: `items,page,size,total,serverTime`. `items[]`: `roundId,theme,
 betAmount,boosterMultiplier,cashoutMultiplier?,crashMultiplier,winAmount,score,

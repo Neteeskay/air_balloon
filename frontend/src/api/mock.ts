@@ -1,11 +1,28 @@
 import { demoUsers, SESSION_KEY } from './demoUsers'
-import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, Scenario8Offer, Scenario8Purchase, StartInput, Wallet } from './types'
+import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, PlayerCharacter, PlayerCharacterCode, Preset, Round, Scenario8Offer, Scenario8Purchase, StartInput, Wallet } from './types'
 
 export const mockCatalog: Catalog = {
   stakes: [100, 250, 500, 1000], stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
   boosters: [1, 2, 3, 4], levels: { GREEN: 9, RED: 12 }, pointsPerLevel: 100, cashoutPoints: 50,
 }
 const thresholds: Record<'GREEN' | 'RED', number[]> = { GREEN: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], RED: [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] }
+const playerCharacters: Record<PlayerCharacterCode, PlayerCharacter> = {
+  CAUTIOUS: { code: 'CAUTIOUS', title: 'Осторожный', description: 'Не стал рисковать и забрал выигрыш заранее' },
+  COLD_BLOODED: { code: 'COLD_BLOODED', title: 'Хладнокровный', description: 'Уверенно забрал на высоком коэффициенте' },
+  CLOSE_CALL: { code: 'CLOSE_CALL', title: 'На волоске', description: 'Забрал выигрыш буквально перед Crash' },
+  BOOSTER_HUNTER: { code: 'BOOSTER_HUNTER', title: 'Охотник за бустером', description: 'Дождался бустера и успешно забрал выигрыш' },
+  GREEDY: { code: 'GREEDY', title: 'Жадина', description: 'Рискнул подняться выше, но шар не выдержал' },
+  ADVENTURER: { code: 'ADVENTURER', title: 'Искатель высоты', description: 'Каждый полёт — новый шанс подняться выше' },
+}
+const playerCharacter = (round: Round): PlayerCharacter => {
+  const cashout = round.cashoutMultiplier; let code: PlayerCharacterCode = 'ADVENTURER'
+  if (cashout !== undefined && round.boosterActivated) code = 'BOOSTER_HUNTER'
+  else if (cashout !== undefined && round.crashMultiplier !== undefined && round.crashMultiplier - cashout >= 0 && round.crashMultiplier - cashout <= .15) code = 'CLOSE_CALL'
+  else if (cashout !== undefined && cashout >= 5) code = 'COLD_BLOODED'
+  else if (cashout !== undefined && cashout >= round.levelThresholds[0] && cashout < round.levelThresholds[1]) code = 'CAUTIOUS'
+  else if (cashout === undefined && round.currentLevel >= 3) code = 'GREEDY'
+  return { ...playerCharacters[code] }
+}
 type StoredRound = { view: Round; owner: string; preset: Preset; processed: number; events: GameEvent[] }
 type StoredOffer = Scenario8Offer & { owner: string; idempotencyKey?: string; purchase?: Scenario8Purchase }
 type Database = { version: 2; wallets: Record<string, Wallet>; rounds: Record<string, StoredRound>; offers: Record<string, StoredOffer>; counter: number }
@@ -163,7 +180,7 @@ export class MockBackend {
       getSnapshot: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.publicRound(r) },
       getReplay: async (id, after) => { this.requireOnline(); const r = this.owned(id); this.tick(); const oldest = r.events[0]?.sequence ?? 1; return { roundId: id, events: clone(r.events.filter(e => e.sequence > after)), oldestAvailableSequence: oldest, latestSequence: r.view.sequence, snapshotRequired: after < oldest - 1 || after > r.view.sequence, serverTime: new Date(this.now()).toISOString() } },
       getFairness: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.proof(r) },
-      getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, potentialWinAmount: Math.floor(v.betAmount * v.crashMultiplier!), score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
+      getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, potentialWinAmount: Math.floor(v.betAmount * v.crashMultiplier!), score: v.roundScore, playerCharacter: playerCharacter(v), reward: { type: 'CLOUD', rarity: 'COMMON' } } },
       connect: async (event, connection) => {
         const listener = { event, connection }; this.listeners.add(listener); connection(this.online ? 'connected' : 'disconnected')
         if (Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')) this.ensureTimer()
