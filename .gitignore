@@ -5,6 +5,10 @@ Thumbs.db
 .vscode/
 *.iml
 
+# Agent instruction / local reference (не коммитим)
+CLAUDE.md
+ШАРИКИ.png
+
 # Env
 .env
 .env.*
