@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { SESSION_KEY } from './demoUsers'
 import { MockBackend } from './mock'
 import { MemoryStorage } from '../test/helpers'
+import { verifyCommitment } from '../fairness/verifier'
 
 class CountingStorage extends MemoryStorage {
   writes = 0
@@ -47,6 +48,15 @@ describe('deterministic mock adapters', () => {
     const r = await backend.api.game.startRound({ theme: 'RED', betAmount: 100, boosterMultiplier: 1 })
     now += 8100; backend.tick(); expect((await backend.api.game.getResult(r.id)).result).toBe('LOSS')
     expect((await backend.api.economy.getBalance('anna')).bonusBalance).toBe(4900)
+  })
+  it('returns a locally verifiable demo commitment after reveal', async () => {
+    backend.api.dev!.setPreset('LOSE')
+    const r = await backend.api.game.startRound({ theme: 'GREEN', betAmount: 100, boosterMultiplier: 1 })
+    now += 8100; backend.tick()
+    const proof = await backend.api.game.getFairness(r.id)
+    expect(proof.commitment).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(await verifyCommitment(proof)).toBe(true)
+    expect(proof.formulaVerified).toBe(true)
   })
   it('keeps mock history scoped to the signed-in profile', async () => {
     backend.api.dev!.setPreset('LOSE')

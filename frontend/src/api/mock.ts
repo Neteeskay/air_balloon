@@ -1,5 +1,6 @@
 import { demoUsers, SESSION_KEY } from './demoUsers'
 import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, StartInput, Wallet } from './types'
+import { canonicalInput } from '../fairness/verifier'
 
 export const mockCatalog: Catalog = {
   stakes: [100, 250, 500, 1000], stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
@@ -49,9 +50,17 @@ export class MockBackend {
     const v = r.view
     return { roundId: v.id, status: v.status === 'FINISHED' ? 'REVEALED' : 'COMMITTED', commitment: v.fairnessCommitment, example: true,
       ...(v.status === 'FINISHED' ? { serverSeed: '42', crashMultiplier: v.crashMultiplier, boosterLevel: v.boosterLevel, verified: false,
+        canonicalInput: canonicalInput({ roundId: v.id, status: 'REVEALED', commitment: '', serverSeed: '42', crashMultiplier: v.crashMultiplier, boosterLevel: v.boosterLevel }),
         formulaVersion: 'HOUSE_EDGE_V1', uniformSample: 0.42, calculatedCrashMultiplier: v.crashMultiplier,
         formulaVerified: true, minCrashMultiplier: v.crashMultiplier, maxCrashMultiplier: v.crashMultiplier,
         alpha: 0.1, theme: v.theme, boosterMultiplier: v.boosterMultiplier } : {}) }
+  }
+  private async verifiedProof(r: StoredRound): Promise<Fairness> {
+    const proof = this.proof(r)
+    if (proof.status !== 'REVEALED' || !proof.canonicalInput || !globalThis.crypto?.subtle) return proof
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(proof.canonicalInput))
+    const hex = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+    return { ...proof, commitment: `sha256:${hex}`, verified: true }
   }
   private advance(r: StoredRound) {
     const v = r.view
@@ -138,7 +147,7 @@ export class MockBackend {
       },
       getSnapshot: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.publicRound(r) },
       getReplay: async (id, after) => { this.requireOnline(); const r = this.owned(id); this.tick(); const oldest = r.events[0]?.sequence ?? 1; return { roundId: id, events: clone(r.events.filter(e => e.sequence > after)), oldestAvailableSequence: oldest, latestSequence: r.view.sequence, snapshotRequired: after < oldest - 1 || after > r.view.sequence, serverTime: new Date(this.now()).toISOString() } },
-      getFairness: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.proof(r) },
+      getFairness: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.verifiedProof(r) },
       getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, potentialWinAmount: Math.floor(v.betAmount * v.crashMultiplier!), score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
       connect: async (event, connection) => {
         const listener = { event, connection }; this.listeners.add(listener); connection(this.online ? 'connected' : 'disconnected')
