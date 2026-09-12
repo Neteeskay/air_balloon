@@ -49,5 +49,9 @@
   "pointsX3Bonus": 300,
   "pointsX4Bonus": 400,
   "fixedSeedEnabled": false,
-  "fixedSeed": null
+  "fixedSeed": null,
+  "scenario8Enabled": true,
+  "scenario8MinWinAmount": 0,
+  "scenario8Price": 150,
+  "scenario8TicketCount": 3
 }

@@ -40,3 +40,10 @@ docker compose up -d --build frontend
 Compose по умолчанию собирает REAL image. Для автономной UI-демонстрации передайте build arg `VITE_API_MODE=mock`; REAL mode никогда автоматически не переключается на mock.
 
 Архитектура подключения: [frontend-integration.md](../docs/frontend-integration.md).
+
+## Scenario 8
+
+После WIN на Result screen может появиться «Закрепить успех?». Offer приходит с backend,
+покупка отправляется с idempotency key; после успеха обновляются баланс и счётчик
+виртуальных билетов. Отказ/закрытие считаются DECLINED. `sessionStorage` подавляет
+повторный popup до новой browser-session; LOSS popup не запускает.

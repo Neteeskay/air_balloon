@@ -42,6 +42,10 @@ public class ConfigValidator {
         weights(c.redBoosterWeights(), 12, "redBoosterWeights");
         points(c.pointsPerLevel(), "pointsPerLevel"); points(c.pointsCashoutBonus(), "pointsCashoutBonus");
         points(c.pointsX2Bonus(), "pointsX2Bonus"); points(c.pointsX3Bonus(), "pointsX3Bonus"); points(c.pointsX4Bonus(), "pointsX4Bonus");
+        points(c.scenario8MinWinAmount(), "scenario8MinWinAmount");
+        check(!c.scenario8Enabled() || c.scenario8Price() > 0, "scenario8Price должен быть > 0 при включенном Scenario 8");
+        check(c.scenario8Price() >= 0 && c.scenario8Price() <= 1_000_000_000L, "scenario8Price: 0–1000000000");
+        check(c.scenario8TicketCount() >= 0 && c.scenario8TicketCount() <= 1_000_000, "scenario8TicketCount: 0–1000000");
         check(!c.fixedSeedEnabled() || (allowFixedSeed && c.fixedSeed() != null), "fixedSeedEnabled требует demo profile и fixedSeed");
     }
     private void weights(List<Integer> values, int size, String field) {

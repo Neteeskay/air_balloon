@@ -330,3 +330,17 @@ Nginx проксирует `/api/`, `/ws` и `/ws/rounds` в единый backen
 использует cookie session после `/api/auth/demo-login`; canonical UUID не
 передаётся клиентом как доверенный header. Game и Tournament работают поверх
 одного Principal, одной PostgreSQL и одного authoritative score.
+
+## Scenario 8 — «Закрепи успех»
+
+После завершённого WIN frontend запрашивает `GET /api/current-user/upsell/lottery-tickets/offer?roundId=...`.
+Backend проверяет сохранённый cashout, пользователя и конфигурацию и возвращает снимок
+`{offerId, roundId, price, ticketCount, minWinAmount, expiresAt, status}`. LOSS,
+неeligible WIN и отключённая функция дают `204 No Content`. Offer принадлежит user+round
+и действует 10 минут.
+
+Покупка: `POST /api/current-user/upsell/lottery-tickets/purchase` с `Idempotency-Key`
+и телом `{offerId}`. Цена и количество из тела не принимаются. Ответ содержит новый
+`bonusBalance` и `lotteryTicketCount`; повтор с тем же ключом возвращает тот же результат,
+другой ключ для consumed offer отклоняется. Debit, credit билетов и ledger-запись
+атомарны.

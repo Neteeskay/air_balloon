@@ -106,3 +106,10 @@ Leaderboard получает только итоговый authoritative `users.
 .\mvnw.cmd verify
 .\mvnw.cmd verify -Pacceptance
 ```
+
+## Scenario 8 upsell
+
+`GET /api/current-user/upsell/lottery-tickets/offer?roundId=...` создаёт server-side
+offer только для подтверждённого WIN. `POST /api/current-user/upsell/lottery-tickets/purchase`
+принимает только `offerId` и обязательный `Idempotency-Key`; цена и число билетов берутся
+из versioned config. V305 добавляет `users.lottery_ticket_count` и offers/ledger-персистенцию.

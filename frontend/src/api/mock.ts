@@ -1,5 +1,5 @@
 import { demoUsers, SESSION_KEY } from './demoUsers'
-import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, StartInput, Wallet } from './types'
+import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, Scenario8Offer, Scenario8Purchase, StartInput, Wallet } from './types'
 
 export const mockCatalog: Catalog = {
   stakes: [100, 250, 500, 1000], stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
@@ -7,10 +7,11 @@ export const mockCatalog: Catalog = {
 }
 const thresholds: Record<'GREEN' | 'RED', number[]> = { GREEN: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], RED: [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] }
 type StoredRound = { view: Round; owner: string; preset: Preset; processed: number; events: GameEvent[] }
-type Database = { version: 1; wallets: Record<string, Wallet>; rounds: Record<string, StoredRound>; counter: number }
+type StoredOffer = Scenario8Offer & { owner: string; idempotencyKey?: string; purchase?: Scenario8Purchase }
+type Database = { version: 2; wallets: Record<string, Wallet>; rounds: Record<string, StoredRound>; offers: Record<string, StoredOffer>; counter: number }
 const DATA_KEY = 'air-balloon-game-mock-v1'
 const clone = <T,>(value: T): T => structuredClone(value)
-const initial = (): Database => ({ version: 1, wallets: Object.fromEntries(demoUsers.map(u => [u.id, { bonusBalance: 5000, gameScore: 0 }])), rounds: {}, counter: 0 })
+const initial = (): Database => ({ version: 2, wallets: Object.fromEntries(demoUsers.map(u => [u.id, { bonusBalance: 5000, gameScore: 0, lotteryTicketCount: 0 }])), rounds: {}, offers: {}, counter: 0 })
 
 /** UI-only deterministic simulator. Never imported/used to decide a REAL game result. */
 export class MockBackend {
@@ -22,7 +23,12 @@ export class MockBackend {
   private reconnectTimer?: ReturnType<typeof setTimeout>
   constructor(private storage: Storage, private now = () => Date.now(), private autoTick = true) {
     const saved = storage.getItem(DATA_KEY)
-    try { const parsed = saved ? JSON.parse(saved) : null; this.db = parsed?.version === 1 ? parsed : initial() }
+    try {
+      const parsed = saved ? JSON.parse(saved) : null
+      this.db = parsed?.version === 2 ? parsed : initial()
+      Object.values(this.db.wallets).forEach(wallet => { wallet.lotteryTicketCount ??= 0 })
+      this.db.offers ??= {}
+    }
     catch { this.db = initial() }
   }
   private save() { this.storage.setItem(DATA_KEY, JSON.stringify(this.db)) }
@@ -108,6 +114,26 @@ export class MockBackend {
       logout: async () => { this.storage.removeItem(SESSION_KEY) },
     },
     economy: { getBalance: async id => { this.tick(); return clone(this.db.wallets[id ?? this.user()]) } },
+    upsell: {
+      getOffer: async roundId => {
+        this.tick(); const r = this.owned(roundId); const v = r.view
+        if (v.status !== 'FINISHED' || !v.cashoutPerformed) return null
+        const current = Object.values(this.db.offers).find(o => o.roundId === roundId)
+        if (current) return clone(current)
+        const offer: StoredOffer = { offerId: `offer-${roundId}`, roundId, price: 150, ticketCount: 3, minWinAmount: 0, expiresAt: new Date(this.now() + 600_000).toISOString(), status: 'AVAILABLE', owner: r.owner }
+        this.db.offers[offer.offerId] = offer; this.save(); return clone(offer)
+      },
+      purchase: async (offerId, key) => {
+        this.requireOnline(); const offer = this.db.offers[offerId]; const owner = this.user()
+        if (!offer || offer.owner !== owner) throw new Error('Предложение не найдено для этого профиля.')
+        if (offer.purchase) { if (offer.idempotencyKey === key) return { ...clone(offer.purchase), replayed: true }; throw new Error('Предложение уже использовано') }
+        if (Date.parse(offer.expiresAt) <= this.now()) { offer.status = 'EXPIRED'; this.save(); throw new Error('Срок предложения истёк') }
+        const wallet = this.db.wallets[owner]; if (wallet.bonusBalance < offer.price) throw new Error('Недостаточно бонусов для покупки билетов')
+        wallet.bonusBalance -= offer.price; wallet.lotteryTicketCount = (wallet.lotteryTicketCount ?? 0) + offer.ticketCount
+        const purchase: Scenario8Purchase = { offerId, roundId: offer.roundId, price: offer.price, ticketCount: offer.ticketCount, bonusBalance: wallet.bonusBalance, lotteryTicketCount: wallet.lotteryTicketCount, replayed: false }
+        offer.purchase = purchase; offer.idempotencyKey = key; offer.status = 'CONSUMED'; this.save(); return clone(purchase)
+      },
+    },
     catalog: { get: async () => clone(mockCatalog) },
     history: {
       getGlobalHistory: async (page = 0) => this.historyPage(page),
