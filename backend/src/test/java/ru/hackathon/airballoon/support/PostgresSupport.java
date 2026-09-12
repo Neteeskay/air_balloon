@@ -13,7 +13,7 @@ public abstract class PostgresSupport {
         connectionProperties().forEach((key, value) -> registry.add(key, () -> value));
     }
 
-    protected static synchronized Map<String, Object> connectionProperties() {
+    public static synchronized Map<String, Object> connectionProperties() {
         String url = System.getenv("TEST_DATABASE_URL");
         if (url != null && !url.isBlank()) {
             return Map.of("spring.datasource.url", url,

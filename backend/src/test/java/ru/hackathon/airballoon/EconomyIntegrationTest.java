@@ -26,6 +26,7 @@ import ru.hackathon.airballoon.reward.*;
 import ru.hackathon.airballoon.score.*;
 import ru.hackathon.airballoon.user.*;
 import ru.hackathon.airballoon.upsell.Scenario8OfferService;
+import ru.hackathon.airballoon.support.PostgresSupport;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -34,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties="app.admin-token=test-admin-token")
 @AutoConfigureMockMvc
 @ActiveProfiles("demo")
-class EconomyIntegrationTest {
+class EconomyIntegrationTest extends PostgresSupport {
     @Autowired JdbcTemplate jdbc;
     @Autowired DemoBootstrap bootstrap;
     @Autowired BalanceService balances;
@@ -55,7 +56,7 @@ class EconomyIntegrationTest {
 
     @BeforeEach void reset() {
         // Refuse cleanup against a developer or production database.
-        assertThat(jdbc.queryForObject("SELECT current_database()",String.class)).isEqualTo("balloon_test");
+        assertThat(jdbc.queryForObject("SELECT current_database()",String.class)).isNotEqualTo("air_balloon");
         jdbc.execute("TRUNCATE users CASCADE");
         jdbc.update("UPDATE clothing_items SET active=true");
         jdbc.update("""
@@ -264,7 +265,10 @@ class EconomyIntegrationTest {
         assertThat(a).isEqualTo(b);
         assertThat(history.getResult(r.id()).reward()).isNull();
         http.perform(get("/api/rounds/"+r.id()+"/result").principal(()->anna.toString()))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.reward").doesNotExist());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reward").doesNotExist())
+            .andExpect(jsonPath("$.playerCharacter.code").value("GREEDY"))
+            .andExpect(jsonPath("$.playerCharacter.title").value("Жадина"));
     }
     @Test void parallelRewardGeneratesOnlyOne() throws Exception {
         var r=rounds.save(finish(start(anna,100,1)));
@@ -421,7 +425,8 @@ class EconomyIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reward.type").value("PUZZLE_FRAGMENT"))
                 .andExpect(jsonPath("$.reward.puzzleId").value("SKY_JOURNEY"))
-                .andExpect(jsonPath("$.reward.fragments").value(1));
+                .andExpect(jsonPath("$.reward.fragments").value(1))
+                .andExpect(jsonPath("$.playerCharacter.code").value("COLD_BLOODED"));
     }
 
     @Test void fiveOfSixWinCompletesPuzzleAndUnlocksCloudScarfOnlyOnce() {

@@ -4,14 +4,16 @@ import java.sql.DriverManager;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import ru.hackathon.airballoon.support.PostgresSupport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Proves a populated V305 database upgrades without backfilling historical round rewards. */
 class PuzzleMigrationTest {
     @Test void populatedV305UpgradesToV306WithoutDataLossOrHistoricalRewardBackfill() throws Exception {
-        String baseUrl = System.getenv().getOrDefault("DB_URL", "jdbc:postgresql://localhost:5432/balloon_test");
-        String user = System.getenv().getOrDefault("POSTGRES_USER", "air_balloon");
-        String password = System.getenv().getOrDefault("POSTGRES_PASSWORD", "change_me");
+        var properties = PostgresSupport.connectionProperties();
+        String baseUrl = (String) properties.get("spring.datasource.url");
+        String user = (String) properties.get("spring.datasource.username");
+        String password = (String) properties.get("spring.datasource.password");
         String database = "puzzle_upgrade_" + UUID.randomUUID().toString().replace("-", "");
         String adminUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + "postgres";
         String testUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + database;

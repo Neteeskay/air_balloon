@@ -80,11 +80,11 @@ class LeaderboardIT extends TournamentIntegrationSupport {
         assertThat(service.leaderboard(id, user, 0, 50).currentPlayer().score()).isEqualTo(75);
     }
 
-    @Test void producerRollbackRollsBackProjectionAndRevision() {
+    @Test void scoreEventDoesNotCreateMembershipAndRollbackLeavesProjectionUntouched() {
         UUID id = tournament(), user = UUID.randomUUID();
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             events.publishEvent(new ScoreChanged(new PlayerScore(user, "Rollback", 500, 1, clock.instant())));
-            assertThat(service.leaderboard(id, user, 0, 50).totalParticipants()).isEqualTo(1);
+            assertThat(service.leaderboard(id, user, 0, 50).totalParticipants()).isZero();
             status.setRollbackOnly();
         });
         assertThat(service.leaderboard(id, user, 0, 50).totalParticipants()).isZero();

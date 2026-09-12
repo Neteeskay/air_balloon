@@ -17,12 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import ru.hackathon.airballoon.support.PostgresSupport;
 
 @SpringBootTest(classes = ru.airballoon.AirBalloonApplication.class,
         properties = "game.scheduler-enabled=false")
 @AutoConfigureMockMvc
 @ActiveProfiles("demo")
-class CoreIdentityIntegrationTest {
+class CoreIdentityIntegrationTest extends PostgresSupport {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
