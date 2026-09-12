@@ -16,7 +16,9 @@ describe('deterministic mock adapters', () => {
     expect((await backend.api.economy.getBalance('anna')).bonusBalance).toBe(4900)
     now += 2000; backend.tick(); const ready = await backend.api.game.getSnapshot(r.id)
     expect(ready.cashoutAvailable).toBe(true)
+    expect(ready.cashoutPreviewAmount).toBeGreaterThan(r.cashoutPreviewAmount!)
     const paid = await backend.api.game.cashout(r.id, 'key')
+    expect(paid.winAmount).toBe(ready.cashoutPreviewAmount)
     expect((await backend.api.economy.getBalance('anna')).bonusBalance).toBe(4900 + paid.winAmount)
   })
   it.each([2, 3, 4])('activates a ×%i booster reached before cashout and updates multiplier and points', async booster => {
@@ -25,6 +27,7 @@ describe('deterministic mock adapters', () => {
     now += 8500; backend.tick(); const snapshot = await backend.api.game.getSnapshot(r.id)
     expect(snapshot.boosterActivated).toBe(true); expect(snapshot.boosterLevel).toBe(3)
     expect(snapshot.currentMultiplier).toBeGreaterThanOrEqual(2 * booster); expect(snapshot.roundScore).toBeGreaterThan(200 + booster * 100)
+    expect(snapshot.cashoutPreviewAmount).toBe(Math.floor(snapshot.betAmount * snapshot.currentMultiplier))
   })
   it('does not activate a future booster after cashout', async () => {
     const r = await backend.api.game.startRound({ theme: 'GREEN', betAmount: 100, boosterMultiplier: 4 })
@@ -46,6 +49,7 @@ describe('deterministic mock adapters', () => {
     backend.api.dev!.setPreset('LOSE')
     const r = await backend.api.game.startRound({ theme: 'RED', betAmount: 100, boosterMultiplier: 1 })
     now += 8100; backend.tick(); expect((await backend.api.game.getResult(r.id)).result).toBe('LOSS')
+    expect((await backend.api.game.getSnapshot(r.id)).cashoutPreviewAmount).toBeUndefined()
     expect((await backend.api.economy.getBalance('anna')).bonusBalance).toBe(4900)
   })
   it('keeps mock history scoped to the signed-in profile', async () => {

@@ -18,12 +18,22 @@ test('S2-BROWSER cashout enables after Level 1, fixes result and flight continue
   await expect(game.cashout()).toBeDisabled();
   await expect(page.getByTestId('current-level')).not.toHaveText(/^(0|level\s*0|уровень\s*0)$/i, { timeout: settings.eventTimeoutMs });
   await expect(game.cashout()).toBeEnabled();
+  await expect(game.cashout()).toContainText(/Забрать\s+[\d\s]+(?:[,.]\d+)?\s+бонусов/i);
+  const displayedPreview = bonusAmount(await game.cashout().textContent());
   const multiplier = await game.multiplier().textContent();
   await game.cashout().click();
-  await expect(page.getByText(/могли бы забрать больше|could have taken more/i)).toBeVisible();
+  const fixed = page.getByText(/Зафиксировано\s+[\d\s]+(?:[,.]\d+)?\s+бонусов/i);
+  await expect(fixed).toBeVisible();
+  expect(bonusAmount(await fixed.textContent())).toBeGreaterThanOrEqual(displayedPreview);
   await expect(game.multiplier()).not.toHaveText(multiplier ?? '', { timeout: settings.eventTimeoutMs });
   await result.expectVisible();
   await expect(page.getByTestId('potential-win')).toContainText(/могли бы забрать/i);
   await game.history().click();
   await expect(page.locator(`[data-testid="history-row"][data-round-id="${roundId}"]`)).toContainText(/win/i);
 });
+
+function bonusAmount(value: string | null): number {
+  const match = value?.match(/([\d\s]+(?:[,.]\d+)?)\s+бонусов/i);
+  if (!match) throw new Error(`Bonus amount is missing in: ${value}`);
+  return Number(match[1].replace(/\s/g, '').replace(',', '.'));
+}

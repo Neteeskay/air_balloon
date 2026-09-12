@@ -1,6 +1,8 @@
 package ru.airballoon.game.infrastructure.web;
 
 import ru.airballoon.game.domain.GameEvent;
+import ru.airballoon.game.domain.PayoutCalculator;
+import ru.airballoon.game.domain.RoundStatus;
 import java.time.Instant;
 import java.util.*;
 
@@ -9,6 +11,8 @@ public record RoundEventView(GameEvent.Type type, UUID roundId, long sequence, I
                              Map<String, Object> data, String eventId, Instant serverTime) {
     public static RoundEventView from(GameEvent event) {
         Map<String, Object> data = new HashMap<>(event.data());
+        if (event.snapshot().status() == RoundStatus.RUNNING)
+            data.put("cashoutPreviewAmount", PayoutCalculator.calculate(event.snapshot()));
         if (event.type() == GameEvent.Type.ROUND_STARTED)
             data.put("fairnessCommitment", event.snapshot().fairnessCommitment());
         if (event.type() == GameEvent.Type.ROUND_STARTED || event.type() == GameEvent.Type.ROUND_FINISHED)

@@ -47,6 +47,7 @@ class ReconnectIT extends IntegrationSupport {
                 assertThat(snapshot.path("currentLevel").asInt()).isEqualTo(6);
                 assertThat(snapshot.path("boosterActivated").asBoolean()).isTrue();
                 assertThat(snapshot.path("currentMultiplier").decimalValue()).isEqualByComparingTo("6");
+                assertThat(snapshot.path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("600");
                 assertThat(snapshot.path("serverTime").asText()).isEqualTo(START.plusSeconds(10).toString());
                 assertThat(service.activeRoundCount()).isGreaterThanOrEqualTo(1);
                 var replay = request(user, "GET", "/api/rounds/" + id + "/events?afterSequence=1", null);

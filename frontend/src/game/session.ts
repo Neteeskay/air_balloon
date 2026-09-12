@@ -32,6 +32,8 @@ export class GameSession {
     if (e.sequence !== round.sequence + 1) { this.buffer.push(e); void this.recover(); return }
     const next = { ...round, sequence: e.sequence, timestamp: e.timestamp, serverTime: e.serverTime }
     const d = e.data
+    const preview = d.cashoutPreviewAmount
+    if (typeof preview === 'number' || typeof preview === 'string') next.cashoutPreviewAmount = Number(preview)
     let notice = ''
     let sound: SoundCue | null = null
     switch (e.type) {
@@ -57,7 +59,9 @@ export class GameSession {
     if (notice || sound) this.set({ ...(notice ? { notice } : {}), ...(sound ? { sound } : {}) })
   }
   private event = (e: GameEvent) => {
-    if (this.syncing) { this.buffer.push(e); this.buffer = this.buffer.slice(-256); return }
+    if (this.syncing || this.state.connection !== 'connected') {
+      this.buffer.push(e); this.buffer = this.buffer.slice(-256); return
+    }
     this.applyEvent(e, true)
   }
   private async connect() {

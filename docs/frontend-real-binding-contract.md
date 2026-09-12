@@ -40,7 +40,7 @@ identity — UUID Principal из server-side HTTP session. Не отправля
 
 `RoundView`: stable fields are `id/roundId,theme,betAmount,boosterMultiplier,
 boosterLevel?,boosterActivated,currentMultiplier,currentLevel,totalLevels,
-levelThresholds,cashoutAvailable,cashoutMultiplier?,winAmount,roundScore,status,
+levelThresholds,cashoutAvailable,cashoutPreviewAmount?,cashoutMultiplier?,winAmount,roundScore,status,
 outcome?,crashMultiplier?,startedAt,cashoutAt?,crashedAt?,finishedAt?,timestamp,
 sequence,serverTime,cashoutPerformed,fairnessCommitment,fairnessReveal?`.
 
@@ -53,6 +53,15 @@ result,reward?,completedAt`. Personal items deliberately contain no user selecto
 
 `FairnessView` is COMMITTED before crash and REVEALED after crash. Do not expect
 `serverSeed`, `crashMultiplier`, `boosterLevel` or canonical proof before reveal.
+
+`cashoutPreviewAmount` is the authoritative amount payable if cashout were
+accepted at the represented RUNNING server state. Bind it directly from start or
+snapshot and from each live `MULTIPLIER_UPDATE`, `LEVEL_REACHED` and
+`BOOSTER_ACTIVATED`; never derive it in React. Before Level 1 the CTA remains
+disabled even though a preview may be present. During disconnect retain the last
+confirmed value without extrapolation, then replace it from snapshot/replay.
+After cashout use `winAmount`. It may be slightly greater than the last displayed
+preview because settlement advances the round at server receipt time.
 
 ## Auth and ownership behavior
 

@@ -46,6 +46,10 @@ class RealtimeIT extends IntegrationSupport {
                 assertThat(events.stream().map(e -> e.path("sequence").asLong())).doesNotHaveDuplicates().isSorted();
                 assertThat(events.stream().filter(e -> e.path("type").asText().equals("CASHOUT_SUCCESS")).count()).isEqualTo(1);
                 assertThat(events.stream().filter(e -> e.path("type").asText().equals("BOOSTER_ACTIVATED")).count()).isEqualTo(1);
+                var booster = events.stream().filter(e -> e.path("type").asText().equals("BOOSTER_ACTIVATED")).findFirst().orElseThrow();
+                assertThat(booster.path("data").path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("600.00");
+                assertThat(events.stream().filter(e -> e.path("type").asText().equals("MULTIPLIER_UPDATE")
+                        && e.path("data").has("cashoutPreviewAmount")).toList()).isNotEmpty();
                 assertThat(events.getLast().path("data").path("round").path("winAmount").decimalValue()).isEqualByComparingTo(payout.winAmount());
                 assertThat(events.getLast().path("data").path("round").path("status").asText()).isEqualTo("FINISHED");
                 for (JsonNode event : events) {
