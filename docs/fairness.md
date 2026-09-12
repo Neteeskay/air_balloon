@@ -103,13 +103,17 @@ node scripts/verify-fairness.mjs proof.json 'sha256:<сохранённый-пр
 
 ## Determinism и границы гарантии
 
-Математика, NORMAL seed source и FIXED_SEED не изменены. Одинаковые seed/config,
-theme и booster дают прежние результаты. При одинаковом roundId и данных хеш
+Crash distribution заменена на house-edge piecewise-модель из
+[`crash-math-model.md`](crash-math-model.md). NORMAL seed source, FIXED_SEED и
+salted seed derivation не изменены. Одинаковые seed/config, theme и booster дают
+одинаковые `U` и результат новой формулы. При одинаковом roundId и данных хеш
 одинаков; разные roundId намеренно дают разные commitments даже в FIXED_SEED.
 
 Это упрощённое доказательство неизменности заранее зафиксированных seed и
-результата. Оно не доказывает беспристрастный выбор seed, распределение вероятностей
-или неизменность конфигурации. Client seed / multi-party entropy здесь нет.
+результата. Verifier проверяет canonical commitment reveal-полей; он не пересчитывает
+`U` и crash только из seed, потому что v1 payload не включает config/theme/booster.
+Он не доказывает беспристрастный выбор seed, распределение вероятностей или
+неизменность конфигурации. Client seed / multi-party entropy здесь нет.
 Существующий seed имеет 64 бита, генераторы остались прежними. FIXED_SEED с известным
 seed предсказуем по определению и допускается только в dev/demo/test.
 

@@ -39,11 +39,11 @@ test('S5-VALIDATION every accepted edge config can start a round; engine-incompa
   const api = new ApiClient(request, settings.authHeaders); const original = await api.adminConfig(settings.adminToken);
   const incompatible = [
     { boosterValues: [1, 3, 5, 8] },
-    { minCrashMultiplier: 0.9999 },
     { minCrashMultiplier: 1.00001 },
     { growthRate: 10.0001 },
     { growthRate: 0.00011 },
-    { alpha: 0.009 }
+    { alpha: -0.001 },
+    { alpha: 1 }
   ];
   for (const mutation of incompatible) {
     const response = await request.put('/api/admin/config', {
@@ -56,7 +56,7 @@ test('S5-VALIDATION every accepted edge config can start a round; engine-incompa
   try {
     accepted = await api.updateAdminConfig(settings.adminToken, original.version, {
       ...original.config, minCrashMultiplier: 1, maxCrashMultiplier: 1.0001,
-      growthRate: 0.0001, alpha: 0.01, boosterValues: [1, 2, 3, 4]
+      growthRate: 0.0001, alpha: 0, boosterValues: [1, 2, 3, 4]
     });
     const round = await api.startRound('GREEN', settings.stake, 4);
     expect(round.id).toBeTruthy(); expect(round.boosterMultiplier).toBe(4);

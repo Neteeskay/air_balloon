@@ -116,9 +116,10 @@ cashout win/cashoutMultiplier не меняются, новый booster не а�
 Время — серверные миллисекунды; defaults growth=0.10. Cashout:
 `floor2(betAmount × authoritativeMultiplier)` через BigDecimal/RoundingMode.DOWN.
 
-Crash: `floor4(min + (max-min) × u^distributionParameter)`, с clamp по границам.
-`u` получается из seed и server-only salted SplittableRandom. Параметры
-валидируются; defaults диапазон 1.01–30.00, distribution=2.0.
+Crash: при server-only `U ~ Uniform[0,1)` используется piecewise-модель:
+`X=minCrashMultiplier` при `U<alpha`, иначе `X=(1-alpha)/(1-U)`;
+`X_final=min(X,maxCrashMultiplier)`, затем `floor4(X_final)`. `alpha` — house edge,
+default 0.03. Параметры валидируются; default диапазон 1.00–30.00.
 Все математические границы между тиками обрабатываются, даже если tick редкий.
 
 ## 8. Booster

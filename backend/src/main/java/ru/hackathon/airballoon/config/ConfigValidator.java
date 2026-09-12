@@ -18,15 +18,19 @@ public class ConfigValidator {
         check(c.gameName() != null && !c.gameName().isBlank() && c.gameName().length() <= 100, "gameName: 1–100 символов");
         check("CRASH".equals(c.gameType()), "gameType должен быть CRASH");
         check(c.greenLevelCount() == 9 && c.redLevelCount() == 12, "greenLevelCount=9, redLevelCount=12 согласно ТЗ");
-        check(c.minCrashMultiplier() != null && c.minCrashMultiplier().compareTo(BigDecimal.ONE) >= 0,
-            "minCrashMultiplier должен быть >= 1");
+        check(c.minCrashMultiplier() != null && c.minCrashMultiplier().signum() > 0,
+            "minCrashMultiplier должен быть > 0");
         check(c.maxCrashMultiplier() != null && c.maxCrashMultiplier().compareTo(c.minCrashMultiplier()) >= 0
             && c.maxCrashMultiplier().compareTo(new BigDecimal("1000000")) <= 0, "maxCrashMultiplier должен быть >= min и <= 1000000");
         check(c.minCrashMultiplier().scale() <= 4 && c.maxCrashMultiplier().scale() <= 4, "multiplier: максимум 4 знака после запятой");
+        check(c.minCrashMultiplier().compareTo(BigDecimal.ONE) <= 0
+                || c.minCrashMultiplier().compareTo(c.maxCrashMultiplier()) == 0,
+            "piecewise crash formula требует minCrashMultiplier <= 1, кроме фиксированного диапазона min=max");
         check(Double.isFinite(c.growthRate()) && c.growthRate() >= 0.0001 && c.growthRate() <= 10
             && BigDecimal.valueOf(c.growthRate()).stripTrailingZeros().scale() <= 4,
             "growthRate: [0.0001,10], максимум 4 знака после запятой");
-        check(Double.isFinite(c.alpha()) && c.alpha() >= 0.01 && c.alpha() <= 100, "alpha: [0.01,100]");
+        check(c.alpha() != null && c.alpha().signum() >= 0 && c.alpha().compareTo(BigDecimal.ONE) < 0,
+            "alpha: 0 <= alpha < 1");
         check(c.updateIntervalMs() >= 16 && c.updateIntervalMs() <= 1000, "updateIntervalMs: 16–1000");
         check(c.minBet()!=null && c.maxBet()!=null && c.minBet().signum()>0
             && c.maxBet().compareTo(c.minBet())>=0 && c.maxBet().compareTo(new BigDecimal("1000000000"))<=0,

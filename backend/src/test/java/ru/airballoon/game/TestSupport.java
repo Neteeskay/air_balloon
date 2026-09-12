@@ -15,7 +15,7 @@ public final class TestSupport {
     public static BigDecimal dec(String value) { return new BigDecimal(value); }
 
     public static GameConfig config(String crash, int boosterLevel) {
-        return new GameConfig(dec(crash), dec(crash), 2, dec("0.10"), dec("1.00"), dec("1000.00"),
+        return new GameConfig(dec(crash), dec(crash), 0.03, dec("0.10"), dec("1.00"), dec("1000.00"),
                 150, theme(Theme.GREEN, boosterLevel), theme(Theme.RED, boosterLevel));
     }
 

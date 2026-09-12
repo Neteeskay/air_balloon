@@ -19,14 +19,14 @@ class ReliabilityTest {
     @ParameterizedTest(name = "deterministic round seed={0}") @MethodSource("seeds")
     void hundredDeterministicRoundsFinishWithValidBoundsTransitionsSequenceAndProof(int seed) {
         var base = config("30", 3);
-        var config = new GameConfig(dec("1.01"), dec("30"), 2, base.growthPerSecond(), base.minBet(), base.maxBet(),
+        var config = new GameConfig(dec("1"), dec("30"), 0.03, base.growthPerSecond(), base.minBet(), base.maxBet(),
                 base.boosterPointsPerMultiplier(), base.green(), base.red());
         var engine = new RoundEngine(); UUID id = UUID.randomUUID(), user = UUID.randomUUID();
         Theme theme = seed % 2 == 0 ? Theme.GREEN : Theme.RED; int booster = seed % 4 + 1;
         var first = engine.start(id, user, theme, dec("100"), booster, seed, config, START);
         assertThat(first).isEqualTo(engine.start(id, user, theme, dec("100"), booster, seed, config, START));
         List<GameEvent> events = new ArrayList<>(first.events()); GameRound r = first.round();
-        assertThat(r.crashMultiplier()).isBetween(dec("1.01"), dec("30"));
+        assertThat(r.crashMultiplier()).isBetween(dec("1"), dec("30"));
         if (booster == 1) assertThat(r.boosterLevel()).isNull();
         else assertThat(r.boosterLevel()).isBetween(1, theme.levels());
         for (int millis = 1234; r.status().flying() && millis < 400000; millis += 1234) {
@@ -52,6 +52,11 @@ class ReliabilityTest {
             }
             for (var future : pool.invokeAll(starts)) future.get(5, TimeUnit.SECONDS);
             assertThat(f.service.activeRoundCount()).isEqualTo(100);
+            assertThat(rounds).extracting(GameRound::id).doesNotHaveDuplicates();
+            assertThat(rounds).extracting(GameRound::fairnessCommitment).doesNotHaveDuplicates();
+            assertThat(rounds).allSatisfy(r ->
+                    assertThat(r.crashMultiplier()).isBetween(
+                            r.config().minCrashMultiplier(), r.config().maxCrashMultiplier()));
             f.clock.atMillis(3000);
             List<Callable<GameRound>> cashouts = rounds.stream().<Callable<GameRound>>map(r -> () -> f.service.cashout(r.userId(), r.id())).toList();
             for (var future : pool.invokeAll(cashouts)) assertThat(future.get().status()).isEqualTo(RoundStatus.CASHED_OUT);

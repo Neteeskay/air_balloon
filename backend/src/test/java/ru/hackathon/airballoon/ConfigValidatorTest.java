@@ -19,10 +19,10 @@ class ConfigValidatorTest {
     }
     static Stream<Object[]> invalidValues() {
         return Stream.of(
-            new Object[]{"minCrashMultiplier",0},new Object[]{"minCrashMultiplier",0.9999},
+            new Object[]{"minCrashMultiplier",0},
             new Object[]{"minCrashMultiplier",1.00001},new Object[]{"maxCrashMultiplier",1000001},
             new Object[]{"growthRate",0},new Object[]{"growthRate",10.0001},new Object[]{"growthRate",0.00011},
-            new Object[]{"alpha",0.009},
+            new Object[]{"alpha",-0.001},new Object[]{"alpha",1},
             new Object[]{"pointsPerLevel",-1},new Object[]{"pointsPerLevel",1000001},
             new Object[]{"pointsCashoutBonus",-1},new Object[]{"pointsX2Bonus",-1},
             new Object[]{"pointsX3Bonus",-1},new Object[]{"pointsX4Bonus",-1},
@@ -43,6 +43,8 @@ class ConfigValidatorTest {
         new ConfigValidator(false).validate(config("pointsPerLevel",500));
         new ConfigValidator(false).validate(config("boosterValues",java.util.List.of(1,2,3,4)));
         new ConfigValidator(false).validate(config("minCrashMultiplier",1));
+        new ConfigValidator(false).validate(config("alpha",0));
+        new ConfigValidator(false).validate(config("alpha",0.9999));
         new ConfigValidator(false).validate(config("growthRate",0.0001));
     }
     @Test void snapshotListsAreImmutable() throws Exception {

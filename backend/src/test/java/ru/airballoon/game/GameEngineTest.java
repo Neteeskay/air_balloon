@@ -21,7 +21,7 @@ class GameEngineTest {
 
     @Test void cashoutTimestampIsCurrentEvenWhenRoundedMultiplierHasNotChanged() {
         var base = config("8.42", 3);
-        var slow = new GameConfig(base.minCrashMultiplier(), base.maxCrashMultiplier(), 2, dec("0.0001"),
+        var slow = new GameConfig(base.minCrashMultiplier(), base.maxCrashMultiplier(), 0.03, dec("0.0001"),
                 base.minBet(), base.maxBet(), 150, base.green(), base.red());
         var f = new Fixture(slow); var r = f.at(f.start(1), 2000000);
         f.clock.atMillis(2000010);

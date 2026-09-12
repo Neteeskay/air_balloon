@@ -10,6 +10,7 @@ game:
   config:
     min-crash-multiplier: 8.42
     max-crash-multiplier: 8.42
+    alpha: 0.03
     green:
       booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0]
     red:

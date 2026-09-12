@@ -10,7 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import ru.airballoon.game.infrastructure.config.GameProperties;
 import ru.airballoon.game.infrastructure.memory.FakeBalanceService;
+import ru.airballoon.game.infrastructure.memory.InMemoryGameConfigProvider;
+import ru.airballoon.game.domain.GameConfig;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -22,9 +25,30 @@ class RoundApiIT extends IntegrationSupport {
     @Autowired ObjectMapper mapper;
     @Autowired MutableClock clock;
     @Autowired FakeBalanceService balances;
+    @Autowired InMemoryGameConfigProvider configs;
+    @Autowired GameProperties properties;
     private UUID user;
 
-    @BeforeEach void setup() { user = UUID.randomUUID(); clock.atMillis(0); }
+    @BeforeEach void setup() {
+        user = UUID.randomUUID();
+        clock.atMillis(0);
+        configs.replace(properties.config());
+    }
+
+    @Test void knownServerSeedReturnsAuthoritativePiecewiseCrashThroughHttp() throws Exception {
+        GameConfig base = properties.config();
+        configs.replace(new GameConfig(dec("1"), dec("100"), dec("0.03"), base.growthPerSecond(),
+                base.minBet(), base.maxBet(), base.boosterPointsPerMultiplier(),
+                base.boosterPointsX2(), base.boosterPointsX3(), base.boosterPointsX4(),
+                base.cashoutPoints(), base.economyScale(), base.green(), base.red()));
+
+        String id = start();
+        clock.atMillis(100_000);
+        mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("status").value("FINISHED"))
+                .andExpect(jsonPath("crashMultiplier").value(1.4356));
+    }
 
     @Test void fullHttpScenarioFixesPayoutAndFinishesAfterCrash() throws Exception {
         String id = start();

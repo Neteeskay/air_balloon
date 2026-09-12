@@ -14,7 +14,7 @@ class RandomAndConfigTest {
     private GameConfig randomConfig() {
         var green = new GameConfig.ThemeConfig(base.green().thresholds(), base.green().points(), Collections.nCopies(9, BigDecimal.ONE));
         var red = new GameConfig.ThemeConfig(base.red().thresholds(), base.red().points(), Collections.nCopies(12, BigDecimal.ONE));
-        return new GameConfig(dec("1.01"), dec("30"), 2, base.growthPerSecond(), base.minBet(), base.maxBet(), 150, green, red);
+        return new GameConfig(dec("1"), dec("30"), 0.03, base.growthPerSecond(), base.minBet(), base.maxBet(), 150, green, red);
     }
 
     @Test void sameSeedReproducesCrashAndBoosterForEveryThemeAndBooster() {
@@ -45,7 +45,7 @@ class RandomAndConfigTest {
     @Test void weightsAreNormalizedAndZeroWeightIsNeverSelected() {
         var weights = Collections.nCopies(9, dec("5"));
         var green = new GameConfig.ThemeConfig(base.green().thresholds(), base.green().points(), weights);
-        var weighted = new GameConfig(base.minCrashMultiplier(), base.maxCrashMultiplier(), 2, base.growthPerSecond(),
+        var weighted = new GameConfig(base.minCrashMultiplier(), base.maxCrashMultiplier(), 0.03, base.growthPerSecond(),
                 base.minBet(), base.maxBet(), 150, green, base.red());
         for (long seed = 0; seed < 100; seed++) {
             assertThat(new BoosterGenerator().generate(weighted, Theme.GREEN, 3, seed))
@@ -55,11 +55,11 @@ class RandomAndConfigTest {
     }
 
     @Test void rejectsInvalidDistributionAndCrashBounds() {
-        for (double p : new double[]{0, -1, Double.NaN, Double.POSITIVE_INFINITY, 101})
+        for (double p : new double[]{-1, 1, Double.NaN, Double.POSITIVE_INFINITY})
             error(() -> new GameConfig(dec("1"), dec("30"), p, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(dec("5"), dec("4"), 2, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(null, dec("4"), 2, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(dec("0.99"), dec("4"), 2, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("5"), dec("4"), 0.03, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(null, dec("4"), 0.03, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("0"), dec("4"), 0.03, dec("0.1"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
     }
 
     @Test void rejectsInvalidThemeWeightsThresholdsAndLengths() {
@@ -71,13 +71,13 @@ class RandomAndConfigTest {
         var thresholds = new ArrayList<>(g.thresholds()); thresholds.set(1, thresholds.get(0));
         error(() -> new GameConfig.ThemeConfig(thresholds, g.points(), g.boosterWeights()), GameError.INVALID_GAME_CONFIG);
         error(() -> new GameConfig.ThemeConfig(null, g.points(), g.boosterWeights()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(dec("1"), dec("30"), 2, dec("0.1"), dec("1"), dec("1000"), 150, base.red(), base.green()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("1"), dec("30"), 0.03, dec("0.1"), dec("1"), dec("1000"), 150, base.red(), base.green()), GameError.INVALID_GAME_CONFIG);
     }
 
     @Test void rejectsInvalidGrowthMoneyAndPoints() {
-        error(() -> new GameConfig(dec("1"), dec("30"), 2, dec("0"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(dec("1"), dec("30"), 2, dec("0.1"), dec("1.001"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
-        error(() -> new GameConfig(dec("1"), dec("30"), 2, dec("0.1"), dec("1"), dec("1000"), -1, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("1"), dec("30"), 0.03, dec("0"), dec("1"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("1"), dec("30"), 0.03, dec("0.1"), dec("1.001"), dec("1000"), 150, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
+        error(() -> new GameConfig(dec("1"), dec("30"), 0.03, dec("0.1"), dec("1"), dec("1000"), -1, base.green(), base.red()), GameError.INVALID_GAME_CONFIG);
     }
 
     @Test void configurationDefensivelyCopiesLists() {

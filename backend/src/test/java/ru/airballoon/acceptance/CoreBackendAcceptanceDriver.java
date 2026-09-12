@@ -346,7 +346,7 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
         List<Integer> green = exclusiveWeights(9, 2);
         List<Integer> red = exclusiveWeights(12, 2);
         configs.update(current.version(), copyConfig(current.config(), points, new BigDecimal("30.0000"),
-                new BigDecimal("30.0001"), green, red));
+                new BigDecimal("30.0000"), green, red));
     }
 
     private static List<Integer> exclusiveWeights(int size, int level) {

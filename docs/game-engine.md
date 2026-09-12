@@ -145,15 +145,31 @@ crossingMillis = ceil(1000 × max(0, boundary - factor) / (growthPerSecond × fa
 До публикации ROUND_STARTED сервер определяет:
 
 ```text
-u = SplittableRandom(mixedSeed).nextDouble()  // [0, 1)
-crash = min + (max - min) × StrictMath.pow(u, distributionParameter)
-crash = clamp(floorTo4Decimals(crash), min, max)
+U = SplittableRandom(mixedSeed).nextDouble()  // [0, 1)
+if U < alpha:
+    X = minCrashMultiplier
+else:
+    X = (1 - alpha) / (1 - U)
+X_final = min(X, maxCrashMultiplier)
+crash = floorTo4Decimals(X_final)
 ```
 
-Параметр распределения больше 1 смещает crash к нижней границе. При `min=max`
-результат фиксирован. Формула намеренно простая, без обещания casino-grade RNG,
-RTP или provably fair. `double` используется только для random/distribution,
-не для ставок и выплат.
+`alpha` — house edge, `0 <= alpha < 1`. Вычисление ветки и деление выполняются
+через `BigDecimal` с `DECIMAL128`; после технического max-clamp результат один раз
+округляется вниз до scale 4. Граничное равенство `U == alpha` использует вторую
+ветку. При `min=max` существующий deterministic demo/test range остаётся
+фиксированным. Для обычного переменного диапазона product minimum равен x1;
+validator не допускает `min > 1`, поскольку указанная piecewise-формула иначе
+может вернуть значение ниже min.
+
+Для `1 <= x <= maxCrashMultiplier` до влияния верхнего clamp:
+
+```text
+P(X >= x) = (1 - alpha) / x
+```
+
+При `minCrashMultiplier=1` вероятность немедленного crash на минимуме равна
+`alpha` до влияния дискретной output precision. Seed остаётся серверным.
 
 Crash и бустер используют независимые salted потоки `SplittableRandom`,
 зависящие от seed, темы и выбранного множителя. Повторение этих входов и config
@@ -221,9 +237,9 @@ publisher; потребитель дедуплицирует `(roundId, sequence
 
 | Поле `game.config` | Правило / default |
 | --- | --- |
-| `min-crash-multiplier` | 1.01; >=1, до 4 знаков |
+| `min-crash-multiplier` | 1.00; >0, до 4 знаков; для переменного диапазона <=1 |
 | `max-crash-multiplier` | 30.00; >=min, <=1,000,000 |
-| `distribution-parameter` | 2.0; конечное число [0.01,100] |
+| `alpha` | 0.03; house edge, `0 <= alpha < 1` |
 | `growth-per-second` | 0.10; [0.0001,10], до 4 знаков |
 | `min-bet`, `max-bet` | 1.00 / 1000.00; >0, до 2 знаков; max<=1,000,000,000 |
 | `booster-points-per-multiplier` | 150; целое [0,1,000,000,000] |

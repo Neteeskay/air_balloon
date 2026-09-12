@@ -22,7 +22,7 @@ public class PostgresGameConfigProvider implements GameConfigProvider {
     }
     @Override
     public ConfigSnapshot getVersion(long version) {
-        return jdbc.query("SELECT * FROM game_config_versions WHERE version=?", this::map, version)
+        return jdbc.query("SELECT * FROM game_config_versions WHERE version=?", this::mapHistorical, version)
             .stream().findFirst().orElseThrow(() -> BusinessException.missing("CONFIG_NOT_FOUND"));
     }
     @Transactional
@@ -38,9 +38,13 @@ public class PostgresGameConfigProvider implements GameConfigProvider {
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException(e); }
     }
     private ConfigSnapshot map(ResultSet rs, int row) throws SQLException {
+        ConfigSnapshot snapshot = mapHistorical(rs, row);
+        validator.validate(snapshot.config()); // Only the active config can create new rounds.
+        return snapshot;
+    }
+    private ConfigSnapshot mapHistorical(ResultSet rs, int row) throws SQLException {
         try {
             GameConfig c = json.readValue(rs.getString("config_json"), GameConfig.class);
-            validator.validate(c); // Disallow enabling a persisted demo seed outside the demo environment.
             return new ConfigSnapshot(rs.getLong("version"), rs.getTimestamp("created_at").toInstant(), c);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalStateException(e); }
     }

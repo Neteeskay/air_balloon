@@ -1,5 +1,6 @@
 package ru.airballoon.game.domain;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
@@ -7,32 +8,56 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
 /** Immutable snapshot; changes from a provider only affect new rounds. */
 public record GameConfig(
         BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
-        double distributionParameter, BigDecimal growthPerSecond,
+        @JsonAlias("distributionParameter") BigDecimal alpha, BigDecimal growthPerSecond,
         BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
         Long boosterPointsX2, Long boosterPointsX3, Long boosterPointsX4,
         long cashoutPoints, Integer economyScale,
-        ThemeConfig green, ThemeConfig red) {
+        ThemeConfig green, ThemeConfig red, CrashMathModel crashMathModel) {
+
+    public enum CrashMathModel { HOUSE_EDGE_V1, LEGACY_POWER_SNAPSHOT }
 
     /** Backward-compatible form used by the standalone engine configuration. */
     public GameConfig(BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
-                      double distributionParameter, BigDecimal growthPerSecond,
+                      double alpha, BigDecimal growthPerSecond,
                       BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
                       ThemeConfig green, ThemeConfig red) {
-        this(minCrashMultiplier, maxCrashMultiplier, distributionParameter, growthPerSecond,
-                minBet, maxBet, boosterPointsPerMultiplier, null, null, null, 0, null, green, red);
+        this(minCrashMultiplier, maxCrashMultiplier, decimalAlpha(alpha), growthPerSecond,
+                minBet, maxBet, boosterPointsPerMultiplier, null, null, null, 0, null, green, red,
+                CrashMathModel.HOUSE_EDGE_V1);
+    }
+
+    public GameConfig(BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
+                      BigDecimal alpha, BigDecimal growthPerSecond,
+                      BigDecimal minBet, BigDecimal maxBet, long boosterPointsPerMultiplier,
+                      Long boosterPointsX2, Long boosterPointsX3, Long boosterPointsX4,
+                      long cashoutPoints, Integer economyScale,
+                      ThemeConfig green, ThemeConfig red) {
+        this(minCrashMultiplier, maxCrashMultiplier, alpha, growthPerSecond, minBet, maxBet,
+                boosterPointsPerMultiplier, boosterPointsX2, boosterPointsX3, boosterPointsX4,
+                cashoutPoints, economyScale, green, red, CrashMathModel.HOUSE_EDGE_V1);
     }
 
     @ConstructorBinding
     public GameConfig {
         require(minCrashMultiplier != null && maxCrashMultiplier != null
-                && minCrashMultiplier.compareTo(BigDecimal.ONE) >= 0
+                && minCrashMultiplier.signum() > 0
                 && maxCrashMultiplier.compareTo(minCrashMultiplier) >= 0
                 && maxCrashMultiplier.compareTo(new BigDecimal("1000000")) <= 0,
-                "Crash bounds must satisfy 1 <= min <= max <= 1000000");
+                "Crash bounds must satisfy 0 < min <= max <= 1000000");
         require(minCrashMultiplier.scale() <= 4 && maxCrashMultiplier.scale() <= 4,
                 "Crash precision is at most four decimal places");
-        require(Double.isFinite(distributionParameter) && distributionParameter >= 0.01
-                && distributionParameter <= 100, "Distribution parameter must be in [0.01,100]");
+        crashMathModel = crashMathModel == null
+                ? CrashMathModel.LEGACY_POWER_SNAPSHOT : crashMathModel;
+        require(alpha != null && (crashMathModel == CrashMathModel.LEGACY_POWER_SNAPSHOT
+                        ? alpha.compareTo(new BigDecimal("0.01")) >= 0
+                            && alpha.compareTo(new BigDecimal("100")) <= 0
+                        : alpha.signum() >= 0 && alpha.compareTo(BigDecimal.ONE) < 0),
+                crashMathModel == CrashMathModel.LEGACY_POWER_SNAPSHOT
+                        ? "Legacy distribution parameter must be in [0.01,100]"
+                        : "Alpha must satisfy 0 <= alpha < 1");
+        require(minCrashMultiplier.compareTo(BigDecimal.ONE) <= 0
+                        || minCrashMultiplier.compareTo(maxCrashMultiplier) == 0,
+                "Piecewise crash math requires min <= 1 unless min equals max");
         require(growthPerSecond != null && growthPerSecond.compareTo(new BigDecimal("0.0001")) >= 0
                 && growthPerSecond.compareTo(BigDecimal.TEN) <= 0 && growthPerSecond.scale() <= 4,
                 "Growth per second must be in [0.0001,10], up to four decimals");
@@ -69,6 +94,11 @@ public record GameConfig(
     }
 
     public int effectiveEconomyScale() { return economyScale == null ? 2 : economyScale; }
+
+    private static BigDecimal decimalAlpha(double value) {
+        require(Double.isFinite(value), "Alpha must be finite");
+        return BigDecimal.valueOf(value);
+    }
 
     private static boolean validPoints(Long value) {
         return value != null && value >= 0 && value <= 1000000000;

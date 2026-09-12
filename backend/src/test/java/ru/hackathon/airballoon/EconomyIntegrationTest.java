@@ -52,7 +52,11 @@ class EconomyIntegrationTest {
         // Refuse cleanup against a developer or production database.
         assertThat(jdbc.queryForObject("SELECT current_database()",String.class)).isEqualTo("balloon_test");
         jdbc.execute("TRUNCATE users CASCADE");
-        jdbc.update("UPDATE game_config_active SET version=(SELECT min(version) FROM game_config_versions) WHERE id=1");
+        jdbc.update("""
+                UPDATE game_config_active
+                SET version=(SELECT min(version) FROM game_config_versions WHERE config_json->>'alpha'='0.03')
+                WHERE id=1
+                """);
         bootstrap.run(null);
     }
     GameRound created(UUID user,long bet,int tier) {
