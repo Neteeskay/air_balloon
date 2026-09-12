@@ -36,6 +36,12 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
     {"theme":"RED","levels":12,"active":true}
   ],
   "stakes": {"minimum":1,"maximum":1000,"decimalPlaces":0},
+  "stakeOptions": [
+    {"amount":100,"boosterMultiplier":1,"active":true},
+    {"amount":250,"boosterMultiplier":2,"active":true},
+    {"amount":500,"boosterMultiplier":3,"active":true},
+    {"amount":1000,"boosterMultiplier":4,"active":true}
+  ],
   "boosters": [
     {"multiplier":1,"extraCost":0,"active":true},
     {"multiplier":2,"extraCost":0,"active":true},
@@ -46,7 +52,9 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
 }
 ```
 
-`stakes` описывает полный допустимый диапазон, а не UI suggestions. В текущей
+`stakeOptions` — ровно четыре готовые пары в детерминированном порядке; amounts
+берутся backend-ом как 10%, 25%, 50% и 100% от `maxBet`. Клиент не строит пары
+самостоятельно. `stakes` описывает полный допустимый диапазон для legacy-клиентов. В текущей
 целочисленной PostgreSQL economy `decimalPlaces=0`. Booster не имеет отдельной
 цены, поэтому `extraCost=0`; ставка списывается ровно один раз независимо от
 варианта. Catalog не содержит weights/probabilities, seed, crash point или
@@ -61,7 +69,9 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
 {"theme":"GREEN","betAmount":100,"boosterMultiplier":3}
 ```
 
-Только GREEN/RED, advertised booster и ставка в пределах `catalog.stakes`.
+Только GREEN/RED и одна из четырёх связанных пар `catalog.stakeOptions`.
+Несвязанная комбинация (например amount из option 1 с booster ×4) отклоняется
+`400 INVALID_BET`; баланс дополнительно проверяется сервером.
 Границы ставки являются частью versioned PostgreSQL GameConfig. В PostgreSQL-контуре бонусы целочисленные, поэтому ставка
 с дробной частью отклоняется; winAmount вычисляется движком с округлением вниз
 до целого бонуса. Неизвестные поля запрещены. Ответ — RoundView:
@@ -167,7 +177,8 @@ cursor: 400. Default limit=256 всех событий на round, finished repl
 | GET | /api/current-user/balance | `{bonusBalance,serverTime}` текущего Principal; auth |
 | GET | /api/users/{id}/state | Compatibility: только если `{id}` равен текущему Principal; иначе 403 |
 | GET | /api/current-user/history?page=0&size=20 | PersonalPage только текущего Principal; auth |
-| GET | /api/history?page=0&size=20 | Global history `{items,page,size,total}`; public |
+| GET | /api/history?page=0&size=20 | Global history `{items,page,size,total}`; authenticated, privacy-safe |
+| GET | /api/current-user/active-round | Active owner snapshot or `204 No Content` for reconnect recovery |
 | GET | /api/rounds/{id}/result | Private завершённый result владельца; auth; чужой round → 403 |
 | GET | /api/admin/config | {version, updatedAt, config} |
 | PUT | /api/admin/config | Принимает {expectedVersion, config}, возвращает новый snapshot |

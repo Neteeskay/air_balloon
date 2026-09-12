@@ -5,6 +5,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import ru.airballoon.game.application.GameService;
+import ru.airballoon.game.infrastructure.web.RoundView;
 import ru.airballoon.game.infrastructure.web.CurrentUser;
 import ru.hackathon.airballoon.history.HistoryService;
 import ru.hackathon.airballoon.user.*;
@@ -14,8 +17,9 @@ import ru.hackathon.airballoon.user.*;
 public class PublicController {
     private final HistoryService history;
     private final UserService users;
+    private final GameService games;
     private final Clock clock;
-    public PublicController(HistoryService history,UserService users,Clock clock) { this.history=history;this.users=users;this.clock=clock; }
+    public PublicController(HistoryService history,UserService users,GameService games,Clock clock) { this.history=history;this.users=users;this.games=games;this.clock=clock; }
 
     @GetMapping({"/current-user","/current-user/state"})
     public UserState currentUser(Principal principal) { return users.getState(CurrentUser.id(principal)); }
@@ -26,13 +30,25 @@ public class PublicController {
         return new BalanceView(state.bonusBalance(),clock.instant());
     }
 
+    @GetMapping("/current-user/active-round")
+    public ResponseEntity<RoundView> activeRound(Principal principal) {
+        var round = games.findActiveRound(CurrentUser.id(principal));
+        return round.map(r -> ResponseEntity.ok(RoundView.from(r, clock.instant())))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
     /** Compatibility route: the path id is an assertion, never an identity selector. */
     @GetMapping("/users/{id}/state") public UserState state(Principal principal,@PathVariable UUID id) {
         UUID current=CurrentUser.id(principal);
         if (!current.equals(id)) throw BusinessException.forbidden("NOT_OWNER","Cannot read another user's state");
         return users.getState(current);
     }
-    @GetMapping("/history") public HistoryService.Page history(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
+    @GetMapping("/history") public HistoryService.Page history(Principal principal,
+            @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size) {
+        // Global history contains cross-player activity and therefore still requires
+        // an authenticated player session.  It is intentionally separate from the
+        // owner-scoped personal history endpoint below.
+        CurrentUser.id(principal);
         return history.getHistory(page,size);
     }
     @GetMapping("/current-user/history") public HistoryService.PersonalPage personalHistory(

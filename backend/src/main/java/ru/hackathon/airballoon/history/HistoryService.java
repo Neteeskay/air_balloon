@@ -4,18 +4,25 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import ru.hackathon.airballoon.common.BusinessException;
 import ru.hackathon.airballoon.game.RoundRepository;
 import ru.hackathon.airballoon.profile.PuzzleRewardService;
+import ru.hackathon.airballoon.economy.BalanceService;
 
 @Service
 public class HistoryService {
-    public record Entry(UUID roundId,UUID userId,String username,String theme,long betAmount,int boosterTier,int boosterMultiplier,
+    /** Global history is privacy-safe and never exposes internal user identity. */
+    public record Entry(UUID roundId,String displayName,String theme,long betAmount,int boosterTier,int boosterMultiplier,
                         BigDecimal cashoutMultiplier,BigDecimal crashMultiplier,long winAmount,long roundScore,
-                        String result,Instant finishedAt) {}
+                        String result,Instant finishedAt) {
+        /** Source compatibility for older server-side consumers; not serialized. */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public String username() { return displayName; }
+    }
     public record Page(List<Entry> items,int page,int size,long total) {}
     public record PersonalEntry(UUID roundId,String theme,long betAmount,int boosterMultiplier,
                                 BigDecimal cashoutMultiplier,BigDecimal crashMultiplier,long winAmount,long score,
@@ -25,29 +32,34 @@ public class HistoryService {
                          BigDecimal crashMultiplier,long winAmount,long potentialWinAmount,long score,long configVersion,
                          PlayerCharacterClassifier.PlayerCharacter playerCharacter,
                          PuzzleRewardService.RewardView reward,
-                         Instant completedAt,Instant serverTime) {}
+                         Instant completedAt,Instant serverTime,Long balanceAfter) {}
     private final JdbcTemplate jdbc;
     private final RoundRepository rounds;
     private final PuzzleRewardService puzzleRewards;
     private final Clock clock;
     private final PlayerCharacterClassifier playerCharacters;
+    private final BalanceService balances;
     public HistoryService(JdbcTemplate jdbc,RoundRepository rounds,PuzzleRewardService puzzleRewards,Clock clock,
                            PlayerCharacterClassifier playerCharacters) {
+        this(jdbc, rounds, puzzleRewards, clock, playerCharacters, null);
+    }
+    @Autowired
+    public HistoryService(JdbcTemplate jdbc,RoundRepository rounds,PuzzleRewardService puzzleRewards,Clock clock,
+                           PlayerCharacterClassifier playerCharacters, BalanceService balances) {
         this.jdbc=jdbc;this.rounds=rounds;this.puzzleRewards=puzzleRewards;this.clock=clock;
-        this.playerCharacters=playerCharacters;
+        this.playerCharacters=playerCharacters; this.balances=balances;
     }
     @Transactional(readOnly=true, isolation=Isolation.REPEATABLE_READ)
     public Page getHistory(int page,int size) {
         validatePage(page,size);
         var entries=jdbc.query("""
-            SELECT r.*,u.username,
+            SELECT r.*,u.display_name,
             (cfg.config_json->'boosterValues'->>(r.booster_tier-1))::integer AS booster_value,
             COALESCE((SELECT SUM(points) FROM score_events s WHERE s.round_id=r.id),0) AS round_score
             FROM game_rounds r JOIN users u ON u.id=r.user_id
             JOIN game_config_versions cfg ON cfg.version=r.config_version
             WHERE r.finished_at IS NOT NULL ORDER BY r.finished_at DESC,r.id LIMIT ? OFFSET ?
-            """,(rs,n)->new Entry(rs.getObject("id",UUID.class),rs.getObject("user_id",UUID.class),
-                rs.getString("username"),rs.getString("theme"),
+            """,(rs,n)->new Entry(rs.getObject("id",UUID.class),rs.getString("display_name"),rs.getString("theme"),
                 rs.getLong("bet_amount"),rs.getInt("booster_tier"),rs.getInt("booster_value"),rs.getBigDecimal("cashout_multiplier"),
                 rs.getBigDecimal("crash_multiplier"),rs.getLong("win_amount"),rs.getLong("round_score"),
                 rs.getTimestamp("cashout_at")!=null?"WIN":"LOSS",rs.getTimestamp("finished_at").toInstant()),size,(long)page*size);
@@ -98,7 +110,8 @@ public class HistoryService {
         return new Result(r.id(),r.cashoutAt()!=null?"WIN":"LOSS",r.betAmount(),r.cashoutMultiplier(),
             r.crashMultiplier(),r.winAmount(),potentialWinAmount,r.roundScore(),r.configVersion(),
             playerCharacters.classify(r),
-            puzzleRewards.findByRound(r.id()).orElse(null),r.finishedAt(),clock.instant());
+            puzzleRewards.findByRound(r.id()).orElse(null),r.finishedAt(),clock.instant(),
+            balances == null ? null : balances.getBalance(r.userId()));
     }
 
     private static PuzzleRewardService.RewardView rewardView(java.sql.ResultSet rs) throws java.sql.SQLException {

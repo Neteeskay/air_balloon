@@ -3,6 +3,7 @@ package ru.airballoon.game.domain;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 /** Immutable snapshot; changes from a provider only affect new rounds. */
@@ -94,6 +95,26 @@ public record GameConfig(
     }
 
     public int effectiveEconomyScale() { return economyScale == null ? 2 : economyScale; }
+
+    /** Four product choices are derived once on the server from the authoritative max stake. */
+    public List<BigDecimal> stakeOptions() {
+        int scale = effectiveEconomyScale();
+        BigDecimal[] ratios = { new BigDecimal("0.10"), new BigDecimal("0.25"),
+                new BigDecimal("0.50"), BigDecimal.ONE };
+        return IntStream.range(0, ratios.length)
+                .mapToObj(i -> maxBet.multiply(ratios[i]).setScale(scale, java.math.RoundingMode.DOWN))
+                .toList();
+    }
+
+    public boolean isValidStakeOption(BigDecimal stake, int booster) {
+        if (stake == null || booster < 1 || booster > 4) return false;
+        List<BigDecimal> options = stakeOptions();
+        try {
+            return options.get(booster - 1).compareTo(stake.setScale(effectiveEconomyScale(), java.math.RoundingMode.UNNECESSARY)) == 0;
+        } catch (ArithmeticException ex) {
+            return false;
+        }
+    }
 
     private static BigDecimal decimalAlpha(double value) {
         require(Double.isFinite(value), "Alpha must be finite");

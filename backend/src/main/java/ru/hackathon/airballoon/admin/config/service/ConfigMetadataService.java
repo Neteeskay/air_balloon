@@ -38,11 +38,11 @@ public class ConfigMetadataService {
                                 0.0, 10.0, 0.15, true, true, "crash", "rate", null,
                                 "Faster growth shortens rounds"),
                         param("crash.fps", "FPS", "Engine simulation frames per second", "integer", "fps",
-                                1.0, 600.0, 60.0, true, true, "crash", "engine", List.of(),
-                                "Engine loop frequency; must divide delta"),
+                                60.0, 60.0, 60.0, true, false, "crash", "engine", List.of("60"),
+                                "Fixed by the current runtime; this field is read-only"),
                         param("crash.delta", "Delta", "Seconds per frame (1/fps)", "number", "s",
-                                0.0001, 1.0, 0.0166666667, true, true, "crash", "engine", null,
-                                "Should equal 1/fps to align the simulation with real time"),
+                                0.0166666667, 0.0166666667, 0.0166666667, true, false, "crash", "engine", null,
+                                "Fixed by the current runtime; this field is read-only"),
                         tierParam("1"), tierParam("2"), tierParam("3"), tierParam("4"),
                         themeProbParam("green", "Green", 9), themeProbParam("red", "Red", 12),
                         param("points.pointsPerLine", "Points per line", "Points awarded per cleared line", "integer", "pts",
@@ -60,9 +60,9 @@ public class ConfigMetadataService {
     private static ParameterMetadata tierParam(String n) {
         return param("boosters.multiplierTier" + n + "Value", "Booster tier " + n + " multiplier",
                 "Multiplier value of booster tier " + n, "number", "x",
-                0.1, null, n, true, true, "boosters", "multiplier",
+                0.1, null, n, true, false, "boosters", "multiplier",
                 List.of("1.0", "2.0", "3.0", "4.0"),
-                "Engine booster model; values must stay exactly 1/2/3/4");
+                "Fixed engine booster tier; this field is read-only");
     }
 
     private static ParameterMetadata themeProbParam(String theme, String label, int count) {

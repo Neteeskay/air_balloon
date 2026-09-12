@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,13 +41,19 @@ public class GameCatalogController {
         var boosters=stored.boosterValues().stream()
                 .map(value->new BoosterOption(value,BigDecimal.ZERO.setScale(engine.effectiveEconomyScale()),stored.active()))
                 .toList();
+        var amounts = engine.stakeOptions();
+        var stakeOptions = IntStream.range(0, amounts.size())
+                .mapToObj(i -> new StakeOption(amounts.get(i), i + 1, stored.active()))
+                .toList();
         return new Catalog(snapshot.version(),stored.gameId(),stored.gameName(),stored.active(),themes,
-                new StakeRules(engine.minBet(),engine.maxBet(),engine.effectiveEconomyScale()),boosters,clock.instant());
+                new StakeRules(engine.minBet(),engine.maxBet(),engine.effectiveEconomyScale()),stakeOptions,boosters,clock.instant());
     }
 
     public record Catalog(long configVersion,String gameId,String gameName,boolean active,
-                          List<ThemeOption> themes,StakeRules stakes,List<BoosterOption> boosters,Instant serverTime) {}
+                          List<ThemeOption> themes,StakeRules stakes,List<StakeOption> stakeOptions,
+                          List<BoosterOption> boosters,Instant serverTime) {}
     public record ThemeOption(Theme theme,int levels,boolean active) {}
     public record StakeRules(BigDecimal minimum,BigDecimal maximum,int decimalPlaces) {}
+    public record StakeOption(BigDecimal amount,int boosterMultiplier,boolean active) {}
     public record BoosterOption(int multiplier,BigDecimal extraCost,boolean active) {}
 }

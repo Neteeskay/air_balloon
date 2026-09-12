@@ -19,6 +19,10 @@ public final class InMemoryActiveRoundStateStore implements ActiveRoundStateStor
                 ? old : new Entry(checkpoint, old == null ? null : old.expiresAt));
     }
     public Optional<RoundCheckpoint> load(UUID id) { return Optional.ofNullable(rounds.get(id)).map(Entry::checkpoint); }
+    @Override public Collection<UUID> activeRoundIds() {
+        return rounds.entrySet().stream().filter(e -> e.getValue().expiresAt == null)
+                .map(Map.Entry::getKey).toList();
+    }
     public void markFinished(UUID id, Instant now) {
         rounds.computeIfPresent(id, (ignored, e) -> e.expiresAt == null ? new Entry(e.checkpoint, now.plus(retention)) : e);
     }

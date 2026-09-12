@@ -53,6 +53,13 @@ public final class GameService {
         return start(userId, theme, bet, booster, null);
     }
 
+    /** HTTP product contract validation; the pure engine remains reusable for internal tests/tools. */
+    public void validateCatalogSelection(BigDecimal bet, int booster) {
+        if (!configs.getCurrentConfig().isValidStakeOption(bet, booster))
+            throw new GameException(GameError.INVALID_BET,
+                    "Stake and booster must match one of the four catalog options");
+    }
+
     public GameRound start(UUID userId, Theme theme, BigDecimal bet, int booster, UUID startKey) {
         requireUser(userId);
         if (startKey == null) return startNew(userId, theme, bet, booster, null);
@@ -176,6 +183,19 @@ public final class GameService {
         });
     }
     public int activeRoundCount() { return sessions.size(); }
+
+    /** Locate the authenticated player's currently running round after a client-side id loss. */
+    public Optional<GameRound> findActiveRound(UUID userId) {
+        requireUser(userId);
+        return checkpoints.activeRoundIds().stream()
+                .map(id -> checkpoints.load(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(RoundCheckpoint::round)
+                .filter(r -> userId.equals(r.userId()) && r.status().flying())
+                .sorted(Comparator.comparing(GameRound::startedAt).reversed())
+                .findFirst()
+                .map(r -> get(userId, r.id()));
+    }
     public void cleanup() {
         var now = clock.instant();
         eventStore.cleanup(now); checkpoints.cleanup(now); repository.cleanup(now);

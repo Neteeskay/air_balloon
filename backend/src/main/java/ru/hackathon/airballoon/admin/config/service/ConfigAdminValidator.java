@@ -46,6 +46,13 @@ public class ConfigAdminValidator {
                     "crash.fps", "fps must be > 0", crash.fps(), violations);
             check(() -> Double.isNaN(crash.delta()) || crash.delta() <= 0,
                     "crash.delta", "delta must be > 0", crash.delta(), violations);
+            // The current runtime samples on its deployment tick and does not read
+            // these admin values. Reject changes explicitly instead of silently
+            // persisting a setting that has no effect on a new round.
+            check(() -> Double.isFinite(crash.fps()) && Double.compare(crash.fps(), 60.0) != 0,
+                    "crash.fps", "fps is not runtime-configurable; only 60 is supported", crash.fps(), violations);
+            check(() -> Double.isFinite(crash.delta()) && Math.abs(crash.delta() - (1.0 / 60.0)) > 1e-9,
+                    "crash.delta", "delta is not runtime-configurable; only 1/60 is supported", crash.delta(), violations);
             if (crash.maxMultiplier() > 0 && crash.minCrashMultiplier() > 0
                     && !Double.isNaN(crash.maxMultiplier()) && !Double.isNaN(crash.minCrashMultiplier())
                     && crash.maxMultiplier() <= crash.minCrashMultiplier()) {
@@ -70,8 +77,9 @@ public class ConfigAdminValidator {
                             "tier multiplier must be exactly " + ALLOWED_TIERS + " to match the engine booster model", v));
                 }
             }
-            if (tiers.stream().noneMatch(v -> v == null || Double.isNaN(v)) && tiers.stream().distinct().count() != 4) {
-                violations.add(new FieldViolation("boosters", "tier multipliers must be distinct", tiers));
+            if (tiers.stream().noneMatch(v -> v == null || Double.isNaN(v))
+                    && !tiers.equals(List.of(1.0, 2.0, 3.0, 4.0))) {
+                violations.add(new FieldViolation("boosters", "tier multipliers are fixed at [1, 2, 3, 4]", tiers));
             }
             validateTheme(boosters.green(), GameTheme.GREEN, "boosters.green", violations);
             validateTheme(boosters.red(), GameTheme.RED, "boosters.red", violations);

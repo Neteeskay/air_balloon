@@ -23,7 +23,9 @@ public class RoundController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public RoundView start(Principal principal, @Valid @RequestBody StartRoundRequest request,
                            @RequestHeader(name = "Idempotency-Key", required = false) UUID key) {
-        return RoundView.from(service.start(CurrentUser.id(principal), request.theme(),
+        UUID userId = CurrentUser.id(principal);
+        service.validateCatalogSelection(request.betAmount(), request.boosterMultiplier());
+        return RoundView.from(service.start(userId, request.theme(),
                 request.betAmount(), request.boosterMultiplier(), key), clock.instant());
     }
 
