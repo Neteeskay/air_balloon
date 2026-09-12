@@ -159,7 +159,8 @@ body { min-height: 100svh; overflow: hidden; }
   border: 3px solid rgba(255, 255, 255, .93);
   border-radius: clamp(25px, 2cqw, 38px);
   background: linear-gradient(180deg, rgba(227,246,255,.92) 0%, rgba(255,255,255,.97) 72%);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 60%), 0 0 34px color-mix(in srgb, var(--accent), transparent 45%), 0 20px 42px rgba(16,76,110,.2);
+  /* Keep the resting state neutral; the mode accent is reserved for interaction. */
+  box-shadow: 0 20px 42px rgba(16,76,110,.2);
   animation: cardRise 760ms cubic-bezier(.2,.75,.28,1) both;
 }
 
@@ -177,6 +178,14 @@ body { min-height: 100svh; overflow: hidden; }
 }
 
 .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
+
+@media (hover: hover) and (pointer: fine) {
+  .mode-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 60%), 0 0 34px color-mix(in srgb, var(--accent), transparent 45%), 0 20px 42px rgba(16,76,110,.2);
+  }
+}
+
 .mode-card.is-tutorial-target {
   animation: tutorialTargetCard 1.1s ease-in-out infinite alternate;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent), white 40%), 0 0 48px color-mix(in srgb, var(--accent), transparent 28%), 0 20px 42px rgba(16,76,110,.2);
@@ -292,7 +301,7 @@ body { min-height: 100svh; overflow: hidden; }
 }
 
 .rating-card__trophy { display: grid; place-items: center; width: clamp(62px, 5cqw, 94px); padding: 4px; color: #e69600; }
-.trophy-icon { width: 100%; height: auto; stroke-width: 1.7; fill: #ffc43b; stroke: #c67a00; }
+.rating-card__trophy img { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; }
 .rating-card h2 { margin: 0; font-size: clamp(18px, 1.32cqw, 25px); font-weight: 900; }
 .rating-card p { margin: .22rem 0 0; color: #425d82; font-size: clamp(12px, .8cqw, 16px); font-weight: 600; line-height: 1.25; }
 .rating-card__days { display: flex; align-items: center; gap: .55rem; padding: .65rem 1rem; border-radius: 999px; color: #78541d; background: #ffeab2; font-size: clamp(14px, .95cqw, 18px); font-weight: 900; }

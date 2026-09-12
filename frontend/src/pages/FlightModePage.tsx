@@ -52,10 +52,6 @@ function ClockIcon() {
   return <Icon><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></Icon>
 }
 
-function TrophyIcon() {
-  return <Icon className="trophy-icon"><path d="M8 4h8v4c0 4-1.4 6-4 7-2.6-1-4-3-4-7V4Z" /><path d="M8 6H4c0 3 1.2 5 4.6 5M16 6h4c0 3-1.2 5-4.6 5M12 15v4M8 21h8M9 19h6" /></Icon>
-}
-
 function SignalIcon() {
   return <span className="signal" aria-hidden="true"><i /><i /><i /></span>
 }
@@ -86,7 +82,12 @@ function ModeCard({ mode, title, levels, description, balloon, selected, tutoria
         type="button"
         aria-pressed={selected}
         aria-label={`Выбрать ${title.toLowerCase()}, ${levels} уровней`}
-        onClick={() => onChoose(mode)}
+        onClick={(event) => {
+          // A mode button is not a tutorial step. Keep the onboarding overlay
+          // in control until it has been explicitly completed.
+          event.stopPropagation()
+          onChoose(mode)
+        }}
       >
         Выбрать <ArrowIcon />
       </button>
@@ -110,6 +111,7 @@ export default function FlightModePage({
   const [tutorialVisible, setTutorialVisible] = useState(
     () => readStorage(onboardingKey(currentUser.userId)) !== 'true',
   )
+  const [showChooseGameMessage, setShowChooseGameMessage] = useState(false)
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(1)
   const [selectedMode, setSelectedMode] = useState<FlightMode | null>(() => {
     const mode = readStorage(themeKey(currentUser.userId))
@@ -120,6 +122,7 @@ export default function FlightModePage({
   const completeTutorial = () => {
     writeStorage(onboardingKey(currentUser.userId), 'true')
     setTutorialVisible(false)
+    setShowChooseGameMessage(true)
   }
 
   const advanceTutorial = () => {
@@ -151,6 +154,7 @@ export default function FlightModePage({
 
     writeStorage(themeKey(currentUser.userId), mode)
     setSelectedMode(mode)
+    setShowChooseGameMessage(false)
     onModeSelected(mode)
   }
 
@@ -176,7 +180,9 @@ export default function FlightModePage({
         <h1>Выбери режим полёта</h1>
         <p>{tutorialVisible
           ? 'Шиншилот поможет быстро разобраться.'
-          : 'Красный шар — для любителей риска. Зелёный шар — для спокойного полёта.'}</p>
+          : showChooseGameMessage
+            ? 'Выберите игру'
+            : 'Красный шар — для любителей риска. Зелёный шар — для спокойного полёта.'}</p>
       </header>
 
       <div className="user-panel" aria-label={`Профиль ${currentUser.displayName}`}>
@@ -215,7 +221,9 @@ export default function FlightModePage({
         onClick={tutorialVisible ? undefined : onOpenRating}
         aria-label="Открыть глобальный рейтинг игроков"
       >
-        <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}><TrophyIcon /></span>
+        <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}>
+          <img src="/assets/icons/кубок_старт.png" alt="" draggable="false" />
+        </span>
         <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
         <span className="rating-card__days"><ClockIcon />25 дней</span>
         <ArrowIcon />
