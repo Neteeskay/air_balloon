@@ -179,8 +179,8 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
       <h2 className="admin-card-title">{GROUP_TITLE.crash}</h2>
       <div className="admin-crash-layout">
         <div className="admin-crash-params">
-          <p className="admin-section-label admin-plain">Параметры графика</p>
-          {crashParams.filter(p => ['crash.alpha', 'crash.minCrashMultiplier', 'crash.maxMultiplier'].includes(p.technicalName)).map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}
+          <p className="admin-section-label admin-plain">Параметры модели</p>
+          {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}
           {liveCrash && <div className="admin-chart-chips">
             <span>P(X ≥ 2) ≈ <b>{previewP[0] ? (previewP[0].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 5) ≈ <b>{previewP[1] ? (previewP[1].p * 100).toFixed(2) : '—'}%</b></span>
@@ -190,13 +190,12 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
         <div className="admin-chart-block">
           {liveCrash && <>
             <div className="admin-chart-head">
-              <h3 className="admin-section-label admin-plain">Вероятность выживания P(X ≥ x), α = <b>{liveCrash.alpha}</b></h3>
+              <h3 className="admin-section-label admin-plain">Вероятность, что множитель будет не ниже x<small>P(X ≥ x) = (1 − α) / x</small></h3>
             </div>
             <LineChart height={250} series={[{ name: 'Теория', color: '#246b50', points: modelCurve }]} />
           </>}
         </div>
       </div>
-      <div className="admin-form-grid admin-mt-14">{crashParams.filter(p => !['crash.alpha', 'crash.minCrashMultiplier', 'crash.maxMultiplier'].includes(p.technicalName)).map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
     </section>
     <section className="admin-card admin-mb-14">
       <h2 className="admin-card-title">{GROUP_TITLE.boosters}</h2>

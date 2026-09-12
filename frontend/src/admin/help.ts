@@ -12,7 +12,7 @@ export interface ParamHelp {
 export const CRASH_PARAM_HELP: Record<string, ParamHelp> = {
   'crash.alpha': {
     formula: 'if U < α: X = minCrashMultiplier; else X = (1 − α) / (1 − U); P(X ≥ x) = (1 − α) / x',
-    example: 'α = 0.85 → вероятность мгновенного краха (X = 1) ≈ 85%; P(X ≥ 2) = (1 − 0.85) / 2 ≈ 7.5%; P(X ≥ 10) ≈ 1.5%. Для ставки B ожидаемая выплата = B × (1 − α).',
+    example: 'α = 0.85 → в 85% игр шар лопается сразу (X = 1); P(X ≥ 2) = (1 − 0.85) / 2 ≈ 7.5%; P(X ≥ 10) ≈ 1.5%. Для ставки B ожидаемая выплата = B × (1 − α) — это и есть преимущество игры.',
   },
   'crash.minCrashMultiplier': {
     formula: 'X = minCrashMultiplier при событии U < α',

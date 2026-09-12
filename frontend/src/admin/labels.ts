@@ -5,7 +5,7 @@ export const RU_LABELS: Record<string, string> = {
   'gameId': 'Идентификатор игры',
   'gameName': 'Название игры',
   'isActive': 'Игра принимает раунды',
-  'crash.alpha': 'Шанс «мгновенного краха» (α)',
+  'crash.alpha': 'Преимущество игры (α)',
   'crash.minCrashMultiplier': 'Мин. множитель при крахе',
   'crash.maxMultiplier': 'Максимальный множитель',
   'crash.multiplierGrowthRate': 'Скорость роста множителя',
@@ -25,7 +25,7 @@ export const RU_DESCRIPTION: Record<string, string> = {
   'gameId': 'Служебный код игры, менять его нельзя.',
   'gameName': 'Отображаемое название игры.',
   'isActive': 'Пока игра выключена, новые раунды не принимаются.',
-  'crash.alpha': 'Чем выше это число, тем чаще шар лопается сразу — и тем реже крупные выигрыши.',
+  'crash.alpha': 'Преимущество игры: чем оно выше, тем чаще шар лопается сразу и тем ниже выплаты игрокам.',
   'crash.minCrashMultiplier': 'Гарантированный минимум множителя, с которым лопается шар.',
   'crash.maxMultiplier': 'Потолок множителя: больше этого значения выигрыш не растёт.',
   'crash.multiplierGrowthRate': 'На сколько множитель растёт за каждую секунду полёта.',
@@ -42,7 +42,7 @@ export const RU_DESCRIPTION: Record<string, string> = {
 
 /** Русские пояснения «как параметр влияет на игру». */
 export const RU_EFFECT: Record<string, string> = {
-  'crash.alpha': 'Меньше альфа — выигрыши чаще, но до крупных множителей лететь дольше.',
+  'crash.alpha': 'Меньше преимущество — игроки чаще выигрывают.',
   'crash.maxMultiplier': 'Слишком низкий потолок режет самые редкие и крупные выигрыши.',
   'crash.multiplierGrowthRate': 'Выше скорость — раунды короче и динамичнее.',
   'points.pointsPerLine': 'Влияет на скорость накопления очков игроком.',

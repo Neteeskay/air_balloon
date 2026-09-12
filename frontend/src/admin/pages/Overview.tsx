@@ -36,7 +36,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
             <small>{current.isActive ? 'новые раунды принимаются' : 'новые раунды не принимаются'}</small>
           </div>
           <div className="admin-kpis">
-            <div className="admin-kpi"><span>Шанс краха (α)</span><strong>{number(current.crash.alpha)}</strong><small>вероятность «лопнуть» сразу</small></div>
+            <div className="admin-kpi"><span>Преимущество игры (α)</span><strong>{number(current.crash.alpha)}</strong><small>чем выше, тем реже крупные выигрыши</small></div>
             <div className="admin-kpi"><span>Максимальный множитель</span><strong>×{number(current.crash.maxMultiplier)}</strong><small>потолок выигрыша</small></div>
             <div className="admin-kpi"><span>Скорость роста</span><strong>+{number(current.crash.multiplierGrowthRate)}/сек</strong><small>рост множителя за секунду</small></div>
             <div className="admin-kpi"><span>Очки за линию</span><strong>{number(current.points.pointsPerLine)}</strong><small>базовая награда игрока</small></div>
@@ -52,7 +52,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
           <ul className="admin-about">
             <li><b>Шар летит вверх</b> — множитель растёт. Пока он летит, игрок может вывести выигрыш.</li>
             <li><b>Крах.</b> Если не вывел вовремя — шар лопается, выигрыш сгорает.</li>
-            <li><b>α (альфа)</b> — шанс краха сразу. Чем выше, тем реже крупные выигрыши.</li>
+            <li><b>Преимущество игры (α)</b> — «запас» в пользу игры. Чем оно выше, тем реже крупные выигрыши.</li>
             <li><b>Бустеры ×2 / ×3 / ×4</b> ускоряют шар на своих линиях.</li>
             <li><b>Очки</b> даются за пройденные линии, вывод выигрыша и бустеры.</li>
           </ul>

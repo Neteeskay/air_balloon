@@ -124,13 +124,13 @@ export function Simulation({ client }: { client: AdminClient }) {
       <section className="admin-card">
         <div className="admin-card-head"><h2 className="admin-card-title">Модель</h2><span className="admin-pill">ревизия #{config.revision}</span></div>
         <div className="admin-fields admin-fields-3">
-          <div className="admin-field-row"><dt>Шанс краха (α)</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
+          <div className="admin-field-row"><dt>Преимущество игры (α)</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
           <div className="admin-field-row"><dt>Мин. множитель</dt><dd>{effectiveParams?.minCrashMultiplier ?? config.crash.minCrashMultiplier}</dd></div>
           <div className="admin-field-row"><dt>Макс. множитель</dt><dd>×{effectiveParams?.maxMultiplier ?? config.crash.maxMultiplier}</dd></div>
         </div>
         <h3 className="admin-section-label">Попробовать другой вариант модели<small>без сохранения — поля можно оставить пустыми</small></h3>
         <div className="admin-sim-form admin-sim-form-3">
-          <label className="admin-form-label"><span>Шанс краха (α)</span>
+          <label className="admin-form-label"><span>Преимущество игры (α)</span>
             <input type="number" min={0} max={1} step="0.01" value={overrideAlpha} onChange={e => setOverrideAlpha(e.target.value)} placeholder={String(config.crash.alpha)} />
           </label>
           <label className="admin-form-label"><span>Мин. множитель</span>
@@ -151,9 +151,9 @@ export function Simulation({ client }: { client: AdminClient }) {
           <small>выплаты − ставки ({result.netResult > 0 ? 'игрок в плюсе' : result.netResult < 0 ? 'игрок в минусе' : 'в ноль'})</small>
         </div>
         <div className="admin-kpi">
-          <span>Средний результат за игру</span>
-          <strong>{result.averageNet > 0 ? '+' : ''}{number(result.averageNet)} {MONEY}</strong>
-          <small>итог, поделённый на число игр</small>
+          <span>Потрачено на ставки</span>
+          <strong>{number(result.totalStakes)} {MONEY}</strong>
+          <small>сумма всех ставок за {result.games.toLocaleString('ru-RU')} игр</small>
         </div>
         <div className="admin-kpi">
           <span>Выигрышных игр</span>
