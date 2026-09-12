@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LineChart } from '../chart'
 import { AdminClient, AdminApiError } from '../client'
+import { HelpPopover } from '../components'
+import { CRASH_PARAM_HELP } from '../help'
+import { survival, theoreticalCurve } from '../math'
 import { assemble, EditorModel, flatten, formParameters, themeSum } from '../model'
 import type { ConfigMetadata, FieldViolation, GameConfiguration, GameConfigurationWrite, ParameterMetadata, ValidationResult } from '../types'
 import { formatValue } from '../format'
@@ -10,6 +14,13 @@ const equalModel = (a: EditorModel, b: EditorModel) => {
   const keys = Object.keys(a)
   if (keys.length !== Object.keys(b).length) return false
   return keys.every(key => a[key] === b[key])
+}
+
+const toNumber = (model: EditorModel, name: string, fallback: number) => {
+  const raw = model[name]
+  if (raw === '' || raw === undefined) return fallback
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 export function ConfigEditor({ client, metadata }: { client: AdminClient; metadata: ConfigMetadata }) {
@@ -23,6 +34,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
   const [warnings, setWarnings] = useState<string[]>([])
   const [conflictVersion, setConflictVersion] = useState<number | null>(null)
   const [loadError, setLoadError] = useState('')
+  const [boosterTheme, setBoosterTheme] = useState<'green' | 'red'>('green')
   const reload = useCallback(() => {
     client.getCurrent()
       .then(config => {
@@ -104,6 +116,18 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
   }, [current, metadata])
   const greenSum = useMemo(() => themeSum(model, metadata, 'green'), [model, metadata])
   const redSum = useMemo(() => themeSum(model, metadata, 'red'), [model, metadata])
+  // Live math-model preview that tracks the editor as alpha/mins change.
+  const liveCrash = useMemo(() => {
+    if (!current) return null
+    return {
+      alpha: toNumber(model, 'crash.alpha', current.crash.alpha),
+      minCrashMultiplier: toNumber(model, 'crash.minCrashMultiplier', current.crash.minCrashMultiplier),
+      maxMultiplier: toNumber(model, 'crash.maxMultiplier', current.crash.maxMultiplier),
+    }
+  }, [current, model])
+  const modelCurve = useMemo(() => liveCrash ? theoreticalCurve(liveCrash) : [], [liveCrash])
+  const previewP = liveCrash ? [2, 5, 10].map(x => ({ x, p: survival(x, liveCrash.alpha) })) : []
+  const themeLevelCount = (theme: 'green' | 'red') => theme === 'green' ? metadata.greenLevelCount : metadata.redLevelCount
   if (loadError) return <div className="admin-error">{loadError} <button className="admin-link-button" onClick={() => void reload()}>Повторить</button></div>
   if (!current) return <div className="admin-loading">Загружаем конфигурацию…</div>
   return <div>
@@ -130,18 +154,61 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     {grouped.map(({ group, params }) => <section key={group} className="admin-card admin-mb-16">
       <h2 className="admin-card-title">{group === 'general' ? 'Общие' : group === 'crash' ? 'Краш-модель' : group === 'boosters' ? 'Бустеры' : 'Очки'}</h2>
       {group === 'general' && <div className="admin-read-only">
-        <div className="admin-fields admin-fields-2">{params.map(p => <div key={p.technicalName} className="admin-field-row">
+        <div className="admin-fields admin-fields-2">{params.filter(p => p.dataType !== 'boolean').map(p => <div key={p.technicalName} className="admin-field-row">
           <dt>{p.displayName}</dt>
           <dd>{formatValue(p, model[p.technicalName])}{p.description && <small>{p.description}</small>}</dd>
-        </div>)}</div></div>}
-      {group === 'crash' && <div className="admin-form-grid">{params.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>}
+        </div>)}</div>
+        {params.filter(p => p.dataType === 'boolean').map(p => <div key={p.technicalName} className="admin-form-grid admin-mb-16">
+          <label className="admin-form-label"><span className="admin-field-head">
+            <span>{p.displayName}</span><FieldHelp param={p} value={model[p.technicalName] ?? String(current.isActive)} />
+          </span>
+            <select value={model[p.technicalName] ?? String(current.isActive)} onChange={e => setField(p.technicalName, e.target.value)}>
+              <option value="true">Включена — новые раунды принимаются</option>
+              <option value="false">Выключена — новые раунды отклоняются</option>
+            </select>
+            <small className="admin-hint">{p.description ? `${p.description}. ` : ''}{p.effectOnGame}</small>
+          </label>
+        </div>)}
+      </div>}
+      {group === 'crash' && <>
+        <div className="admin-chart-block admin-mb-20">
+          {liveCrash && <>
+            <div className="admin-chart-head"><h3 className="admin-section-label admin-plain">График математической модели</h3>
+              <span className="admin-chart-note">P(X ≥ x) = (1 − α) / x · перестраивается при изменении α</span></div>
+            <LineChart height={260} series={[{
+              name: `P(X ≥ x), α = ${liveCrash.alpha}`,
+              color: '#246b50',
+              points: modelCurve,
+            }]} />
+            <div className="admin-chart-preview">
+              <span>α = <b>{liveCrash.alpha}</b></span>
+              {previewP.map(({ x, p }) => <span key={x}>P(X ≥ {x}) = <b>{(p * 100).toFixed(2)}%</b></span>)}
+              <span>min = <b>{liveCrash.minCrashMultiplier}</b></span>
+              <span>max = <b>{liveCrash.maxMultiplier}</b></span>
+            </div>
+          </>}
+        </div>
+        <div className="admin-form-grid">{params.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
+      </>}
       {group === 'boosters' && <>
         <h3 className="admin-section-label">Значения бустеров</h3>
         <div className="admin-form-grid admin-mb-20">{params.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
-        <h3 className="admin-section-label">Вероятности · Зелёный<small>сумма: {greenSum.toFixed(2)}%{Math.abs(greenSum - 100) > 0.01 ? ' (ожидается 100%)' : ''}</small></h3>
-        <div className="admin-form-grid admin-mb-20">{params.filter(p => /green\.line\d+LootProb/.test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
-        <h3 className="admin-section-label">Вероятности · Красный<small>сумма: {redSum.toFixed(2)}%{Math.abs(redSum - 100) > 0.01 ? ' (ожидается 100%)' : ''}</small></h3>
-        <div className="admin-form-grid admin-mb-20">{params.filter(p => /red\.line\d+LootProb/.test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
+        <div className="admin-theme-tabs" role="tablist" aria-label="Тема бустеров">
+          {(['green', 'red'] as const).map(theme => {
+            const sum = theme === 'green' ? greenSum : redSum
+            const ok = Math.abs(sum - 100) <= 0.01
+            return <button key={theme} type="button" role="tab" aria-selected={boosterTheme === theme}
+              className={`admin-theme-tab admin-theme-${theme} ${boosterTheme === theme ? 'active' : ''}`}
+              onClick={() => setBoosterTheme(theme)} data-testid={`theme-tab-${theme}`}>
+              <span className="admin-theme-dot" aria-hidden="true" />
+              <strong>{theme === 'green' ? 'Green' : 'Red'} · {themeLevelCount(theme)} линий</strong>
+              <small>сумма: {sum.toFixed(2)}%{!ok ? ' (ожидается 100%)' : ''}</small>
+            </button>
+          })}
+        </div>
+        <h3 className="admin-section-label">{boosterTheme === 'green' ? 'Вероятности · Зелёный' : 'Вероятности · Красный'}
+          <small>другая тема: {boosterTheme === 'green' ? `Red, сумма ${redSum.toFixed(2)}%` : `Green, сумма ${greenSum.toFixed(2)}%`}</small></h3>
+        <div className="admin-form-grid admin-mb-20">{params.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
       </>}
       {group === 'points' && <div className="admin-form-grid">{params.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>}
     </section>)}
@@ -153,9 +220,30 @@ function NumberField({ param, model, onChange, disabled }: { param: ParameterMet
   const inputId = `admin-field-${param.technicalName.replace(/\./g, '-')}`
   const descId = param.description || param.effectOnGame ? `desc-${inputId}` : undefined
   return <label className="admin-form-label" htmlFor={inputId}>
-    <span>{param.displayName}{param.unit ? ` (${param.unit})` : ''}</span>
+    <span className="admin-field-head">
+      <span>{param.displayName}{param.unit ? ` (${param.unit})` : ''}</span>
+      <FieldHelp param={param} value={model[param.technicalName]} />
+    </span>
     <input id={inputId} type="number" step={step} min={param.min ?? undefined} max={param.max ?? undefined} value={model[param.technicalName] ?? ''} onChange={e => onChange(param.technicalName, e.target.value)} disabled={disabled} aria-describedby={descId} />
     {param.allowedValues && <small className="admin-hint">Допустимые: {param.allowedValues.join(', ')}</small>}
     {(param.description || param.effectOnGame) && <small id={descId} className="admin-hint">{param.description ? `${param.description}. ` : ''}{param.effectOnGame}</small>}
   </label>
+}
+
+/** Tooltip content for one parameter: purpose, current value, range, impact and math formulas. */
+function FieldHelp({ param, value }: { param: ParameterMetadata; value: string | undefined }) {
+  const help = CRASH_PARAM_HELP[param.technicalName]
+  const rangeText = param.dataType === 'number' || param.dataType === 'integer'
+    ? `${param.min ?? '—'}…${param.max ?? '—'}${param.unit ? ` ${param.unit}` : ''}`
+    : null
+  return <HelpPopover label={`Подробнее: ${param.displayName}`} content={<>
+    <div className="admin-help-title">{param.displayName}</div>
+    {param.description && <p className="admin-help-line">Назначение: {param.description}</p>}
+    <p className="admin-help-line">Текущее значение: <b>{value === undefined || value === '' ? '—' : value}{param.unit ? ` ${param.unit}` : ''}</b></p>
+    {rangeText && <p className="admin-help-line">Допустимый диапазон: {rangeText}</p>}
+    {param.allowedValues && <p className="admin-help-line">Допустимые: {param.allowedValues.join(', ')}</p>}
+    {param.effectOnGame && <p className="admin-help-line">Влияние на игру: {param.effectOnGame}</p>}
+    {help && <><p className="admin-help-line">Формула: <code>{help.formula}</code></p>
+      <p className="admin-help-line">Пример: {help.example}</p></>}
+  </>} />
 }

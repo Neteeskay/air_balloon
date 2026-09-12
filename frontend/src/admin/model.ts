@@ -108,7 +108,7 @@ export function assemble(model: EditorModel, base: GameConfiguration, revision: 
     gameId: model.gameId?.trim() || base.gameId,
     gameName: model.gameName?.trim() || base.gameName,
     gameType: 'CRASH',
-    isActive: base.isActive,
+    isActive: model.isActive === undefined || model.isActive === '' ? base.isActive : model.isActive === 'true',
     revision,
     crash,
     boosters,

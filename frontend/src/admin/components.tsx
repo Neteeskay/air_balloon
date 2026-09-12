@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { statusLabel } from './format'
 
@@ -22,5 +23,28 @@ export function FieldRow({ label, value, hint }: { label: string; value: unknown
       <dt>{label}</dt>
       <dd>{value === null || value === undefined || value === '' ? '—' : String(value)}{hint && <small>{hint}</small>}</dd>
     </div>
+  )
+}
+
+/** Click-to-toggle popover used to show rich help content for a field. */
+export function HelpPopover({ content, label = 'Подробнее о параметре' }: { content: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [open])
+  return (
+    <span className="admin-help" ref={rootRef} data-open={open || undefined}>
+      <button type="button" className="admin-help-btn" aria-label={label} aria-expanded={open}
+        onClick={() => setOpen(o => !o)}>?</button>
+      {open && <span className="admin-help-panel" role="tooltip">{content}</span>}
+    </span>
   )
 }

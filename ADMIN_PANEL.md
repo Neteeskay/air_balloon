@@ -2,6 +2,41 @@
 
 > Интегрированная база: `integration/backend-admin-base`
 > Источник Admin-реализации: `integration/admin-panel` (`b8b76333c7131c42d270a39455bd90f6153aa696`)
+> Ветка улучшений: `integration/backend-admin-improvements`
+
+---
+
+## Улучшения (`integration/backend-admin-improvements`)
+
+### Crash-математика и симуляция (frontend)
+
+Новый модуль `frontend/src/admin/`:
+
+| Файл | Назначение |
+|------|-----------|
+| `math.ts` | Crash-модель: `crashPoint` (U~Uniform[0,1), U<α→min, иначе (1-α)/(1-U), cap max), `survival`, `theoreticalCurve`, `empiricalCurve`, `simulateGames`, `generateCrashPoints`, mulberry32 PRNG + `seedFromString` |
+| `help.ts` | Статические формулы/примеры для параметров crash-модели (`CRASH_PARAM_HELP`) |
+| `chart.tsx` | SVG `LineChart` (логарифмическая/линейная ось X, сетка, легенда) |
+| `pages/Simulation.tsx` | Симуляция N раундов: ввод количества/ставки/сида, переопределение параметров, таблица финансового результата (выигрыш/проигрыш/итог), вердикт, график эмпирической vs теоретической кривой выживаемости |
+
+Доработан `pages/ConfigEditor.tsx`:
+- **Переключатель тем GREEN/RED** — обе темы редактируются на одной форме
+- **Live-график** математической модели — `P(X ≥ x)` из теоретической кривой пересчитывается при изменении `alpha`
+- **Параметры в группе `crash`** получили подсказку `FieldHelp` (назначение, текущее значение, диапазон, влияние на игру)
+
+### Редактируемый `isActive`
+
+- `ConfigMetadataService`: общая группа пополнена параметром `isActive` (boolean, mutable, toggle, `GAME_INACTIVE` при выключении)
+- `ConfigEditor.tsx`: булевы параметры группы `general` рендерятся как `<select>`, `model.ts` корректно разбирает `isActive` из модели (пустое значение → базовое)
+
+### Проверки улучшений
+
+| Жизненный цикл | Статус |
+|----------------|--------|
+| Frontend tests | 64/64 PASS (`npm test`) |
+| Typecheck / Lint | 0 ошибок (`--max-warnings 0`) |
+| Docker build (backend + frontend) | Успех |
+| E2E через Docker (demo-профиль) | Логин → metadata (18 параметров, `isActive` boolean) → validate → draft (rev=active+1) → activate → current `isActive=false` → возврат к `isActive=true` — PASS |
 
 ---
 
@@ -141,7 +176,7 @@ authoritative backend уже использует V306 для Puzzle/Profile):
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/api/admin/config/current` | Текущая активная конфигурация (ETag по ревизии) |
-| GET | `/api/admin/config/metadata` | Метаданные полей формы (17 параметров, groups, types) |
+| GET | `/api/admin/config/metadata` | Метаданные полей формы (18 параметров, groups, types) |
 | POST | `/api/admin/config/validate` | Валидация без сохранения |
 | POST | `/api/admin/config` | Создание черновика (revision = active+1 → 201, иначе 409) |
 | POST | `/api/admin/config/{id}/activate` | Активация черновика → 200 ACTIVE |
@@ -178,7 +213,7 @@ authoritative backend уже использует V306 для Puzzle/Profile):
 |---------------|-----|
 | Typecheck (TypeScript strict) | `npm run typecheck` — 0 ошибок |
 | Lint (ESLint + react-hooks v7) | `npm run lint --max-warnings 0` — 0 ошибок |
-| Unit-тесты (Vitest) | `npm test` — 50/50 PASS (41 существующий + 9 admin) |
+| Unit-тесты (Vitest) | `npm test` — 64/64 PASS (46 существующих + 18 admin) |
 | Backend unit/integration/acceptance | `mvn verify -Pacceptance` — 423/423 PASS (338 + 85) |
 | Flyway | Fresh V1→V307, upgrade V306→V307 и `validate` — PASS |
 | Docker build | `docker compose build backend frontend` — успех |

@@ -5,9 +5,10 @@ import { Audit } from './pages/Audit'
 import { ConfigEditor } from './pages/ConfigEditor'
 import { Login } from './pages/Login'
 import { Overview } from './pages/Overview'
+import { Simulation } from './pages/Simulation'
 import { Versions } from './pages/Versions'
 
-export type AdminPage = 'overview' | 'config' | 'versions' | 'audit'
+export type AdminPage = 'overview' | 'config' | 'versions' | 'audit' | 'simulation'
 
 export default function AdminApp({ client = adminClient }: { client?: AdminClient }) {
   const [session, setSession] = useState(() => adminSession())
@@ -31,6 +32,7 @@ export default function AdminApp({ client = adminClient }: { client?: AdminClien
       <nav aria-label="Админ-навигация">
         <button aria-current={page === 'overview' ? 'page' : undefined} onClick={() => setPage('overview')}>Обзор</button>
         <button aria-current={page === 'config' ? 'page' : undefined} onClick={() => setPage('config')}>Конфигурация</button>
+        <button aria-current={page === 'simulation' ? 'page' : undefined} onClick={() => setPage('simulation')}>Симуляция</button>
         <button aria-current={page === 'versions' ? 'page' : undefined} onClick={() => setPage('versions')}>Версии</button>
         <button aria-current={page === 'audit' ? 'page' : undefined} onClick={() => setPage('audit')}>Аудит</button>
       </nav>
@@ -43,6 +45,7 @@ export default function AdminApp({ client = adminClient }: { client?: AdminClien
       {apiError && <div role="alert" className="admin-error admin-mb-16">{apiError} <button className="admin-link-button" onClick={() => setApiError('')}>Закрыть</button></div>}
       {page === 'overview' && <Overview client={client} onNavigate={setPage} />}
       {page === 'config' && metadata && <ConfigEditor client={client} metadata={metadata} />}
+      {page === 'simulation' && <Simulation client={client} />}
       {page === 'versions' && <Versions client={client} metadata={metadata} />}
       {page === 'audit' && <Audit client={client} />}
       {page === 'config' && !metadata && !apiError && <div className="admin-loading">Загружаем метаданные…</div>}
