@@ -121,6 +121,26 @@ section {
   max-width: 300px;
 }
 
+/* Gentle in-place drift for clouds (wrapper; CSS-only, does not
+   conflict with GSAP transforms applied to the <img> inside) */
+.cloud-idle {
+  display: block;
+  position: absolute;
+  width: 100%;
+  transform-origin: center;
+  will-change: transform;
+  animation: cloud-float 9s ease-in-out infinite alternate;
+}
+
+@keyframes cloud-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
 /* ========================================
    Landing Page — single continuous scene
    ======================================== */
@@ -428,13 +448,13 @@ section {
   }
 
   /* Hide some far clouds on mobile for perf */
-  .cloud-layer--far .cloud:nth-child(n + 6) {
+  .cloud-layer--far .cloud-idle:nth-child(n + 6) {
     display: none;
   }
 
   /* Прореживаем нижние intro-облака — верхние облака
      «первого экрана» остаются видимыми */
-  .cloud-layer--near .cloud:nth-child(n + 12) {
+  .cloud-layer--near .cloud-idle:nth-child(n + 12) {
     display: none;
   }
 
@@ -463,16 +483,16 @@ section {
   }
 
   /* Minimal clouds on very small screens */
-  .cloud-layer--far .cloud:nth-child(n + 4) {
+  .cloud-layer--far .cloud-idle:nth-child(n + 4) {
     display: none;
   }
 
-  .cloud-layer--middle .cloud:nth-child(n + 5) {
+  .cloud-layer--middle .cloud-idle:nth-child(n + 5) {
     display: none;
   }
 
   /* Оставляем только заметные intro-облака и 2 шара на слой */
-  .cloud-layer--near .cloud:nth-child(n + 9) {
+  .cloud-layer--near .cloud-idle:nth-child(n + 9) {
     display: none;
   }
 
@@ -536,4 +556,72 @@ section {
 .button:focus-visible {
   outline: 3px solid var(--accent-blue);
   outline-offset: 3px;
+}
+
+/* ========================================
+   ВРЕМЕННО: фиксация скролла на 3 экранах для тестирования.
+   Сцена .landing-page имеет высоту 300vh — это 3 последовательных
+   экрана по 100vh. Scroll-snap на корневом скроллере «прилипает»
+   к границам экранов (0 / 100vh / 200vh), поэтому скролл останавливается
+   только на целых экранах. Существующие scrub-анимации GSAP продолжают
+   работать как раньше — они следуют за реальным положением скролла.
+   ======================================== */
+
+html,
+body {
+  scroll-snap-type: y mandatory;
+}
+
+/* Якорь scroll-snap на границе каждого экрана (1px, невидим) */
+.screen-snap-marker {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  scroll-snap-align: start;
+}
+
+.screen-snap-marker--1 {
+  top: 0;
+}
+
+.screen-snap-marker--2 {
+  top: 100vh;
+}
+
+.screen-snap-marker--3 {
+  top: 200vh;
+}
+
+/* Подпись в верхней части каждого экрана */
+.screen-label {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  pointer-events: none;
+  user-select: none;
+  padding: 0.55rem 1.6rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-light);
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.screen-label--1 {
+  top: 6vh;
+}
+
+.screen-label--2 {
+  top: 106vh;
+}
+
+.screen-label--3 {
+  top: 206vh;
 }

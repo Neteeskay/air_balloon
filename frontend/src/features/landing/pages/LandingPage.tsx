@@ -139,23 +139,31 @@ function CloudImages({
       data-depth={depth}
     >
       {clouds.map((c) => (
-        <img
+        <span
           key={c.id}
-          src={SPRITES.clouds[c.cloudNum]}
-          alt=""
-          className={`cloud cloud--${c.cloudNum}`}
-          data-cloud={c.id}
+          className="cloud-idle"
           style={{
             position: 'absolute',
             left: `${c.x}%`,
             top: `${c.y}%`,
-            transform: `scale(${c.scale})`,
-            filter: cfg.blur > 0 ? `blur(${cfg.blur}px)` : 'none',
-            opacity: cfg.opacity,
-            willChange: 'transform, opacity',
+            // Рассинхронизация «дыхания» облаков
+            animationDelay: `${-(c.cloudNum * 0.7)}s`,
           }}
-          loading="lazy"
-        />
+        >
+          <img
+            src={SPRITES.clouds[c.cloudNum]}
+            alt=""
+            className={`cloud cloud--${c.cloudNum}`}
+            data-cloud={c.id}
+            style={{
+              transform: `scale(${c.scale})`,
+              filter: cfg.blur > 0 ? `blur(${cfg.blur}px)` : 'none',
+              opacity: cfg.opacity,
+              willChange: 'transform',
+            }}
+            loading="lazy"
+          />
+        </span>
       ))}
     </div>
   );
@@ -375,6 +383,19 @@ export function LandingPage() {
           <p>© 2026 Воздушный Шар. Все права защищены.</p>
         </footer>
       </div>
+
+      {/* ВРЕМЕННО: фиксация скролла на 3 экранах для тестирования.
+          Невидимые метки на границах экранов (0 / 100vh / 200vh сцены
+          высотой 300vh) — они служат якорями scroll-snap.
+          Не влияют на существующие анимации и рендер. */}
+      <span className="screen-snap-marker screen-snap-marker--1" aria-hidden="true" />
+      <span className="screen-snap-marker screen-snap-marker--2" aria-hidden="true" />
+      <span className="screen-snap-marker screen-snap-marker--3" aria-hidden="true" />
+
+      {/* ВРЕМЕННО: подписи экранов — визуальные границы и порядок */}
+      <span className="screen-label screen-label--1" aria-hidden="true">Экран 1</span>
+      <span className="screen-label screen-label--2" aria-hidden="true">Экран 2</span>
+      <span className="screen-label screen-label--3" aria-hidden="true">Экран 3</span>
     </div>
   );
 }
