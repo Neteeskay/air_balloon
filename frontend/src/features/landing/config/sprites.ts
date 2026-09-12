@@ -32,6 +32,11 @@ export const SPRITES = {
     balloon6: '/sprites/balloon_6.png',
     balloon7: '/sprites/balloon_7.png',
   },
+  boosters: {
+    x2: '/img/boostX2.png',
+    x3: '/img/boostX3.png',
+    x4: '/img/boostX4.png',
+  },
 } as const;
 
 export type BalloonVariant = keyof typeof SPRITES.balloons;

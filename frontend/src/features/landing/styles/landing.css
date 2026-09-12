@@ -142,13 +142,16 @@ section {
 }
 
 /* ========================================
-   Landing Page — single continuous scene
+   Landing Page — единая сцена из 3 экранов.
+   Высота задаётся тремя экранами (3 × 100vh/100dvh)
+   в обычном потоке — фиксированный min-height здесь
+   не нужен, иначе на мобильных (где dvh < vh) появился бы
+   лишний пустой «четвёртый» экран под контентом.
    ======================================== */
 
 .landing-page {
   position: relative;
   width: 100%;
-  min-height: 300vh;
   background-image: url('/img/back.png');
   background-size: cover;
   background-position: center top;
@@ -178,124 +181,514 @@ section {
 }
 
 /* ========================================
-   Hero Content
+   Три полноэкранных экрана.
+   Каждый экран ровно один viewport (100dvh —
+   реальная высота, учитывающая мобильные браузеры).
+   Последовательность экранов в потоке даёт общую
+   высоту сцены 300vh; позиции 0/100/200vh — это якоря
+   плавных переходов useScreenSwipe.
    ======================================== */
 
-.hero-content {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  text-align: center;
-  max-width: 900px;
-  width: 90%;
-  padding: 2rem 1rem;
-  will-change: transform, opacity;
+.landing-screen {
+  position: relative;
+  width: 100%;
+  height: 100vh; /* fallback для старых браузеров */
+  height: 100dvh; /* реальная высота viewport (URL-бар на мобильных) */
+  min-height: unset;
+  overflow: visible;
+  z-index: 5;
 }
 
-.hero-content__title {
-  font-size: clamp(3.5rem, 10vw, 7rem);
-  font-weight: 900;
-  color: var(--text-light);
-  margin: 0 0 1.5rem;
-  line-height: 1.05;
-  text-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 4px 16px rgba(0, 0, 0, 0.2),
-    0 8px 32px rgba(0, 0, 0, 0.1);
-  letter-spacing: -0.03em;
+/* Пока активен лендинг: прячем скроллбар (нельзя вручную остановиться
+   между экранами), отключаем overscroll/bounce и нативный pan для touch.
+   Позиционирование экранов полностью держит useScreenSwipe. */
+html.landing-lock-scroll {
+  scrollbar-width: none;
+  overscroll-behavior: none;
 }
 
-.hero-content__subtitle {
-  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
-  color: var(--text-light);
-  margin: 0 0 1.5rem;
-  font-weight: 700;
-  line-height: 1.25;
-  text-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 4px 12px rgba(0, 0, 0, 0.2);
+html.landing-lock-scroll::-webkit-scrollbar {
+  display: none;
 }
 
-.hero-content__description {
-  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-  color: var(--text-light);
-  margin: 0 0 2.5rem;
-  line-height: 1.5;
-  text-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2);
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.hero-content__cta {
-  font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-  padding: 1.25rem 3.5rem;
-  min-width: 240px;
+html.landing-lock-scroll body {
+  touch-action: none;
 }
 
 /* ========================================
-   Final Content
+   Feature balloons — главные шары композиций.
+   Плавное «дыхание» на CSS-анимации, не конфликтует
+   с GSAP-анимациями декоративных шаров (другие элементы).
    ======================================== */
 
-.final-content {
+.feature-balloon {
+  width: auto;
+  max-width: 92%;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.28));
+  animation: balloon-float 6.5s ease-in-out infinite;
+}
+
+.feature-balloon--green {
+  filter: drop-shadow(0 14px 30px rgba(38, 158, 98, 0.35));
+}
+
+.feature-balloon--red {
+  filter: drop-shadow(0 14px 30px rgba(220, 62, 62, 0.4));
+}
+
+@keyframes balloon-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.1deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1.1deg);
+  }
+}
+
+/* ========================================
+   Text readability — мягкий «ореол» за текстом.
+   Добавляет radial-gradient ::before позади блоков
+   со свободным текстом (не карточки — у них уже glass).
+   ======================================== */
+
+.hero__copy,
+.why__title,
+.why__boosters-copy,
+.modes__title,
+.modes__subtitle,
+.modes__mode-desc {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero__copy::before,
+.why__title::before,
+.why__boosters-copy::before,
+.modes__title::before,
+.modes__subtitle::before,
+.modes__mode-desc::before {
+  content: '';
   position: absolute;
-  bottom: 10vh;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  text-align: center;
-  max-width: 800px;
-  width: 90%;
-  padding: 2rem 1rem;
+  inset: -22% -14% -10%;
+  z-index: -1;
+  border-radius: 28px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(13, 32, 58, 0.35) 0%,
+    rgba(13, 32, 58, 0.18) 50%,
+    transparent 74%
+  );
+  pointer-events: none;
 }
 
-.final-content__title {
-  font-size: clamp(2.75rem, 7vw, 5rem);
-  font-weight: 800;
+/* ========================================
+   ЭКРАН 1 — риск и начало игры
+   ======================================== */
+
+.hero {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: center;
+  gap: clamp(1rem, 4vw, 3rem);
+  padding: 0 clamp(2rem, 7vw, 7rem);
   color: var(--text-light);
+  will-change: transform, opacity;
+}
+
+.hero__copy {
+  text-align: left;
+}
+
+.hero__title {
+  font-size: clamp(2.6rem, 6vw, 5.25rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
   margin: 0 0 1.5rem;
-  line-height: 1.15;
+  max-width: 14ch;
+  color: var(--text-light);
   text-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 4px 16px rgba(0, 0, 0, 0.2);
-  letter-spacing: -0.02em;
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 4px 18px rgba(0, 0, 0, 0.35),
+    0 10px 36px rgba(0, 0, 0, 0.22);
 }
 
-.final-content__subtitle {
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
-  color: var(--text-light);
+.hero__subtitle {
+  font-size: clamp(1.06rem, 1.9vw, 1.45rem);
+  font-weight: 500;
+  line-height: 1.55;
   margin: 0 0 2.5rem;
-  line-height: 1.4;
+  max-width: 48ch;
+  color: rgba(255, 255, 255, 0.94);
   text-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2);
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
+    0 1px 4px rgba(0, 0, 0, 0.45),
+    0 2px 10px rgba(0, 0, 0, 0.28);
 }
 
-.final-content__cta {
-  font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-  padding: 1.25rem 3.5rem;
-  min-width: 240px;
-  margin-bottom: 4rem;
+.hero__cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.final-content__footer {
-  padding-top: 2.5rem;
-  margin-top: 2.5rem;
-}
-
-.final-content__footer p {
-  margin: 0;
-  font-size: 0.9375rem;
+.hero__cta {
+  display: inline-block;
+  padding: 1.05rem 3rem;
+  border: none;
+  border-radius: 50px;
+  font-size: clamp(1.06rem, 1.8vw, 1.25rem);
+  font-weight: 700;
+  font-family: inherit;
   color: var(--text-light);
-  opacity: 0.7;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, var(--accent-blue), #357abd);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.hero__cta:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, #357abd, var(--accent-blue));
+}
+
+.hero__cta:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
+}
+
+.hero__how {
+  padding: 0.5rem 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-light);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.hero__how:hover {
+  opacity: 1;
+}
+
+.hero__visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Шар чуть выше визуального центра — ощущение полёта */
+  padding-top: 5vh;
+}
+
+.feature-balloon--hero {
+  height: clamp(300px, 56vh, 560px);
+}
+
+/* ========================================
+   ЭКРАН 2 — почему стоит играть?
+   ======================================== */
+
+.why {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(2.5rem, 7vh, 4.5rem) clamp(1.5rem, 6vw, 6rem);
+  color: var(--text-light);
+  will-change: transform, opacity;
+}
+
+.why__title {
+  font-size: clamp(2.1rem, 4.4vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 clamp(1.5rem, 4vh, 2.5rem);
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 4px 18px rgba(0, 0, 0, 0.32),
+    0 10px 32px rgba(0, 0, 0, 0.18);
+}
+
+.why__benefits {
+  list-style: none;
+  margin: 0 0 clamp(1.5rem, 4vh, 2.5rem);
+  padding: 0;
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.why__benefit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: clamp(1.1rem, 2.6vh, 1.8rem) clamp(0.75rem, 1.4vw, 1.4rem);
+  border-radius: 22px;
+  background: linear-gradient(
+    180deg,
+    rgba(13, 32, 58, 0.5),
+    rgba(13, 32, 58, 0.32)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 6px 22px rgba(13, 32, 58, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.why__benefit-icon {
+  width: clamp(38px, 5vh, 56px);
+  height: clamp(38px, 5vh, 56px);
+  color: var(--text-light);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+.why__benefit-title {
+  font-size: clamp(0.98rem, 1.5vw, 1.25rem);
+  font-weight: 700;
+  line-height: 1.3;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+.why__boosters {
+  margin-top: auto;
+  margin-bottom: clamp(2.5rem, 8vh, 5rem);
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  text-align: center;
+}
+
+.why__boosters-copy {
+  max-width: 520px;
+  text-align: center;
+}
+
+.why__boosters-title {
+  font-size: clamp(1.9rem, 4vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+.why__boosters-subtitle {
+  font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+  line-height: 1.5;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.why__boosters-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.why__boost-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2.25rem);
+}
+
+.why__boost-badge {
+  width: clamp(64px, 11vh, 104px);
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px rgba(13, 32, 58, 0.38));
+  animation: boost-float 4.5s ease-in-out infinite;
+}
+
+.why__boost-badge--x3 {
+  width: clamp(74px, 13vh, 120px);
+}
+
+.why__boost-badge--x2 {
+  animation-delay: 0s;
+}
+
+.why__boost-badge--x3 {
+  animation-delay: 0.4s;
+}
+
+.why__boost-badge--x4 {
+  animation-delay: 0.8s;
+}
+
+@keyframes boost-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+/* ========================================
+   ЭКРАН 3 — выбор режима
+   ======================================== */
+
+.modes {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(2.5rem, 7vh, 4.5rem) clamp(1.5rem, 6vw, 6rem) 3rem;
+  color: var(--text-light);
+  will-change: transform, opacity;
+}
+
+.modes__title {
+  font-size: clamp(2rem, 4.3vw, 3.7rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 4px 18px rgba(0, 0, 0, 0.32),
+    0 10px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modes__subtitle {
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  margin: 0 0 clamp(1.5rem, 4vh, 2.5rem);
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.modes__list {
+  margin: auto 0;
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 9vw, 7rem);
+}
+
+.modes__mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modes__mode-balloon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.feature-balloon--mode {
+  height: clamp(260px, 40vh, 460px);
+}
+
+.modes__mode-levels {
+  margin-top: clamp(0.9rem, 2vh, 1.2rem);
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.modes__mode-levels--green {
+  background: rgba(38, 158, 98, 0.92);
+  box-shadow: 0 4px 14px rgba(38, 158, 98, 0.35);
+}
+
+.modes__mode-levels--red {
+  background: rgba(214, 58, 58, 0.92);
+  box-shadow: 0 4px 14px rgba(214, 58, 58, 0.35);
+}
+
+.modes__mode-desc {
+  margin: 0.55rem 0 0;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.modes__mode-cta {
+  margin-top: clamp(1rem, 2.4vh, 1.4rem);
+  min-width: 150px;
+  padding: 0.8rem 2.2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  font-weight: 700;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.modes__mode-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.modes__mode-cta:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
+}
+
+.modes__mode-cta--green {
+  background: linear-gradient(135deg, #38b06b, #207a49);
+}
+
+.modes__mode-cta--green:hover {
+  background: linear-gradient(135deg, #207a49, #38b06b);
+}
+
+.modes__mode-cta--red {
+  background: linear-gradient(135deg, #e25535, #b42d1a);
+}
+
+.modes__mode-cta--red:hover {
+  background: linear-gradient(135deg, #b42d1a, #e25535);
 }
 
 /* ========================================
@@ -353,9 +746,17 @@ section {
    ======================================== */
 
 @media (max-width: 1199px) {
-  .hero-content,
-  .final-content {
-    padding: 2rem;
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding: 0 2rem;
+  }
+
+  .why {
+    padding: 2rem 2rem;
+  }
+
+  .modes {
+    padding: 2rem 2rem 2.5rem;
   }
 
   /* Reduce cloud sizes */
@@ -397,16 +798,97 @@ section {
    ======================================== */
 
 @media (max-width: 767px) {
-  .hero-content,
-  .final-content {
+  /* Экран 1: вертикальная композиция — текст сверху, шар ниже */
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .hero__copy {
+    text-align: center;
+  }
+
+  .hero__cta-row {
+    justify-content: center;
+  }
+
+  .hero__title {
+    font-size: clamp(2.1rem, 8.5vw, 3.2rem);
+    max-width: none;
+    margin-bottom: 1rem;
+  }
+
+  .hero__subtitle {
+    max-width: none;
+    margin-bottom: 1.75rem;
+  }
+
+  .hero__visual {
+    padding-top: 0;
+  }
+
+  .feature-balloon--hero {
+    height: clamp(200px, 30vmin, 320px);
+  }
+
+  /* Экран 2: преимущества 2 × 2, бустеры в столбик */
+  .why {
     padding: 1.5rem;
   }
 
-  .hero-content__cta,
-  .final-content__cta {
-    padding: 0.875rem 2rem;
-    width: 100%;
-    max-width: 280px;
+  .why__benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1.5rem;
+  }
+
+  .why__benefit {
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .why__benefit-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .why__boosters {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .why__boosters-copy {
+    max-width: none;
+  }
+
+  .why__boost-badge {
+    width: clamp(48px, 14vw, 76px);
+  }
+
+  .why__boost-badge--x3 {
+    width: clamp(56px, 16vw, 88px);
+  }
+
+  /* Экран 3: два шара рядом, но компактнее */
+  .modes {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .modes__list {
+    gap: clamp(0.75rem, 4vw, 1.5rem);
+  }
+
+  .feature-balloon--mode {
+    height: clamp(150px, 32vmin, 280px);
+  }
+
+  .modes__mode-cta {
+    min-width: 120px;
+    padding: 0.6rem 1.4rem;
   }
 
   /* Further reduce clouds */
@@ -457,15 +939,6 @@ section {
   .cloud-layer--near .cloud-idle:nth-child(n + 12) {
     display: none;
   }
-
-  /* Final content не должен упираться в нижний край экрана */
-  .final-content {
-    bottom: 6vh;
-  }
-
-  .final-content__cta {
-    margin-bottom: 2.5rem;
-  }
 }
 
 /* ========================================
@@ -473,8 +946,9 @@ section {
    ======================================== */
 
 @media (max-width: 390px) {
-  .hero-content,
-  .final-content {
+  .hero,
+  .why,
+  .modes {
     padding: 1.25rem;
   }
 
@@ -500,13 +974,12 @@ section {
     display: none;
   }
 
-  .hero-content__subtitle {
-    margin-bottom: 1rem;
+  .hero__subtitle {
+    margin-bottom: 1.5rem;
   }
 
-  .hero-content__description {
-    margin-bottom: 1.75rem;
-    font-size: 1rem;
+  .modes__mode-levels {
+    font-size: 0.85rem;
   }
 }
 
@@ -515,29 +988,70 @@ section {
    ======================================== */
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .hero-content {
-    padding: 0.75rem 1rem;
-    max-width: 640px;
-  }
-
-  .hero-content__title {
-    font-size: clamp(2.5rem, 7vh, 4rem);
-    margin-bottom: 0.5rem;
-  }
-
-  .hero-content__subtitle {
-    font-size: clamp(1.25rem, 4vh, 2rem);
-    margin-bottom: 0.5rem;
-  }
-
-  .hero-content__description {
-    font-size: clamp(1rem, 4vh, 1.25rem);
-    margin-bottom: 1.25rem;
-  }
-
-  .hero-content__cta {
+  .hero {
     padding: 0.75rem 2rem;
-    min-width: 200px;
+  }
+
+  .hero__title {
+    font-size: clamp(2rem, 7vh, 3.4rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .hero__subtitle {
+    font-size: clamp(0.95rem, 3vh, 1.15rem);
+    margin-bottom: 1rem;
+  }
+
+  .hero__cta {
+    padding: 0.7rem 2rem;
+  }
+
+  .feature-balloon--hero {
+    height: clamp(160px, 52vh, 300px);
+  }
+
+  .why {
+    padding: 1rem 2rem;
+  }
+
+  .why__benefits {
+    margin-bottom: 1rem;
+  }
+
+  .why__benefit {
+    padding: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .why__benefit-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .why__boost-badge {
+    width: clamp(44px, 10vh, 66px);
+  }
+
+  .why__boost-badge--x3 {
+    width: clamp(52px, 12vh, 78px);
+  }
+
+  .modes {
+    padding: 1rem 2rem 1.5rem;
+  }
+
+  .modes__mode-levels {
+    margin-top: 0.5rem;
+  }
+
+  .modes__mode-cta {
+    margin-top: 0.6rem;
+    padding: 0.55rem 1.4rem;
+    min-width: 110px;
+  }
+
+  .feature-balloon--mode {
+    height: clamp(120px, 34vh, 220px);
   }
 }
 
@@ -553,75 +1067,10 @@ section {
   }
 }
 
-.button:focus-visible {
+.button:focus-visible,
+.hero__cta:focus-visible,
+.hero__how:focus-visible,
+.modes__mode-cta:focus-visible {
   outline: 3px solid var(--accent-blue);
   outline-offset: 3px;
-}
-
-/* ========================================
-   ВРЕМЕННО: фиксация скролла на 3 экранах для тестирования.
-   Сцена .landing-page имеет высоту 300vh — это 3 последовательных
-   экрана по 100vh. Scroll-snap на корневом скроллере «прилипает»
-   к границам экранов (0 / 100vh / 200vh), поэтому скролл останавливается
-   только на целых экранах. Существующие scrub-анимации GSAP продолжают
-   работать как раньше — они следуют за реальным положением скролла.
-   ======================================== */
-
-html,
-body {
-  scroll-snap-type: y mandatory;
-}
-
-/* Якорь scroll-snap на границе каждого экрана (1px, невидим) */
-.screen-snap-marker {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  pointer-events: none;
-  scroll-snap-align: start;
-}
-
-.screen-snap-marker--1 {
-  top: 0;
-}
-
-.screen-snap-marker--2 {
-  top: 100vh;
-}
-
-.screen-snap-marker--3 {
-  top: 200vh;
-}
-
-/* Подпись в верхней части каждого экрана */
-.screen-label {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 25;
-  pointer-events: none;
-  user-select: none;
-  padding: 0.55rem 1.6rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.55);
-  color: var(--text-light);
-  font-size: clamp(1rem, 2.5vw, 1.25rem);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(4px);
-  white-space: nowrap;
-}
-
-.screen-label--1 {
-  top: 6vh;
-}
-
-.screen-label--2 {
-  top: 106vh;
-}
-
-.screen-label--3 {
-  top: 206vh;
 }

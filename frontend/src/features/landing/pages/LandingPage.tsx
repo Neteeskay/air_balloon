@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { BalloonLayer, type Balloon } from '../components/BalloonLayer';
+import { BenefitIcon } from '../components/BenefitIcon';
 import { CONTENT } from '../config/content';
 import { gsap } from '../animations/gsapSetup';
 import { CLOUD_DEPTH, type CloudDepth } from '../animations/cloudDepth';
 import { SPRITES } from '../config/sprites';
+import { useScreenSwipe } from '../hooks/useScreenSwipe';
 import '../styles/landing.css';
 
 // ============================================
@@ -96,26 +98,28 @@ const MIDDLE_CLOUDS: CloudConfig[] = [
 ];
 
 // ============================================
-// BALLOONS
+// DECORATIVE BALLOONS — фоновая «стая», медленно
+// поднимается поверх всей сцены из 3 экранов.
+// Размещены в свободных зонах экранов 2–3,
+// чтобы не спорить с главными шарами композиций.
 // ============================================
 
 const BALLOONS: Balloon[] = [
-  { id: 'b-1', variant: 'balloon1', x: 12, y: 6, scale: 0.45, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 40, rotation: -4, duration: 110, wave: 12 } },
-  { id: 'b-2', variant: 'green', x: 78, y: 14, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 22, yOffset: 50, rotation: 5, duration: 180, wave: 22 } },
-  { id: 'b-3', variant: 'balloon2', x: 45, y: 22, scale: 0.35, floatDelay: 1, pathConfig: { xOffset: 15, yOffset: 35, rotation: 3, duration: 160, wave: 10 } },
-  { id: 'b-4', variant: 'red', x: 88, y: 32, scale: 0.4, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 45, rotation: -5, duration: 130, wave: 26 } },
-  { id: 'b-5', variant: 'balloon3', x: 8, y: 42, scale: 0.32, floatDelay: 1.5, pathConfig: { xOffset: 12, yOffset: 38, rotation: 3, duration: 200, wave: 16 } },
-  { id: 'b-6', variant: 'blue', x: 60, y: 52, scale: 0.42, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 42, rotation: 4, duration: 155, wave: 20 } },
-  { id: 'b-7', variant: 'balloon4', x: 25, y: 62, scale: 0.38, floatDelay: 2.5, pathConfig: { xOffset: -15, yOffset: 40, rotation: -3, duration: 175, wave: 14 } },
-  { id: 'b-8', variant: 'balloon5', x: 72, y: 72, scale: 0.48, floatDelay: 4, pathConfig: { xOffset: 25, yOffset: 48, rotation: 5, duration: 125, wave: 24 } },
-  { id: 'b-9', variant: 'balloon6', x: 18, y: 82, scale: 0.3, floatDelay: 3.5, pathConfig: { xOffset: -12, yOffset: 35, rotation: -4, duration: 190, wave: 18 } },
-  { id: 'b-10', variant: 'balloon7', x: 55, y: 92, scale: 0.44, floatDelay: 5, pathConfig: { xOffset: 20, yOffset: 45, rotation: 4, duration: 170, wave: 30 } },
+  { id: 'b-1', variant: 'balloon2', x: 6, y: 42, scale: 0.3, floatDelay: 1, pathConfig: { xOffset: 12, yOffset: 30, rotation: 3, duration: 180, wave: 10 } },
+  { id: 'b-2', variant: 'balloon5', x: 94, y: 40, scale: 0.34, floatDelay: 2, pathConfig: { xOffset: -12, yOffset: 32, rotation: -3, duration: 200, wave: 14 } },
+  { id: 'b-3', variant: 'balloon4', x: 8, y: 74, scale: 0.36, floatDelay: 2.5, pathConfig: { xOffset: -10, yOffset: 34, rotation: -3, duration: 175, wave: 12 } },
+  { id: 'b-4', variant: 'balloon7', x: 90, y: 80, scale: 0.32, floatDelay: 3.5, pathConfig: { xOffset: 14, yOffset: 36, rotation: 3, duration: 190, wave: 16 } },
 ];
 
+// ============================================
+// FINAL BALLOONS — фон для экрана 3 (режимы),
+// размещены по углам, не перекрывают шары режимов.
+// ============================================
+
 const FINAL_BALLOONS: Balloon[] = [
-  { id: 'f-b-1', variant: 'balloon1', x: 35, y: 68, scale: 0.38, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 38, rotation: 3, duration: 150, wave: 16 } },
-  { id: 'f-b-2', variant: 'balloon5', x: 82, y: 78, scale: 0.42, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 42, rotation: -4, duration: 120, wave: 26 } },
-  { id: 'f-b-3', variant: 'balloon3', x: 48, y: 88, scale: 0.35, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 36, rotation: 3, duration: 185, wave: 12 } },
+  { id: 'f-b-1', variant: 'balloon1', x: 6, y: 68, scale: 0.32, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 34, rotation: 3, duration: 160, wave: 12 } },
+  { id: 'f-b-2', variant: 'balloon5', x: 92, y: 70, scale: 0.34, floatDelay: 3, pathConfig: { xOffset: -16, yOffset: 36, rotation: -3, duration: 140, wave: 18 } },
+  { id: 'f-b-3', variant: 'balloon3', x: 6, y: 86, scale: 0.3, floatDelay: 2, pathConfig: { xOffset: 14, yOffset: 30, rotation: 3, duration: 185, wave: 10 } },
 ];
 
 // ============================================
@@ -170,13 +174,21 @@ function CloudImages({
 }
 
 // ============================================
-// LandingPage
+// LandingPage — три полноэкранных экрана:
+//   1. Риск и начало игры
+//   2. Возможности игры
+//   3. Выбор режима
 // ============================================
 
 export function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroContentRef = useRef<HTMLDivElement>(null);
-  const finalContentRef = useRef<HTMLDivElement>(null);
+  const screen2Ref = useRef<HTMLElement>(null);
+  const screen2ContentRef = useRef<HTMLDivElement>(null);
+  const screen3Ref = useRef<HTMLElement>(null);
+  const screen3ContentRef = useRef<HTMLDivElement>(null);
+
+  useScreenSwipe(3);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -304,7 +316,7 @@ export function LandingPage() {
       });
 
       // --------------------------------------------------
-      // 3. HERO CONTENT — fade out on scroll
+      // 3. HERO CONTENT (Экран 1) — fade out on scroll away
       // --------------------------------------------------
       if (heroContentRef.current) {
         gsap.to(heroContentRef.current, {
@@ -314,27 +326,48 @@ export function LandingPage() {
           scrollTrigger: {
             trigger: el,
             start: 'top top',
-            end: '20% top',
+            end: '22% top',
             scrub: 1,
           },
         });
       }
 
       // --------------------------------------------------
-      // 4. FINAL CONTENT — fade in near bottom
+      // 4. SCREEN 2 CONTENT — fade in as the screen enters
       // --------------------------------------------------
-      if (finalContentRef.current) {
+      if (screen2Ref.current && screen2ContentRef.current) {
         gsap.fromTo(
-          finalContentRef.current,
-          { opacity: 0, y: 100 },
+          screen2ContentRef.current,
+          { opacity: 0, y: 80 },
           {
             opacity: 1,
             y: 0,
             ease: 'power2.out',
             scrollTrigger: {
-              trigger: el,
-              start: '70% top',
-              end: '85% top',
+              trigger: screen2Ref.current,
+              start: 'top bottom',
+              end: 'top top',
+              scrub: 1,
+            },
+          },
+        );
+      }
+
+      // --------------------------------------------------
+      // 5. SCREEN 3 CONTENT — fade in as the screen enters
+      // --------------------------------------------------
+      if (screen3Ref.current && screen3ContentRef.current) {
+        gsap.fromTo(
+          screen3ContentRef.current,
+          { opacity: 0, y: 60 },
+          {
+            opacity: 1,
+            y: 0,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: screen3Ref.current,
+              start: 'top bottom',
+              end: 'top top',
               scrub: 1,
             },
           },
@@ -356,46 +389,124 @@ export function LandingPage() {
       {/* Near layer — intro clouds, large, scatter on scroll */}
       <CloudImages clouds={INTRO_CLOUDS} depth="near" layerClass="intro-clouds" />
 
-      {/* Balloons */}
+      {/* Decorative balloons — медленно поднимаются поверх всей сцены */}
       <BalloonLayer balloons={BALLOONS} />
 
-      {/* Hero */}
-      <div ref={heroContentRef} className="hero-content">
-        <h1 className="hero-content__title">{CONTENT.hero.title}</h1>
-        <p className="hero-content__subtitle">{CONTENT.hero.subtitle}</p>
-        <p className="hero-content__description">{CONTENT.hero.description}</p>
-        <button className="hero-content__cta button button--primary">
-          {CONTENT.hero.cta}
-        </button>
-      </div>
+      {/* ============================================
+          ЭКРАН 1 — риск и начало игры
+          ============================================ */}
+      <section className="landing-screen landing-screen--1">
+        <div className="hero" ref={heroContentRef}>
+          <div className="hero__copy">
+            <h1 className="hero__title">{CONTENT.hero.title}</h1>
+            <p className="hero__subtitle">{CONTENT.hero.subtitle}</p>
+            <div className="hero__cta-row">
+              <button className="hero__cta">{CONTENT.hero.cta}</button>
+              <button className="hero__how">{CONTENT.hero.howToPlay}</button>
+            </div>
+          </div>
+          <div className="hero__visual">
+            <img
+              className="feature-balloon feature-balloon--hero"
+              src={SPRITES.balloons.balloon6}
+              alt=""
+            />
+          </div>
+        </div>
+      </section>
 
-      {/* Final balloons */}
-      <BalloonLayer balloons={FINAL_BALLOONS} />
+      {/* ============================================
+          ЭКРАН 2 — почему стоит играть?
+          ============================================ */}
+      <section className="landing-screen landing-screen--2" ref={screen2Ref}>
+        <div className="why" ref={screen2ContentRef}>
+          <h2 className="why__title">{CONTENT.why.title}</h2>
 
-      {/* Final content */}
-      <div ref={finalContentRef} className="final-content">
-        <h2 className="final-content__title">{CONTENT.final.title}</h2>
-        <p className="final-content__subtitle">{CONTENT.final.subtitle}</p>
-        <button className="final-content__cta button button--primary">
-          {CONTENT.final.cta}
-        </button>
-        <footer className="final-content__footer">
-          <p>© 2026 Воздушный Шар. Все права защищены.</p>
-        </footer>
-      </div>
+          <ul className="why__benefits">
+            {CONTENT.why.benefits.map((benefit) => (
+              <li key={benefit.title} className="why__benefit">
+                <BenefitIcon name={benefit.icon} className="why__benefit-icon" />
+                <span className="why__benefit-title">{benefit.title}</span>
+              </li>
+            ))}
+          </ul>
 
-      {/* ВРЕМЕННО: фиксация скролла на 3 экранах для тестирования.
-          Невидимые метки на границах экранов (0 / 100vh / 200vh сцены
-          высотой 300vh) — они служат якорями scroll-snap.
-          Не влияют на существующие анимации и рендер. */}
-      <span className="screen-snap-marker screen-snap-marker--1" aria-hidden="true" />
-      <span className="screen-snap-marker screen-snap-marker--2" aria-hidden="true" />
-      <span className="screen-snap-marker screen-snap-marker--3" aria-hidden="true" />
+          <div className="why__boosters">
+            <div className="why__boosters-copy">
+              <h3 className="why__boosters-title">{CONTENT.why.boosterTitle}</h3>
+              <p className="why__boosters-subtitle">{CONTENT.why.boosterSubtitle}</p>
+            </div>
+            <div className="why__boosters-visual">
+              <div className="why__boost-badges">
+                <img
+                  className="why__boost-badge why__boost-badge--x2"
+                  src={SPRITES.boosters.x2}
+                  alt="Бустер ×2"
+                />
+                <img
+                  className="why__boost-badge why__boost-badge--x3"
+                  src={SPRITES.boosters.x3}
+                  alt="Бустер ×3"
+                />
+                <img
+                  className="why__boost-badge why__boost-badge--x4"
+                  src={SPRITES.boosters.x4}
+                  alt="Бустер ×4"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* ВРЕМЕННО: подписи экранов — визуальные границы и порядок */}
-      <span className="screen-label screen-label--1" aria-hidden="true">Экран 1</span>
-      <span className="screen-label screen-label--2" aria-hidden="true">Экран 2</span>
-      <span className="screen-label screen-label--3" aria-hidden="true">Экран 3</span>
+      {/* ============================================
+          ЭКРАН 3 — выбор режима
+          ============================================ */}
+      <section className="landing-screen landing-screen--3" ref={screen3Ref}>
+        <div className="modes" ref={screen3ContentRef}>
+          <h2 className="modes__title">{CONTENT.modes.title}</h2>
+          <p className="modes__subtitle">{CONTENT.modes.subtitle}</p>
+
+          <div className="modes__list">
+            <div className="modes__mode modes__mode--green">
+              <div className="modes__mode-balloon">
+                <img
+                  className="feature-balloon feature-balloon--mode feature-balloon--green"
+                  src={SPRITES.balloons.balloon7}
+                  alt=""
+                />
+              </div>
+              <span className="modes__mode-levels modes__mode-levels--green">
+                {CONTENT.modes.green.levels}
+              </span>
+              <p className="modes__mode-desc">{CONTENT.modes.green.description}</p>
+              <button className="modes__mode-cta modes__mode-cta--green" aria-label="Выбрать спокойный режим">
+                {CONTENT.modes.green.cta}
+              </button>
+            </div>
+
+            <div className="modes__mode modes__mode--red">
+              <div className="modes__mode-balloon">
+                <img
+                  className="feature-balloon feature-balloon--mode feature-balloon--red"
+                  src={SPRITES.balloons.balloon6}
+                  alt=""
+                />
+              </div>
+              <span className="modes__mode-levels modes__mode-levels--red">
+                {CONTENT.modes.red.levels}
+              </span>
+              <p className="modes__mode-desc">{CONTENT.modes.red.description}</p>
+              <button className="modes__mode-cta modes__mode-cta--red" aria-label="Выбрать рискованный режим">
+                {CONTENT.modes.red.cta}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final decorative balloons — экран 3 */}
+      <BalloonLayer balloons={FINAL_BALLOONS} className="final-balloons" />
     </div>
   );
 }
