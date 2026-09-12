@@ -1,0 +1,304 @@
+import { useEffect, useState, type ReactNode } from 'react'
+import { AnimatedSkyBackground } from '../components/sky/AnimatedSkyBackground'
+import type { User } from '../api/types'
+type FlightUser = User | { userId: string; displayName: string }
+
+export type FlightMode = 'RED' | 'GREEN'
+type TutorialStep = 1 | 2 | 3 | 4 | 5
+
+const ONBOARDING_KEY_PREFIX = 'air-balloon:flight-mode-onboarding:v2:'
+const THEME_KEY_PREFIX = 'air-balloon-theme:'
+
+
+function onboardingKey(userId: string) {
+  return `${ONBOARDING_KEY_PREFIX}${userId}`
+}
+
+function themeKey(userId: string) {
+  return `${THEME_KEY_PREFIX}${userId}`
+}
+
+function readStorage(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // The screen remains usable when browser storage is unavailable.
+  }
+}
+
+function Icon({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" aria-hidden="true">{children}</svg>
+}
+
+function ArrowIcon() {
+  return <Icon><path d="M5 12h13M14 7l5 5-5 5" /></Icon>
+}
+
+function UserIcon() {
+  return <Icon><circle cx="12" cy="8" r="4" /><path d="M4.8 20c.7-4 3.2-6 7.2-6s6.5 2 7.2 6" /></Icon>
+}
+
+function LogoutIcon() {
+  return <Icon><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" /></Icon>
+}
+
+function ClockIcon() {
+  return <Icon><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></Icon>
+}
+
+function SignalIcon() {
+  return <span className="signal" aria-hidden="true"><i /><i /><i /></span>
+}
+
+type ModeCardProps = {
+  mode: FlightMode
+  title: string
+  levels: number
+  description: string
+  balloon: string
+  selected: boolean
+  tutorialStep: TutorialStep | null
+  onChoose: (mode: FlightMode) => void
+}
+
+function ModeCard({ mode, title, levels, description, balloon, selected, tutorialStep, onChoose }: ModeCardProps) {
+  const activeTutorial = tutorialStep === (mode === 'RED' ? 2 : 3)
+  return (
+    <article className={`mode-card surface-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
+      <img className="mode-card__balloon" src={balloon} alt="" draggable="false" />
+      <div className="mode-card__copy">
+        <h2>{title}</h2>
+        <div className="mode-card__levels"><SignalIcon /><strong>{levels} уровней</strong></div>
+        <p>{description}</p>
+      </div>
+      <button
+        className="mode-card__button"
+        type="button"
+        aria-pressed={selected}
+        aria-label={`Выбрать ${title.toLowerCase()}, ${levels} уровней`}
+        onClick={(event) => {
+          // A mode button is not a tutorial step. Keep the onboarding overlay
+          // in control until it has been explicitly completed.
+          event.stopPropagation()
+          onChoose(mode)
+        }}
+      >
+        Выбрать <ArrowIcon />
+      </button>
+    </article>
+  )
+}
+
+export default function FlightModePage({
+  currentUser,
+  onLogout,
+  onModeSelected,
+  onOpenRating,
+  onProfile,
+  onUnlockAudio,
+}: {
+  currentUser: FlightUser
+  onLogout: () => void
+  onModeSelected: (mode: FlightMode) => void
+  onOpenRating: () => void
+  onProfile: () => void
+  onUnlockAudio?: () => void
+}) {
+  const [tutorialVisible, setTutorialVisible] = useState(
+    () => readStorage(onboardingKey('id' in currentUser ? currentUser.id : currentUser.userId)) !== 'true',
+  )
+  const [showChooseGameMessage, setShowChooseGameMessage] = useState(false)
+  const [tutorialStep, setTutorialStep] = useState<TutorialStep>(1)
+  const [selectedMode, setSelectedMode] = useState<FlightMode | null>(() => {
+    const mode = readStorage(themeKey('id' in currentUser ? currentUser.id : currentUser.userId))
+    return mode === 'RED' || mode === 'GREEN' ? mode : null
+  })
+
+  useEffect(() => {
+    setTutorialVisible(readStorage(onboardingKey('id' in currentUser ? currentUser.id : currentUser.userId)) !== 'true')
+    setTutorialStep(1)
+    setShowChooseGameMessage(false)
+  }, [currentUser])
+
+
+  const completeTutorial = () => {
+    writeStorage(onboardingKey('id' in currentUser ? currentUser.id : currentUser.userId), 'true')
+    setTutorialVisible(false)
+    setShowChooseGameMessage(true)
+  }
+
+  const advanceTutorial = () => {
+    if (tutorialStep === 1) {
+      setTutorialStep(2)
+      return
+    }
+
+    if (tutorialStep === 2) {
+      setTutorialStep(3)
+      return
+    }
+
+    if (tutorialStep === 3) {
+      setTutorialStep(4)
+      return
+    }
+
+    if (tutorialStep === 4) {
+      setTutorialStep(5)
+      return
+    }
+
+    completeTutorial()
+  }
+
+  const chooseMode = (mode: FlightMode) => {
+    if (tutorialVisible) return
+
+    writeStorage(themeKey('id' in currentUser ? currentUser.id : currentUser.userId), mode)
+    setSelectedMode(mode)
+    setShowChooseGameMessage(false)
+    onModeSelected(mode)
+  }
+
+  return (
+    <main
+      className={`flight-mode-page ${tutorialVisible ? 'is-tutorial' : ''}`}
+      tabIndex={tutorialVisible ? 0 : undefined}
+      onClick={tutorialVisible ? advanceTutorial : undefined}
+      onKeyDownCapture={onUnlockAudio}
+      onPointerDownCapture={onUnlockAudio}
+      onKeyDown={tutorialVisible ? (event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        advanceTutorial()
+      } : undefined}
+    >
+      <div className="scene-background" aria-hidden="true" />
+      <AnimatedSkyBackground />
+      <img className="birds birds--standard" src="/assets/flight-mode/birds-3.png" alt="" draggable="false" />
+
+      <div className="flight-stage">
+
+      <header className="flight-header">
+        <img className="flight-logo" src="/assets/flight-mode/logo.png" alt="Воздушный шар" draggable="false" />
+        <h1>Выбери режим полёта</h1>
+        <p aria-live="polite">{tutorialVisible
+          ? 'Шиншилот поможет быстро разобраться.'
+          : showChooseGameMessage
+            ? 'Выберите игру'
+            : 'Красный шар — для любителей риска. Зелёный шар — для спокойного полёта.'}</p>
+      </header>
+
+      <div className="user-panel" aria-label={`Профиль ${'name' in currentUser ? currentUser.name : currentUser.displayName}`}>
+        <button className="user-panel__avatar" type="button" aria-label="Открыть профиль" title="Профиль" onClick={(event) => { event.stopPropagation(); onProfile() }}><UserIcon /></button>
+        <strong>{'name' in currentUser ? currentUser.name : currentUser.displayName}</strong>
+        <span className="user-panel__divider" />
+        <button type="button" aria-label="Выйти" title="Выйти" onClick={onLogout}><LogoutIcon /></button>
+      </div>
+
+      <section className="mode-grid" aria-label="Выбор режима полёта">
+        <ModeCard
+          mode="RED"
+          title="Красный шар"
+          levels={12}
+          description="Более рискованный маршрут"
+          balloon="/assets/flight-mode/balloon-red.png"
+          selected={selectedMode === 'RED'}
+          tutorialStep={tutorialVisible ? tutorialStep : null}
+          onChoose={chooseMode}
+        />
+        <ModeCard
+          mode="GREEN"
+          title="Зелёный шар"
+          levels={9}
+          description="Более спокойный полёт"
+          balloon="/assets/flight-mode/balloon-green.png"
+          selected={selectedMode === 'GREEN'}
+          tutorialStep={tutorialVisible ? tutorialStep : null}
+          onChoose={chooseMode}
+        />
+      </section>
+
+      <button
+        className={`rating-card surface-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`}
+        type="button"
+        onClick={tutorialVisible ? undefined : onOpenRating}
+        aria-label="Открыть глобальный рейтинг игроков"
+      >
+        <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}>
+          <img src="/assets/icons/кубок_старт.png" alt="" draggable="false" />
+        </span>
+        <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
+        <span className="rating-card__days"><ClockIcon />25 дней</span>
+        <ArrowIcon />
+      </button>
+
+      {tutorialVisible && (
+        <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 5`}>
+          {tutorialStep === 1 && (
+            <div className="tutorial-step tutorial-step--one" key="tutorial-step-1">
+              <img className="chinchillot" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
+              <button className="tutorial-dialog" type="button">
+                <strong>Привет! Я Шиншилот 🐭</strong>
+                <span>Я быстро покажу тебе, что здесь к чему.<br />Начнём с выбора воздушного шара!</span>
+              </button>
+            </div>
+          )}
+          {tutorialStep === 2 && (
+            <div className="tutorial-step tutorial-step--two" key="tutorial-step-2">
+              <div className="tutorial-tip tutorial-tip--red">
+                <strong>Красный шар — для тех, кто любит риск!</strong>
+                <span>Здесь тебя ждут <b>12 уровней</b> и более сложный маршрут.<br />Выбирай его, если хочешь больше испытаний.</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 3 && (
+            <div className="tutorial-step tutorial-step--three" key="tutorial-step-3">
+              <div className="tutorial-tip tutorial-tip--green">
+                <strong>Зелёный шар — для спокойного полёта</strong>
+                <span>Здесь <b>9 уровней</b> и более простой маршрут.<br />Отличный вариант, если хочешь сначала освоиться.</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 4 && (
+            <div className="tutorial-step tutorial-step--four" key="tutorial-step-4">
+              <div className="tutorial-tip tutorial-tip--trophy">
+                <strong>А вот и твоя цель — кубок! 🏆</strong>
+                <span>Зарабатывай очки во время игры и старайся подняться как можно выше.<br />Чем лучше играешь — тем ближе награда!</span>
+              </div>
+            </div>
+          )}
+          {tutorialStep === 5 && (
+            <div className="tutorial-step tutorial-step--five" key="tutorial-step-5">
+              <div className="tutorial-tip tutorial-tip--rating">
+                <strong>Здесь находится рейтинг игроков.</strong>
+                <span>В нём видно, кто набрал больше всего очков за текущий период.<br />До конца рейтинга осталось <b>25 дней</b>, так что успей подняться выше!</span>
+              </div>
+            </div>
+          )}
+          <button
+            className="tutorial-skip"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              completeTutorial()
+            }}
+          >
+            Пропустить обучение <ArrowIcon />
+          </button>
+          <span className="visually-hidden" aria-live="polite">Шаг {tutorialStep} из 5</span>
+        </section>
+      )}
+      </div>
+    </main>
+  )
+}

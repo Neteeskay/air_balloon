@@ -108,4 +108,5 @@ export function LineChart({
 }
 
 /** Format a single point for table/hint use. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const pointLabel = (p: Point) => ({ x: formatX(p.x), y: formatY(p.y) })

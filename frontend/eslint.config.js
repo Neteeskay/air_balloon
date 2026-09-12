@@ -1,16 +1,30 @@
-import eslint from '@eslint/js'
+import js from '@eslint/js'
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
-  eslint.configs.recommended,
+  { ignores: ['dist/**', 'node_modules/**'] },
+  js.configs.recommended,
   ...tseslint.configs.recommended,
-  reactHooks.configs.flat.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
-    rules: { 'no-undef': 'off' },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.flat.recommended.rules,
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      '@typescript-eslint/no-explicit-any': 'off',
+      // These compiler-oriented rules flag established source-branch patterns;
+      // classic Hooks correctness rules remain enabled above.
+      'react-hooks/immutability': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 )

@@ -1,58 +1,48 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { api } from './api'
+import type { Result, User } from './api/types'
+import { LandingPage } from './features/landing/pages/LandingPage'
 import { BetSelectionPage } from './features/betting/pages/BetSelectionPage'
 import { CrashGamePage } from './features/game/pages/CrashGamePage'
 import { useGameSession } from './features/game/hooks/useGameSession'
 import { useSkySounds } from './components/sky/useSkySounds'
+import LoginPage from './pages/LoginPage'
+import FlightModePage, { type FlightMode } from './pages/FlightModePage'
+import { ResultScreen } from './features/results'
+import type { ResultScreenData } from './types/result'
+import { RealProfilePage } from './features/profile/RealProfilePage'
+
+const pathOf = () => window.location.pathname.replace(/\/+$/, '') || '/'
 
 export function App() {
   const game = useGameSession()
-  const { unlockSkySounds } = useSkySounds({
-    enabled: game.soundOn,
-    flightActive: Boolean(game.round),
-  })
-
-  if (game.loading) return <main className="game-shell"><p role="status">Готовим ваш полёт…</p></main>
-  if (!game.user) return <Login onLogin={game.login} error={game.error} />
-  if (!game.round && game.result) return <ResultCard result={game.result} onAgain={game.clearResult} />
-  if (game.round) {
-    return (
-      <CrashGamePage
-        balance={game.balance}
-        bet={game.round.bet}
-        boosterMultiplier={game.round.boosterMultiplier}
-        onFinish={game.finishRound}
-        onToggleSound={game.toggleSound}
-        onTopUp={game.topUpBalance}
-        onUnlockAudio={unlockSkySounds}
-        roundId={game.round.roundId}
-        showCashoutHint={game.round.showCashoutHint}
-        soundOn={game.soundOn}
-        theme={game.theme}
-      />
-    )
-  }
-
-  return (
-      <BetSelectionPage
-      balance={game.balance}
-      onStartGame={game.startRound}
-      onSwitchTheme={game.switchTheme}
-      onToggleSound={game.toggleSound}
-      onTopUp={game.topUpBalance}
-      onUnlockAudio={unlockSkySounds}
-      soundOn={game.soundOn}
-        theme={game.theme}
-        options={game.betOptions}
-    />
-  )
+  const [path, setPath] = useState(pathOf)
+  const { unlockSkySounds } = useSkySounds({ enabled: game.soundOn, flightActive: Boolean(game.round) })
+  useEffect(() => { const onPop = () => setPath(pathOf()); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop) }, [])
+  const navigate = useCallback((next: string, replace = false) => { (replace ? window.history.replaceState : window.history.pushState).call(window.history, null, '', next); setPath(next); window.scrollTo(0, 0) }, [])
+  useEffect(() => { if (!game.loading && !game.user && path !== '/' && path !== '/login') navigate('/login', true) }, [game.loading, game.user, navigate, path])
+  if (game.loading) return <main className="game-shell" role="status"><p>Готовим ваш полёт…</p></main>
+  if (path === '/') return <LandingPage onPlay={() => navigate(game.user ? '/mode' : '/login')} onUnlockAudio={unlockSkySounds} />
+  if (!game.user) return <LoginPage onAuthenticated={async (login, password) => { await game.login(login, password); navigate('/mode', true) }} onBack={() => navigate('/')} />
+  if (path === '/login') { navigate('/mode', true); return null }
+  if (path === '/mode') return <FlightModePage currentUser={game.user} onUnlockAudio={unlockSkySounds} onLogout={async () => { await game.logout(); navigate('/login', true) }} onModeSelected={(mode: FlightMode) => { if (game.theme !== mode.toLowerCase()) game.switchTheme(); navigate('/bet') }} onProfile={() => navigate('/profile')} onOpenRating={() => navigate('/rating')} />
+  if (path === '/profile') return <RealProfilePage api={api} user={game.user} balance={game.balance} onClose={() => navigate('/mode')} />
+  if (path === '/rating') return <DataPanel title="Рейтинг участников" load={() => api.rating.get(0, 50)} onBack={() => navigate('/mode')} />
+  if (path === '/tournament') return <DataPanel title="Турнир пилотов" load={() => api.tournament.getActive()} onBack={() => navigate('/bet')} />
+  if (path === '/game' && game.round) return <CrashGamePage balance={game.balance} bet={game.round.bet} boosterMultiplier={game.round.boosterMultiplier} onFinish={async () => { const final = await game.finishRound(); navigate(final?.result === 'LOSS' ? '/result/loss' : '/result/win') }} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockSkySounds} roundId={game.round.roundId} showCashoutHint={game.round.showCashoutHint} soundOn={game.soundOn} theme={game.theme} />
+  if ((path === '/result/win' || path === '/result/loss') && game.result) return <ResultView result={game.result} user={game.user} balance={game.balance} theme={game.theme} onAgain={() => { game.clearResult(); navigate('/bet') }} onProfile={() => navigate('/profile')} onMenu={() => navigate('/mode')} />
+  if (path === '/game' || path === '/result/win' || path === '/result/loss') { navigate('/bet', true); return null }
+  return <BetSelectionPage balance={game.balance} soundOn={game.soundOn} theme={game.theme} options={game.betOptions} onStartGame={async selection => { await game.startRound(selection); navigate('/game') }} onSwitchTheme={game.switchTheme} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockSkySounds} />
 }
 
-function ResultCard({ result, onAgain }: { result: any; onAgain: () => void }) {
-  const won = result.result === 'WIN'
-  return <main className={`game-shell result-shell ${won ? 'win' : 'loss'}`}><section className="result-card"><p className="eyebrow">ПОЛЁТ ЗАВЕРШЁН</p><h1>{won ? 'Отлично поймали момент!' : 'В этот раз — чуть выше риска'}</h1><div className="result-amount">{won ? `+${Number(result.winAmount).toLocaleString('ru-RU')}` : '0'} <span>бонусов</span></div><dl><div><dt>Cashout</dt><dd>{result.cashoutMultiplier ? `×${Number(result.cashoutMultiplier).toFixed(2)}` : 'Не выполнен'}</dd></div><div><dt>Crash</dt><dd>×{Number(result.crashMultiplier).toFixed(2)}</dd></div><div><dt>Игровые очки</dt><dd>{result.score}</dd></div>{result.playerCharacter && <div><dt>Ваш стиль</dt><dd>{result.playerCharacter.title}</dd></div>}{result.reward && <div><dt>Награда</dt><dd>Получен фрагмент · {result.reward.currentFragments ?? ''}/{result.reward.totalFragments ?? ''}</dd></div>}</dl><button className="primary" onClick={onAgain}>Играть снова ↗</button></section></main>
+function ResultView({ result, user, balance, theme, onAgain, onProfile, onMenu }: { result: Result; user: User; balance: number; theme: 'green'|'red'; onAgain: () => void; onProfile: () => void; onMenu: () => void }) {
+  const data: ResultScreenData = { result: result.result.toLowerCase() as 'win'|'loss', theme, roundId: result.roundId, betAmount: result.betAmount, payoutAmount: result.winAmount, bonusBalance: result.balanceAfter ?? balance, cashoutMultiplier: result.cashoutMultiplier, crashMultiplier: result.crashMultiplier, potentialMaxMultiplier: result.cashoutMultiplier, earnedPoints: result.score, reward: { count: result.reward ? 1 : 0, collectedFragments: result.reward?.currentFragments, totalFragments: result.reward?.totalFragments, puzzleCompleted: result.reward?.completed }, playerName: user.name, canRepeatBet: true }
+  return <ResultScreen data={data} actions={{ onPlayAgain: onAgain, onRepeatBet: onAgain, onHome: onMenu, onAutoReturn: onAgain, onMenu, onProfile }} />
 }
 
-function Login({ onLogin, error }: { onLogin: (login: string, password: string) => Promise<unknown>; error: string }) {
-  const [login, setLogin] = useState(''); const [password, setPassword] = useState(''); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(error)
-  return <main className="game-shell login-shell"><section className="login-card"><p className="eyebrow">ВОЗДУШНЫЙ ШАР / FLIGHT CLUB</p><h1>Выше облаков.<br /><em>Ближе к победе.</em></h1><p>Ваш следующий полёт начинается здесь.</p><form onSubmit={async e => { e.preventDefault(); if (busy) return; setBusy(true); setMessage(''); try { await onLogin(login, password) } catch (err) { setMessage(err instanceof Error ? err.message : 'Не удалось войти') } finally { setBusy(false) } }}><label>Логин<input required autoComplete="username" value={login} onChange={e => setLogin(e.target.value)} /></label><label>Пароль<input required type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} /></label>{message && <p className="error" role="alert">{message}</p>}<button className="primary" disabled={busy}>{busy ? 'Входим…' : 'Войти ↗'}</button></form></section></main>
+function DataPanel({ title, load, onBack }: { title: string; load: () => Promise<unknown>; onBack: () => void }) {
+  const [data, setData] = useState<unknown>(null); // The panel is mounted once per route; its loader is intentionally one-shot.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { let live = true; void load().then(value => live && setData(value)); return () => { live = false } }, []);
+  return <main className="game-shell" style={{ padding: '2rem' }}><button className="primary" onClick={onBack}>← Назад</button><h1>{title}</h1><pre style={{ whiteSpace: 'pre-wrap' }}>{data ? JSON.stringify(data, null, 2) : 'Загрузка…'}</pre></main>
 }

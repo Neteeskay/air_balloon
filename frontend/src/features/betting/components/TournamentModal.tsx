@@ -10,10 +10,11 @@ import { TournamentTopThree } from './TournamentTopThree'
 
 type TournamentModalProps = {
   onClose: () => void
+  initialTab?: TournamentTab
 }
 
-export function TournamentModal({ onClose }: TournamentModalProps) {
-  const [activeTab, setActiveTab] = useState<TournamentTab>('rating')
+export function TournamentModal({ onClose, initialTab = 'rating' }: TournamentModalProps) {
+  const [activeTab, setActiveTab] = useState<TournamentTab>(initialTab)
   const tournament = useTournamentData()
   const rating = useRatingData()
   const activeData = activeTab === 'rating' ? rating : tournament
