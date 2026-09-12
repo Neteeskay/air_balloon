@@ -67,6 +67,7 @@ export function CrashGamePage({
       />
 
       <section className="crash-stage" aria-label="Полёт воздушного шара" data-round-id={roundId}>
+        {round.connection !== 'connected' && <div className="reconnect-banner" role="status">Восстанавливаем соединение…</div>}
         <CoefficientDisplay
           bet={bet}
           coefficient={round.coefficient}
