@@ -14,7 +14,7 @@ Snapshot сохраняет прежние поля и добавляет:
 | `id`, `roundId` | Один UUID; `id` сохранён для совместимости |
 | `status`, `theme`, `betAmount`, `boosterMultiplier` | Исходная ставка и текущий статус |
 | `currentMultiplier`, `currentLevel`, `roundScore` | Авторитетное состояние |
-| `boosterActivated`, `boosterLevel` | Позиция скрыта до активации/падения |
+| `boosterActivated`, `boosterLevel` | Позиция x2/x3/x4 видна из стартового snapshot; activation меняет только состояние и очки; x1 не имеет позиции |
 | `cashoutPerformed`, `cashoutMultiplier`, `winAmount`, `cashoutAt` | Зафиксированная выплата |
 | `startedAt`, `timestamp`, `serverTime` | Начало, время состояния, время ответа |
 | `sequence` | Последняя применённая последовательность в snapshot |

@@ -22,11 +22,11 @@ class FairnessTest {
         assertThat(t.round().currentLevel()).isZero();
         assertThat(RoundFairness.verify(t.round())).isTrue();
     }
-    @Test void activeViewsHideSeedFutureCrashAndBooster() throws Exception {
+    @Test void activeViewsRevealBoosterPositionButHideSeedAndFutureCrash() throws Exception {
         var r = start();
         var mapper = JsonMapper.builder().findAndAddModules().build();
         var json = mapper.valueToTree(RoundView.from(r));
-        assertThat(json.path("boosterLevel").isNull()).isTrue();
+        assertThat(json.path("boosterLevel").asInt()).isEqualTo(3);
         assertThat(json.path("crashMultiplier").isNull()).isTrue();
         assertThat(json.path("fairnessReveal").isNull()).isTrue();
         assertThat(json.has("seed")).isFalse();
@@ -74,8 +74,8 @@ class FairnessTest {
             assertThat(RoundFairness.canonical(id, 0, dec("1E+3"), 12)).contains("crashMultiplier=1000\n");
         } finally { Locale.setDefault(old); }
     }
-    @Test void boosterBecomesVisibleOnlyAfterActivation() {
-        assertThat(RoundView.from(start()).boosterLevel()).isNull();
+    @Test void boosterPositionIsVisibleImmediatelyAfterStart() {
+        assertThat(RoundView.from(start()).boosterLevel()).isEqualTo(3);
         assertThat(RoundView.from(engine.advance(start(), START.plusSeconds(10)).round()).boosterLevel()).isEqualTo(3);
     }
     @Test void x1ProofUsesNullBooster() {

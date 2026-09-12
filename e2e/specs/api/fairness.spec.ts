@@ -12,10 +12,12 @@ test('FAIRNESS commitment is early, seed hidden until crash, reveal verifies and
   try {
     const round = await api.startRound('GREEN', settings.stake, 2);
     expect(round.fairnessCommitment).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(round.boosterLevel).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(round)).not.toContain('serverSeed');
     expect(round.crashMultiplier).toBeUndefined();
     const started = await socket.waitForRound(round.id, (event) => event.type === 'ROUND_STARTED', 10_000);
     expect(started.data.fairnessCommitment).toBe(round.fairnessCommitment);
+    expect((started.data.round as { boosterLevel?: number }).boosterLevel).toBe(round.boosterLevel);
     expect(JSON.stringify(started)).not.toContain('serverSeed');
     const committed = await api.fairness(round.id);
     expect(committed.status).toBe('COMMITTED');

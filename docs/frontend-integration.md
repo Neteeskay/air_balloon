@@ -10,7 +10,7 @@ Frontend-ветка построена от `feat/demo-login` (`a5ce2ea`) и н�
 | Theme levels | `mockCatalog.thresholds` | `RoundView.totalLevels`, `levelThresholds`; config/catalog до start — TO MAP | PARTIAL |
 | Start | `MockBackend.game.startRound` | `POST /api/rounds` | READY |
 | Live flight | deterministic mock events | `/ws/rounds`: `ROUND_STARTED`, `MULTIPLIER_UPDATE`, `LEVEL_REACHED` | READY |
-| Booster | hidden mock level, reveal only at activation/crash | `BOOSTER_ACTIVATED`; `boosterLevel` hidden until activation/crash | READY |
+| Booster | authoritative level is returned on start; marker stays visible through cashout/crash | `boosterLevel` in start/snapshot/`ROUND_STARTED`; `BOOSTER_ACTIVATED` only changes state and points | READY |
 | Cashout | mock command and economy adapter | `POST /api/rounds/{roundId}/cashout`, `Idempotency-Key`; `CASHOUT_SUCCESS` | READY |
 | Crash / finish | deterministic preset | `CRASH`, `ROUND_FINISHED`, final snapshot | READY |
 | Active snapshot | stored mock round | `GET /api/rounds/{roundId}` | READY |

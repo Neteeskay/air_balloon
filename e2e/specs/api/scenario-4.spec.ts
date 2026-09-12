@@ -14,6 +14,7 @@ test.describe.serial('Scenario 4 — booster', () => {
     try {
       const round = await api.startRound('GREEN', settings.stake, 2);
       expect(round.boosterMultiplier).toBe(2);
+      expect(round.boosterLevel).toBeGreaterThanOrEqual(1);
       expect(round.boosterActivated).toBe(false);
       const event = await socket.waitForRound(round.id, (item) => item.type === 'BOOSTER_ACTIVATED', settings.eventTimeoutMs);
       expect(event.data.booster).toBe(2);

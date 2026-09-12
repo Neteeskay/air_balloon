@@ -36,7 +36,8 @@ class ReconnectIT extends IntegrationSupport {
             UUID id = UUID.fromString(started.path("id").asText());
             var startEvent = oldEvents.next();
             assertThat(startEvent.path("type").asText()).isEqualTo("ROUND_STARTED");
-            assertThat(startEvent.toString()).doesNotContain("serverSeed", "crashMultiplier", "boosterLevel");
+            assertThat(startEvent.toString()).doesNotContain("serverSeed", "crashMultiplier");
+            assertThat(startEvent.path("data").path("round").path("boosterLevel").asInt()).isEqualTo(3);
             close(old, oldEvents);
             clock.atMillis(10000);
             awaitLevel(id, 6); // No GET or explicit tick drives this progress: the real scheduler does.
