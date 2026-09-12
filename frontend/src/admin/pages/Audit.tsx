@@ -57,7 +57,7 @@ export function Audit({ client }: { client: AdminClient }) {
     {loading && !pageData && <div className="admin-loading">Поиск в журнале…</div>}
     {pageData && <section className="admin-card">
       <p className="admin-hint">Найдено записей: {pageData.totalElements}.</p>
-      <table className="admin-table">
+      <div className="admin-table-wrap"><table className="admin-table">
         <thead><tr><th>Когда</th><th>Администратор</th><th>Действие</th><th>Объект</th><th>Версия</th><th>Запрос</th></tr></thead>
         <tbody>
           {pageData.content.map(e => <tr key={e.id}>
@@ -69,7 +69,7 @@ export function Audit({ client }: { client: AdminClient }) {
             <td className="admin-mono">{e.traceId && shortId(e.traceId)}</td>
           </tr>)}
         </tbody>
-      </table>
+      </table></div>
       {pageData.content.length === 0 && <p className="admin-hint admin-p-16">Записей, удовлетворяющих фильтру, нет.</p>}
       <div className="admin-pagination">
         <button className="admin-secondary" disabled={pageData.page <= 0 || loading} onClick={() => void load(pageData.page - 1)}>← Назад</button>

@@ -26,8 +26,8 @@ export default function AdminApp({ client = adminClient }: { client?: AdminClien
     try { await client.logout() } catch { /* best-effort */ }
     clearAdminSession(); setSession(null)
   }
-  if (!session) return <Login client={client} onSession={setSession} />
-  return <div className="admin">
+  if (!session) return <div className="admin-app"><Login client={client} onSession={setSession} /></div>
+  return <div className="admin-app">
     <header className="admin-topbar">
       <div className="admin-brand"><span aria-hidden="true">◈</span><span>Воздушный Шар · Настройка</span></div>
       <nav aria-label="Навигация">

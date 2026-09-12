@@ -52,7 +52,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
       <button className="admin-secondary" onClick={() => void load()}>Обновить</button></div>
     {error && <div role="alert" className="admin-error admin-mb-14">{error}</div>}
     <section className="admin-card">
-      <table className="admin-table">
+      <div className="admin-table-wrap"><table className="admin-table">
         <thead><tr><th>Ревизия</th><th>Статус</th><th>Сохранена</th><th>Автор</th><th></th></tr></thead>
         <tbody>
           {versions.map(v => <tr key={v.id}>
@@ -67,7 +67,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
             </div></td>
           </tr>)}
         </tbody>
-      </table>
+      </table></div>
       {versions.length === 0 && <p className="admin-hint admin-p-16">История пока пуста. Измените и сохраните настройки на вкладке «Конфигурация».</p>}
     </section>
     {detailId !== null && <Modal title={detail ? `Ревизия #${detail.revision}` : 'Загрузка…'} onClose={() => setDetailId(null)}>
@@ -89,7 +89,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
     {diff && <Modal title="Сравнение версий" onClose={() => setDiff(null)}>
       <p className="admin-hint">Изменения между ревизиями #{versions.find(v => v.id === diff.fromVersionId)?.revision ?? '?'} и #{versions.find(v => v.id === diff.toVersionId)?.revision ?? '?'}.</p>
       {diff.changes.length === 0 && <p className="admin-hint">Различий нет.</p>}
-      <table className="admin-table">
+      <div className="admin-table-wrap"><table className="admin-table">
         <thead><tr><th>Параметр</th><th>Было</th><th>Стало</th></tr></thead>
         <tbody>
           {diff.changes.map((c, i) => <tr key={`${c.field}-${i}`}>
@@ -98,7 +98,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
             <td><strong>{fmt(c.after)}</strong></td>
           </tr>)}
         </tbody>
-      </table>
+      </table></div>
     </Modal>}
     {diffError && <Modal title="Сравнение версий" onClose={() => setDiffError('')}><p role="alert" className="admin-error">{diffError}</p></Modal>}
     {confirmRollback && <Modal title={`Восстановить ревизию #${confirmRollback.revision}?`} onClose={() => setConfirmRollback(null)}>

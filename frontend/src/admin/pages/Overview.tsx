@@ -60,7 +60,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
       </div>
       <section className="admin-card">
         <div className="admin-card-head"><h2 className="admin-card-title">Последние сохранения</h2><button className="admin-link-button" onClick={() => onNavigate('versions')}>Вся история →</button></div>
-        <table className="admin-table">
+        <div className="admin-table-wrap"><table className="admin-table">
           <thead><tr><th>Ревизия</th><th>Статус</th><th>Сохранена</th><th>Автор</th></tr></thead>
           <tbody>
             {versions.map(v => <tr key={v.id}>
@@ -70,7 +70,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
               <td>{v.createdBy}</td>
             </tr>)}
           </tbody>
-        </table>
+        </table></div>
       </section>
     </>}
   </div>

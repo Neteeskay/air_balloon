@@ -180,7 +180,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
       <div className="admin-crash-layout">
         <div className="admin-crash-params">
           <p className="admin-section-label admin-plain">Параметры модели</p>
-          {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}
+          {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}
           {liveCrash && <div className="admin-chart-chips">
             <span>P(X ≥ 2) ≈ <b>{previewP[0] ? (previewP[0].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 5) ≈ <b>{previewP[1] ? (previewP[1].p * 100).toFixed(2) : '—'}%</b></span>
@@ -213,13 +213,13 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
         })}
       </div>
       <h3 className="admin-section-label">Множители бустеров</h3>
-      <div className="admin-form-grid admin-tier-grid">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
+      <div className="admin-form-grid admin-tier-grid">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
       <h3 className="admin-section-label">{boosterTheme === 'green' ? 'Шансы линий · Зелёная тема' : 'Шансы линий · Красная тема'}</h3>
-      <div className="admin-form-grid admin-mb-0">{boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
+      <div className="admin-form-grid admin-mb-0">{boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
     </section>
     <section className="admin-card">
       <h2 className="admin-card-title">{GROUP_TITLE.points}</h2>
-      <div className="admin-form-grid admin-tier-grid">{pointsParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} />)}</div>
+      <div className="admin-form-grid admin-tier-grid">{pointsParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
     </section>
   </div>
 }
@@ -227,16 +227,18 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
 function FieldHead({ param, value }: { param: ParameterMetadata; value: string | undefined }) {
   return <span className="admin-field-head">
     <span>{param.displayName}{param.unit ? `, ${param.unit}` : ''}</span>
+    {!param.mutable && <span className="admin-readonly-badge">Только чтение</span>}
     <FieldHelp param={param} value={value} />
   </span>
 }
 
-function NumberField({ param, model, onChange, disabled }: { param: ParameterMetadata; model: EditorModel; onChange: (name: string, value: string) => void; disabled?: boolean }) {
+function NumberField({ param, model, onChange, disabled, error }: { param: ParameterMetadata; model: EditorModel; onChange: (name: string, value: string) => void; disabled?: boolean; error?: string }) {
   const step = param.dataType === 'integer' ? '1' : '0.1'
   const inputId = `admin-field-${param.technicalName.replace(/\./g, '-')}`
   return <label className="admin-form-label" htmlFor={inputId}>
     <FieldHead param={param} value={model[param.technicalName]} />
-    <input id={inputId} type="number" step={step} min={param.min ?? undefined} max={param.max ?? undefined} value={model[param.technicalName] ?? ''} onChange={e => onChange(param.technicalName, e.target.value)} disabled={disabled} />
+    <input id={inputId} type="number" step={step} min={param.min ?? undefined} max={param.max ?? undefined} value={model[param.technicalName] ?? ''} onChange={e => onChange(param.technicalName, e.target.value)} disabled={disabled || !param.mutable} aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} />
+    {error && <small id={`${inputId}-error`} className="admin-hint-error">Ошибка: {error}</small>}
   </label>
 }
 
@@ -244,7 +246,7 @@ function SelectField({ param, value, onChange }: { param: ParameterMetadata; val
   const inputId = `admin-field-${param.technicalName.replace(/\./g, '-')}`
   return <label className="admin-form-label" htmlFor={inputId}>
     <FieldHead param={param} value={value} />
-    <select id={inputId} value={value} onChange={e => onChange(param.technicalName, e.target.value)}>
+    <select id={inputId} value={value} onChange={e => onChange(param.technicalName, e.target.value)} disabled={!param.mutable}>
       <option value="true">Да — новые раунды принимаются</option>
       <option value="false">Нет — новые раунды отклоняются</option>
     </select>
