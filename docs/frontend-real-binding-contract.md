@@ -52,7 +52,9 @@ betAmount,boosterMultiplier,cashoutMultiplier?,crashMultiplier,winAmount,score,
 result,reward?,completedAt`. Personal items deliberately contain no user selector.
 
 `FairnessView` is COMMITTED before crash and REVEALED after crash. Do not expect
-`serverSeed`, `crashMultiplier`, `boosterLevel` or canonical proof before reveal.
+`serverSeed`, `crashMultiplier` or canonical proof before reveal. For x2/x3/x4
+`boosterLevel` is intentionally available from the start snapshot; x1 has no
+position. This does not change fairness reveal or crash secrecy.
 
 ## Auth and ownership behavior
 

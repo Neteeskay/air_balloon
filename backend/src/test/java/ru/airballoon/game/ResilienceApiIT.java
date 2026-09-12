@@ -66,7 +66,8 @@ class ResilienceApiIT extends IntegrationSupport {
                 .andExpect(jsonPath("events[0].eventId").value(r.id() + ":1"))
                 .andExpect(jsonPath("events[0].serverTime").exists()).andExpect(jsonPath("snapshotRequired").value(false))
                 .andReturn().getResponse().getContentAsString();
-        assertThat(body).doesNotContain("serverSeed", "\"seed\"", "\"boosterLevel\"", "crashMultiplier", "canonicalInput", "\"config\"", "\"userId\"");
+        assertThat(body).doesNotContain("serverSeed", "\"seed\"", "crashMultiplier", "canonicalInput", "\"config\"", "\"userId\"");
+        assertThat(mapper.readTree(body).path("events").get(0).path("data").path("round").path("boosterLevel").asInt()).isEqualTo(3);
         mvc.perform(get("/api/rounds/{id}/events", r.id()).principal(() -> user.toString()).param("afterSequence", "-1")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/rounds/{id}/events", r.id()).principal(() -> user.toString()).param("afterSequence", "bad")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/rounds/{id}/events", r.id()).principal(() -> UUID.randomUUID().toString())).andExpect(status().isForbidden());

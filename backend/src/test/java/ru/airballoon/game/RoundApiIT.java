@@ -81,6 +81,16 @@ class RoundApiIT extends IntegrationSupport {
         assertThat(balances.creditCount(user)).isEqualTo(1);
     }
 
+    @Test void startResponseExposesBoosterPositionWithoutExposingCrash() throws Exception {
+        mvc.perform(post("/api/rounds").principal(() -> user.toString()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("boosterLevel").value(3))
+                .andExpect(jsonPath("boosterActivated").value(false))
+                .andExpect(jsonPath("crashMultiplier").doesNotExist())
+                .andExpect(jsonPath("fairnessReveal").doesNotExist());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"currentMultiplier", "cashoutMultiplier", "winAmount", "seed", "crashMultiplier", "boosterLevel", "score", "elapsedTime", "status", "userId"})
     void rejectsClientAuthorityFieldsAtStart(String field) throws Exception {

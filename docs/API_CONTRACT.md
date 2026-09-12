@@ -72,6 +72,7 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
   "theme":"GREEN",
   "betAmount":100.00,
   "boosterMultiplier":3,
+  "boosterLevel":3,
   "boosterActivated":false,
   "currentMultiplier":1.0000,
   "currentLevel":0,
@@ -92,9 +93,12 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
 ```
 
 Seed отсутствует на верхнем уровне всегда; `fairnessReveal.serverSeed` появляется
-после падения. crashMultiplier отсутствует до падения. Позиция бустера скрыта до
-фактической активации или падения; это исправление утечки будущего результата.
-Для x1 boosterLevel отсутствует и в proof трактуется как null.
+после падения. crashMultiplier отсутствует до падения. Для x2/x3/x4
+`boosterLevel` возвращается уже в `POST /api/rounds`, snapshot и
+`ROUND_STARTED` (REST replay/WebSocket), потому что позиция выбирается сервером
+до старта и входит в исходный commitment. Для x1 поле `boosterLevel` отсутствует
+и в proof трактуется как `null`. Публичность позиции не раскрывает ни seed, ни
+будущий crashMultiplier.
 Start не идемпотентен: каждый POST списывает новую ставку.
 
 ### Snapshot

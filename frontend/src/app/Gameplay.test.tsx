@@ -34,6 +34,15 @@ describe('game components', () => {
     render(<Flight round={round('GREEN', { currentLevel: 1, currentMultiplier: 1.2, cashoutAvailable: true })} connection="connected" busy={false} notice="" onCashout={vi.fn()} onFairness={() => {}} onReconnect={() => {}} />)
     expect(screen.getByRole('button', { name: /Забрать/i })).toBeEnabled()
   })
+  it.each([2, 3, 4])('shows the authoritative ×%i marker from the start', booster => {
+    render(<Flight round={round('GREEN', { boosterMultiplier: booster, boosterLevel: 3 })} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)
+    expect(screen.getByTestId('booster-marker')).toHaveTextContent(`×${booster}`)
+    expect(screen.getByTestId('booster-state')).toHaveTextContent('позиция открыта')
+  })
+  it('does not render a marker for ×1', () => {
+    render(<Flight round={round()} connection="connected" busy={false} notice="" onCashout={() => {}} onFairness={() => {}} onReconnect={() => {}} />)
+    expect(screen.queryByTestId('booster-marker')).not.toBeInTheDocument()
+  })
   it('disables unaffordable bets and blocks start for an unaffordable selected stake', () => {
     render(<Setup theme="GREEN" onTheme={() => {}} catalog={mockCatalog} stake={100} onStake={() => {}} booster={1} onBooster={() => {}} balance={50} busy={false} onStart={() => {}} onRules={() => {}} onHistory={() => {}} />)
     expect(screen.getByRole('radio', { name: /100.*×1/i })).toBeDisabled()

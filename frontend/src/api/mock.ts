@@ -64,8 +64,6 @@ export class MockBackend {
       if (r.processed === end) {
         v.cashoutAvailable = false; v.status = 'FINISHED'; v.crashMultiplier = v.currentMultiplier
         v.outcome = v.cashoutPerformed ? 'CASHED_OUT' : 'LOSS'; v.finishedAt = new Date(Date.parse(v.startedAt) + end * 100).toISOString()
-        // Future booster is only revealed here or on activation.
-        if (v.boosterMultiplier > 1) v.boosterLevel = 3
         v.fairnessReveal = this.proof(r)
         this.emit(r, 'CRASH', { crashMultiplier: v.crashMultiplier, fairnessReveal: v.fairnessReveal })
         this.emit(r, 'ROUND_FINISHED', {})
@@ -77,7 +75,7 @@ export class MockBackend {
         this.award(r, points); v.cashoutAvailable = !v.cashoutPerformed
         this.emit(r, 'LEVEL_REACHED', { level: v.currentLevel, multiplier: v.currentMultiplier, points, pointsToAward: points })
         if (v.currentLevel === 3 && v.boosterMultiplier > 1 && !v.cashoutPerformed && !v.boosterActivated) {
-          const before = v.currentMultiplier; v.boosterActivated = true; v.boosterLevel = 3
+          const before = v.currentMultiplier; v.boosterActivated = true
           v.currentMultiplier = Math.round(base * v.boosterMultiplier * 10000) / 10000
           const bonus = v.boosterMultiplier * 100; this.award(r, bonus)
           this.emit(r, 'BOOSTER_ACTIVATED', { booster: v.boosterMultiplier, level: 3, beforeMultiplier: before, afterMultiplier: v.currentMultiplier, points: bonus, pointsToAward: bonus })
@@ -120,7 +118,7 @@ export class MockBackend {
         if (!mockCatalog.stakes.includes(input.betAmount) || !mockCatalog.boosters.includes(input.boosterMultiplier) || !thresholds[input.theme]) throw new Error('Недопустимый вариант ставки.')
         this.debit(owner, input.betAmount)
         const id = `demo-${++this.db.counter}`; const date = new Date(this.now()).toISOString()
-        const r: StoredRound = { owner, preset: this.preset, processed: 0, events: [], view: { ...input, id, roundId: id, boosterActivated: false, currentMultiplier: 1, currentLevel: 0, totalLevels: thresholds[input.theme].length, levelThresholds: [...thresholds[input.theme]], cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', startedAt: date, timestamp: date, serverTime: date, sequence: 0, fairnessCommitment: 'DEMO · пример commitment, не криптографическое доказательство' } }
+        const r: StoredRound = { owner, preset: this.preset, processed: 0, events: [], view: { ...input, id, roundId: id, boosterActivated: false, ...(input.boosterMultiplier > 1 ? { boosterLevel: 3 } : {}), currentMultiplier: 1, currentLevel: 0, totalLevels: thresholds[input.theme].length, levelThresholds: [...thresholds[input.theme]], cashoutAvailable: false, cashoutPerformed: false, winAmount: 0, roundScore: 0, status: 'RUNNING', startedAt: date, timestamp: date, serverTime: date, sequence: 0, fairnessCommitment: 'DEMO · пример commitment, не криптографическое доказательство' } }
         this.db.rounds[id] = r; this.emit(r, 'ROUND_STARTED', {}); this.save(); this.ensureTimer(); return this.publicRound(r)
       },
       cashout: async id => {

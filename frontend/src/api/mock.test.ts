@@ -21,7 +21,7 @@ describe('deterministic mock adapters', () => {
   })
   it.each([2, 3, 4])('activates a ×%i booster reached before cashout and updates multiplier and points', async booster => {
     const r = await backend.api.game.startRound({ theme: 'GREEN', betAmount: 100, boosterMultiplier: booster })
-    expect(r.boosterLevel).toBeUndefined()
+    expect(r.boosterLevel).toBe(3)
     now += 8500; backend.tick(); const snapshot = await backend.api.game.getSnapshot(r.id)
     expect(snapshot.boosterActivated).toBe(true); expect(snapshot.boosterLevel).toBe(3)
     expect(snapshot.currentMultiplier).toBeGreaterThanOrEqual(2 * booster); expect(snapshot.roundScore).toBeGreaterThan(200 + booster * 100)
