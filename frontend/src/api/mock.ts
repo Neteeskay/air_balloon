@@ -48,7 +48,10 @@ export class MockBackend {
   private proof(r: StoredRound): Fairness {
     const v = r.view
     return { roundId: v.id, status: v.status === 'FINISHED' ? 'REVEALED' : 'COMMITTED', commitment: v.fairnessCommitment, example: true,
-      ...(v.status === 'FINISHED' ? { serverSeed: '42', crashMultiplier: v.crashMultiplier, boosterLevel: v.boosterLevel, verified: false } : {}) }
+      ...(v.status === 'FINISHED' ? { serverSeed: '42', crashMultiplier: v.crashMultiplier, boosterLevel: v.boosterLevel, verified: false,
+        formulaVersion: 'HOUSE_EDGE_V1', uniformSample: 0.42, calculatedCrashMultiplier: v.crashMultiplier,
+        formulaVerified: true, minCrashMultiplier: v.crashMultiplier, maxCrashMultiplier: v.crashMultiplier,
+        alpha: 0.1, theme: v.theme, boosterMultiplier: v.boosterMultiplier } : {}) }
   }
   private advance(r: StoredRound) {
     const v = r.view
