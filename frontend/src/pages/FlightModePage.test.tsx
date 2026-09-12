@@ -51,4 +51,11 @@ describe('FlightModePage onboarding and mode selection', () => {
     renderPage()
     expect(document.querySelector('img[src="/assets/icons/кубок_старт.png"]')).toBeInTheDocument()
   })
+
+  it('uses the shared white card surface for rating', () => {
+    window.localStorage.setItem('air-balloon-flight-mode-onboarding-complete:test-user', 'true')
+    renderPage()
+    const rating = screen.getByRole('button', { name: /Открыть глобальный рейтинг/ })
+    expect(rating).toHaveClass('surface-card')
+  })
 })

@@ -1,4 +1,5 @@
 .flight-mode-page {
+  --card-surface: #fff;
   font-family: "Trebuchet MS", Arial, sans-serif;
   color: #092054;
   background: #76caf4;
@@ -158,7 +159,7 @@ body { min-height: 100svh; overflow: hidden; }
   overflow: visible;
   border: 3px solid rgba(255, 255, 255, .93);
   border-radius: clamp(25px, 2cqw, 38px);
-  background: linear-gradient(180deg, rgba(227,246,255,.92) 0%, rgba(255,255,255,.97) 72%);
+  background: var(--card-surface);
   /* Keep the resting state neutral; the mode accent is reserved for interaction. */
   box-shadow: 0 20px 42px rgba(16,76,110,.2);
   animation: cardRise 760ms cubic-bezier(.2,.75,.28,1) both;
@@ -294,7 +295,7 @@ body { min-height: 100svh; overflow: hidden; }
   border: 3px solid rgba(255,255,255,.88);
   border-radius: 27px;
   color: #0c265a;
-  background: rgba(220, 242, 251, .93);
+  background: var(--card-surface);
   box-shadow: 0 13px 30px rgba(15,82,123,.17), inset 0 1px 0 white;
   transform: translateX(-50%);
   animation: ratingCardRise 820ms 100ms cubic-bezier(.2,.75,.28,1) both;
@@ -472,6 +473,168 @@ body { min-height: 100svh; overflow: hidden; }
   .user-panel { right: 1.5%; }
   .tutorial-tip--red { left: 8%; }
   .tutorial-tip--green { right: 8%; }
+}
+
+/* The desktop composition is intentionally staged on a 16:9 canvas. On
+   phones, switch to a normal document flow so cards remain readable instead
+   of shrinking into a narrow two-column layout. */
+@media (max-width: 700px) {
+  .flight-mode-page {
+    height: 100svh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .scene-background {
+    position: fixed;
+    background-position: center top;
+  }
+
+  .birds { display: none; }
+
+  .flight-stage {
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    min-height: 100%;
+    height: auto;
+    max-height: none;
+    padding: 76px 12px 28px;
+    transform: none;
+    aspect-ratio: auto;
+    container-type: inline-size;
+  }
+
+  .flight-header {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    transform: none;
+    flex: 0 0 auto;
+  }
+
+  .flight-logo {
+    width: clamp(190px, 56vw, 260px);
+    height: clamp(88px, 25vw, 126px);
+    margin: -18px auto -10px;
+  }
+
+  .flight-header h1 {
+    font-size: clamp(24px, 7vw, 33px);
+    letter-spacing: -.035em;
+  }
+
+  .flight-header p {
+    max-width: 35rem;
+    margin-inline: auto;
+    font-size: clamp(13px, 3.7vw, 16px);
+  }
+
+  .user-panel {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    height: 48px;
+    padding: 4px 10px 4px 6px;
+    gap: 8px;
+  }
+
+  .user-panel__avatar { width: 38px; height: 38px; flex-basis: 38px; }
+  .user-panel strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .user-panel__divider { height: 24px; }
+  .user-panel button:not(.user-panel__avatar) { width: 40px; height: 40px; flex: 0 0 40px; }
+
+  .mode-grid {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    gap: 18px;
+    margin-top: clamp(24px, 6vw, 38px);
+    transform: none;
+  }
+
+  .mode-card {
+    width: 100%;
+    height: clamp(340px, 108vw, 430px);
+    min-height: 340px;
+    border-radius: 28px;
+  }
+
+  .mode-card__balloon { height: 64%; top: -7%; }
+  .mode-card__copy { bottom: 17%; }
+  .mode-card__copy h2 { font-size: clamp(24px, 7vw, 32px); }
+  .mode-card__levels strong { font-size: clamp(15px, 4.2vw, 19px); }
+  .mode-card__copy p { font-size: clamp(13px, 3.8vw, 16px); }
+  .mode-card__button { min-height: 48px; height: 12.5%; font-size: clamp(16px, 4.7vw, 20px); }
+
+  .rating-card {
+    position: relative;
+    inset: auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: auto;
+    min-height: 94px;
+    margin-top: 18px;
+    padding: 10px 12px;
+    gap: 9px;
+    border-radius: 24px;
+    transform: none;
+    animation-name: ratingCardRiseMobile;
+  }
+
+  .rating-card.is-tutorial-target { animation-name: tutorialTargetRatingMobile; }
+
+  .rating-card__trophy { width: clamp(48px, 15vw, 66px); }
+  .rating-card h2 { font-size: clamp(16px, 4.5vw, 21px); line-height: 1.05; }
+  .rating-card p { font-size: clamp(11px, 3.2vw, 14px); }
+  .rating-card__days { gap: 4px; padding: .45rem .55rem; font-size: clamp(11px, 3.2vw, 14px); white-space: nowrap; }
+  .rating-card > svg { width: 1.25rem; height: 1.25rem; }
+
+  .tutorial-layer { position: fixed; }
+  .chinchillot { width: clamp(180px, 54vw, 260px); left: -16px; bottom: -1%; }
+  .tutorial-dialog { left: 12px; bottom: 34%; width: calc(100% - 24px); padding: 18px 20px; }
+  .tutorial-dialog strong { font-size: clamp(18px, 5.2vw, 24px); }
+  .tutorial-dialog > span:last-child { font-size: clamp(14px, 4vw, 17px); }
+  .tutorial-tip--red, .tutorial-tip--green, .tutorial-tip--trophy, .tutorial-tip--rating {
+    top: 27%;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 14px 17px;
+    text-align: left;
+  }
+  .tutorial-tip--trophy, .tutorial-tip--rating { top: 58%; }
+  .tutorial-tip--red::after, .tutorial-tip--green::after, .tutorial-tip--trophy::after, .tutorial-tip--rating::after { display: none; }
+  .tutorial-skip { right: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: .65rem 1rem; font-size: 13px; }
+}
+
+@media (max-width: 360px) {
+  .flight-stage { padding-inline: 10px; }
+  .user-panel { left: 10px; right: 10px; }
+  .mode-card { height: 348px; }
+  .rating-card { gap: 6px; padding-inline: 9px; }
+  .rating-card__days { padding-inline: .4rem; }
+}
+
+@keyframes ratingCardRiseMobile {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tutorialTargetRatingMobile {
+  from { filter: brightness(1); transform: translateY(0) scale(1); }
+  to { filter: brightness(1.08); transform: translateY(-5px) scale(1.018); }
 }
 
 @media (prefers-reduced-motion: reduce) {

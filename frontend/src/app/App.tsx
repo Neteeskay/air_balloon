@@ -13,6 +13,7 @@ import {
   readMockState,
   saveMockAvatar,
   writeMockState,
+  MOCK_STATE_KEY,
   type MockTheme,
 } from '../mocks/mockGame'
 import FlightModePage, { type FlightMode } from '../pages/FlightModePage'
@@ -45,7 +46,19 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  useEffect(() => writeMockState(state), [state])
+  useEffect(() => {
+    if (state.currentUser) {
+      writeMockState(state)
+      return
+    }
+
+    // An unauthenticated state must not leave a restorable session behind.
+    try {
+      window.sessionStorage.removeItem(MOCK_STATE_KEY)
+    } catch {
+      // In-memory navigation remains usable when storage is unavailable.
+    }
+  }, [state])
 
   useEffect(() => {
     document.body.style.overflow = path === '/' ? 'auto' : 'hidden'
@@ -110,7 +123,14 @@ export default function App() {
         currentUser={state.currentUser}
         onLogout={() => {
           setState(EMPTY_MOCK_STATE)
-          navigate('/')
+          // Remove the persisted session before replacing the current route.
+          // This keeps protected routes inaccessible even if the user presses Back.
+          try {
+            window.sessionStorage.removeItem(MOCK_STATE_KEY)
+          } catch {
+            // Continue with the in-memory state when storage is unavailable.
+          }
+          navigate('/login', true)
         }}
         onModeSelected={selectMode}
         onProfile={openProfile}

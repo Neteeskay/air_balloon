@@ -14,8 +14,8 @@ vi.mock('../pages/LoginPage', () => ({
 }))
 
 vi.mock('../pages/FlightModePage', () => ({
-  default: ({ onModeSelected, onOpenRating, onProfile }: any) => (
-    <><button onClick={() => onModeSelected('GREEN')}>Green</button><button onClick={() => onModeSelected('RED')}>Red</button><button onClick={onOpenRating}>Rating</button><button onClick={onProfile}>Mode Profile</button></>
+  default: ({ onModeSelected, onOpenRating, onProfile, onLogout }: any) => (
+    <><button onClick={() => onModeSelected('GREEN')}>Green</button><button onClick={() => onModeSelected('RED')}>Red</button><button onClick={onOpenRating}>Rating</button><button onClick={onProfile}>Mode Profile</button><button onClick={onLogout}>Logout</button></>
   ),
 }))
 
@@ -118,5 +118,20 @@ describe('full mock application flow', () => {
     window.history.replaceState(null, '', '/result/win')
     render(<App />)
     await waitFor(() => expect(window.location.pathname).toBe('/bet'))
+  })
+
+  it('logs out directly to login and does not restore mode with Back', async () => {
+    render(<App />)
+    loginAndChoose('Green')
+    // Return to mode through the browser history, then exercise its logout action.
+    window.history.pushState(null, '', '/mode')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    await waitFor(() => expect(screen.getByText('Logout')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Logout'))
+    expect(window.location.pathname).toBe('/login')
+    expect(window.sessionStorage.getItem(MOCK_STATE_KEY)).toBeNull()
+    expect(screen.queryByText('Landing Play')).not.toBeInTheDocument()
+    window.history.back()
+    expect(window.location.pathname).not.toBe('/mode')
   })
 })

@@ -70,7 +70,7 @@ type ModeCardProps = {
 function ModeCard({ mode, title, levels, description, balloon, selected, tutorialStep, onChoose }: ModeCardProps) {
   const activeTutorial = tutorialStep === (mode === 'RED' ? 2 : 3)
   return (
-    <article className={`mode-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
+    <article className={`mode-card surface-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
       <img className="mode-card__balloon" src={balloon} alt="" draggable="false" />
       <div className="mode-card__copy">
         <h2>{title}</h2>
@@ -216,7 +216,7 @@ export default function FlightModePage({
       </section>
 
       <button
-        className={`rating-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`}
+        className={`rating-card surface-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`}
         type="button"
         onClick={tutorialVisible ? undefined : onOpenRating}
         aria-label="Открыть глобальный рейтинг игроков"
