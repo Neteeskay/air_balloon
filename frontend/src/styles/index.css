@@ -137,6 +137,7 @@ body { min-height: 100svh; overflow: hidden; }
 .user-panel strong { flex: 1; font-size: clamp(14px, .9cqw, 17px); }
 .user-panel__divider { width: 1px; height: 28px; background: rgba(255,255,255,.72); }
 .user-panel button { display: grid; place-items: center; padding: 4px; border: 0; color: white; background: transparent; cursor: pointer; }
+.user-panel button.user-panel__avatar { padding: 0; color: #174478; background: rgba(235,247,255,.92); }
 
 .mode-grid {
   position: absolute;

@@ -14,28 +14,33 @@ vi.mock('../pages/LoginPage', () => ({
 }))
 
 vi.mock('../pages/FlightModePage', () => ({
-  default: ({ onModeSelected, onOpenRating }: any) => (
-    <><button onClick={() => onModeSelected('GREEN')}>Green</button><button onClick={() => onModeSelected('RED')}>Red</button><button onClick={onOpenRating}>Rating</button></>
+  default: ({ onModeSelected, onOpenRating, onProfile }: any) => (
+    <><button onClick={() => onModeSelected('GREEN')}>Green</button><button onClick={() => onModeSelected('RED')}>Red</button><button onClick={onOpenRating}>Rating</button><button onClick={onProfile}>Mode Profile</button></>
   ),
 }))
 
 vi.mock('../features/betting/pages/BetSelectionPage', () => ({
-  BetSelectionPage: ({ onStart, onOpenTournament, onCloseTournament, tournamentOpen, ratingOpen }: any) => (
+  BetSelectionPage: ({ onStart, onOpenTournament, onCloseTournament, onProfile, tournamentOpen, ratingOpen }: any) => (
     <>
       <span>Bet Screen</span>
       <button onClick={() => onStart(15, 2)}>Start</button>
       <button onClick={onOpenTournament}>Tournament</button>
+      <button onClick={onProfile}>Bet Profile</button>
       {(tournamentOpen || ratingOpen) && <button onClick={onCloseTournament}>Close Table</button>}
     </>
   ),
 }))
 
 vi.mock('../features/game/MockGameplayBridge', () => ({
-  MockGameplayBridge: ({ onWin, onLoss }: any) => <><button onClick={onWin}>WIN</button><button onClick={onLoss}>LOSS</button></>,
+  MockGameplayBridge: ({ onWin, onLoss, onProfile }: any) => <><button onClick={onWin}>WIN</button><button onClick={onLoss}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
 }))
 
 vi.mock('../features/results', () => ({
-  ResultScreen: ({ data, actions }: any) => <><span>{data.result} Result</span><button onClick={() => actions.onPlayAgain(data.theme)}>Play Again</button></>,
+  ResultScreen: ({ data, actions }: any) => <><span>{data.result} Result</span><span>{data.reward.collectedFragments} / {data.reward.totalFragments}</span><button onClick={() => actions.onPlayAgain(data.theme)}>Play Again</button><button onClick={actions.onProfile}>Result Profile</button></>,
+}))
+
+vi.mock('../features/avatar/AvatarProfile', () => ({
+  AvatarProfile: ({ puzzle, equippedClothing, onClose }: any) => <><span>Profile Screen</span><span>{puzzle.collectedFragments} / {puzzle.totalFragments}</span><span>Equipped {equippedClothing.neckId}</span><button onClick={onClose}>Profile Back</button></>,
 }))
 
 function loginAndChoose(mode: 'Green' | 'Red') {
@@ -84,6 +89,25 @@ describe('full mock application flow', () => {
     fireEvent.click(screen.getByText('Close Table'))
     expect(window.location.pathname).toBe('/bet')
     expect(screen.getByText('Bet Screen')).toBeInTheDocument()
+  })
+
+  it('opens Profile from authenticated screens and returns to the previous flow', () => {
+    render(<App />)
+    loginAndChoose('Green')
+    fireEvent.click(screen.getByText('Bet Profile'))
+    expect(window.location.pathname).toBe('/profile')
+    expect(screen.getByText('Profile Screen')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Profile Back'))
+    expect(window.location.pathname).toBe('/bet')
+
+    fireEvent.click(screen.getByText('Start'))
+    fireEvent.click(screen.getByText('LOSS'))
+    expect(screen.getByText('6 / 6')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Result Profile'))
+    expect(window.location.pathname).toBe('/profile')
+    expect(screen.getByText('6 / 6')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Profile Back'))
+    expect(window.location.pathname).toBe('/result/loss')
   })
 
   it('redirects a direct result route without a round to a safe screen', async () => {

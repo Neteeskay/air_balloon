@@ -119,6 +119,8 @@
   white-space: nowrap;
 }
 
+.result-hud__profile { padding: 0; border: 0; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+
 .result-hud__balance img {
   width: 28px;
   height: 28px;
@@ -541,6 +543,13 @@
   color: #702f18;
 }
 
+.result-unlock { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 12px; margin: 4px 0 10px; padding: 8px 12px; border: 1px solid rgba(225, 176, 55, .5); border-radius: 16px; text-align: left; background: linear-gradient(100deg, #fff8d9, #fffdf5); }
+.result-unlock > img { width: 58px; height: 58px; object-fit: contain; }
+.result-unlock > div { display: grid; gap: 2px; }
+.result-unlock strong { color: #805100; font-size: 16px; }
+.result-unlock span { color: #65573f; font-size: 12px; }
+.result-unlock button { padding: 9px 13px; border: 0; border-radius: 999px; color: white; background: #1b69a7; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+
 .result-actions {
   display: flex;
   flex-direction: column;
@@ -758,6 +767,9 @@
   .result-reward--points span,
   .result-reward--fragment span { font-size: 11px; }
   .result-reward--fragment strong { font-size: 27px; }
+  .result-unlock { grid-template-columns: 45px 1fr; gap: 8px; padding: 7px 9px; }
+  .result-unlock > img { width: 45px; height: 45px; }
+  .result-unlock button { grid-column: 1 / -1; padding: 7px 10px; }
   .result-info--retry { min-height: 57px; padding: 4px 10px; }
   .result-button { width: 100%; }
   .ambient-balloon--one { width: 75px; right: -10px; top: 16%; }

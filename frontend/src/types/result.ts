@@ -4,6 +4,14 @@ export type RoundOutcome = 'win' | 'loss';
 export interface RoundReward {
   count: number;
   label?: string;
+  puzzleName?: string;
+  collectedFragments?: number;
+  totalFragments?: number;
+  puzzleCompleted?: boolean;
+  clothingReward?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface ResultScreenData {
@@ -28,4 +36,5 @@ export interface ResultScreenActions {
   onHome: () => void;
   onAutoReturn: (theme: GameTheme) => void;
   onMenu?: () => void;
+  onProfile?: () => void;
 }

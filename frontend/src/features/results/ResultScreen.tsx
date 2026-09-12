@@ -108,10 +108,10 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
 
       <header className="result-hud" aria-label="Профиль игрока">
         <div className="result-hud__pill">
-          <div className="result-hud__player">
+          <button className="result-hud__player result-hud__profile" type="button" onClick={() => { markInteraction(); actions.onProfile?.(); }} aria-label="Открыть профиль">
             <UserRound size={19} strokeWidth={2.5} aria-hidden="true" />
             <span>{data.playerName}</span>
-          </div>
+          </button>
           <div className="result-hud__balance">
             <img src={resultAssets.coin} alt="" />
             <span>{formatBalance(data.bonusBalance)}</span>
@@ -187,10 +187,18 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
             <img src={resultAssets.puzzle} alt="" />
             <div>
               <span>{data.reward.label ?? 'Новый фрагмент'}</span>
-              <strong>×{data.reward.count}</strong>
+              <strong>{data.reward.collectedFragments ?? data.reward.count} / {data.reward.totalFragments ?? '—'}</strong>
             </div>
           </div>
         </div>
+
+        {data.reward.puzzleCompleted && data.reward.clothingReward && (
+          <div className="result-unlock" role="status">
+            <img src="/assets/avatar/rendered-aviator-cloud-scarf-v3.png" alt={data.reward.clothingReward.name} />
+            <div><strong>Пазл собран!</strong><span>Открыт новый предмет: {data.reward.clothingReward.name}</span></div>
+            <button type="button" onClick={() => { markInteraction(); actions.onProfile?.(); }}>В профиль</button>
+          </div>
+        )}
 
         <div className="result-actions">
           <button className="result-button result-button--primary" type="button" onClick={() => { markInteraction(); actions.onPlayAgain(data.theme); }}>

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AvatarProfile } from '../features/avatar/AvatarProfile'
 import { BetSelectionPage } from '../features/betting/pages/BetSelectionPage'
 import { MockGameplayBridge } from '../features/game/MockGameplayBridge'
 import { LandingPage } from '../features/landing/pages/LandingPage'
@@ -10,6 +11,7 @@ import {
   createMockUser,
   finishMockRound,
   readMockState,
+  saveMockAvatar,
   writeMockState,
   type MockTheme,
 } from '../mocks/mockGame'
@@ -19,7 +21,7 @@ import type { CurrentUser } from '../types/auth'
 import type { RoundOutcome } from '../types/result'
 
 const KNOWN_ROUTES = new Set([
-  '/', '/login', '/mode', '/bet', '/game', '/result/win', '/result/loss', '/tournament', '/rating',
+  '/', '/login', '/mode', '/bet', '/game', '/result/win', '/result/loss', '/tournament', '/rating', '/profile',
 ])
 
 function currentPath() {
@@ -35,6 +37,7 @@ function Redirect({ to, navigate }: { to: string; navigate: (path: string, repla
 export default function App() {
   const [path, setPath] = useState(currentPath)
   const [state, setState] = useState(readMockState)
+  const profileReturnPath = useRef('/mode')
 
   useEffect(() => {
     const onPopState = () => setPath(currentPath())
@@ -57,6 +60,11 @@ export default function App() {
     setPath(nextPath)
     window.scrollTo({ top: 0, left: 0 })
   }, [])
+
+  const openProfile = useCallback(() => {
+    profileReturnPath.current = path === '/profile' ? '/mode' : path
+    navigate('/profile')
+  }, [navigate, path])
 
   const authenticate = (user: CurrentUser) => {
     setState((current) => ({ ...current, currentUser: createMockUser(user) }))
@@ -105,6 +113,7 @@ export default function App() {
           navigate('/')
         }}
         onModeSelected={selectMode}
+        onProfile={openProfile}
         onOpenRating={() => {
           setState((current) => ({ ...current, selectedTheme: current.selectedTheme ?? 'green' }))
           navigate('/rating')
@@ -122,7 +131,7 @@ export default function App() {
         tournamentOpen={path === '/tournament'}
         ratingOpen={path === '/rating'}
         onBack={() => navigate('/mode')}
-        onProfile={() => navigate('/mode')}
+        onProfile={openProfile}
         onThemeChange={(selectedTheme) => setState((current) => ({ ...current, selectedTheme }))}
         onStart={startRound}
         onTopUp={() => setState((current) => current.currentUser ? ({
@@ -143,6 +152,7 @@ export default function App() {
         onWin={() => finishRound('win')}
         onLoss={() => finishRound('loss')}
         onBack={returnToBet}
+        onProfile={openProfile}
       />
     )
   }
@@ -167,7 +177,25 @@ export default function App() {
           },
           onAutoReturn: returnToBet,
           onMenu: () => navigate('/mode'),
+          onProfile: openProfile,
         }}
+      />
+    )
+  }
+
+  if (path === '/profile') {
+    const puzzle = state.currentUser.puzzles[0]
+    return (
+      <AvatarProfile
+        userName={state.currentUser.displayName}
+        balance={state.currentUser.balance}
+        score={state.currentUser.score}
+        petName={state.currentUser.petName}
+        puzzle={puzzle}
+        unlockedClothingIds={state.currentUser.unlockedClothingIds}
+        equippedClothing={state.currentUser.equippedClothing}
+        onSave={(petName, equipped) => setState((current) => saveMockAvatar(current, petName, equipped))}
+        onClose={() => navigate(profileReturnPath.current)}
       />
     )
   }

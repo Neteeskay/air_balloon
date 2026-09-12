@@ -99,11 +99,13 @@ export default function FlightModePage({
   onLogout,
   onModeSelected,
   onOpenRating,
+  onProfile,
 }: {
   currentUser: CurrentUser
   onLogout: () => void
   onModeSelected: (mode: FlightMode) => void
   onOpenRating: () => void
+  onProfile: () => void
 }) {
   const [tutorialVisible, setTutorialVisible] = useState(
     () => readStorage(onboardingKey(currentUser.userId)) !== 'true',
@@ -178,7 +180,7 @@ export default function FlightModePage({
       </header>
 
       <div className="user-panel" aria-label={`Профиль ${currentUser.displayName}`}>
-        <span className="user-panel__avatar"><UserIcon /></span>
+        <button className="user-panel__avatar" type="button" aria-label="Открыть профиль" title="Профиль" onClick={(event) => { event.stopPropagation(); onProfile() }}><UserIcon /></button>
         <strong>{currentUser.displayName}</strong>
         <span className="user-panel__divider" />
         <button type="button" aria-label="Выйти" title="Выйти" onClick={onLogout}><LogoutIcon /></button>

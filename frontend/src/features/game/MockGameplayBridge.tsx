@@ -8,18 +8,19 @@ type MockGameplayBridgeProps = {
   onWin: () => void
   onLoss: () => void
   onBack: () => void
+  onProfile: () => void
 }
 
-export function MockGameplayBridge({ round, user, onWin, onLoss, onBack }: MockGameplayBridgeProps) {
+export function MockGameplayBridge({ round, user, onWin, onLoss, onBack, onProfile }: MockGameplayBridgeProps) {
   return (
     <main className={`mock-game theme-${round.theme}`}>
       <div className="mock-game__clouds" aria-hidden="true" />
       <header className="mock-game__header">
         <button type="button" onClick={onBack}>← К ставке</button>
-        <div className="mock-game__profile">
+        <button className="mock-game__profile" type="button" onClick={onProfile} aria-label="Открыть профиль">
           <span>{user.displayName}</span>
           <strong>{user.balance} бонусов</strong>
-        </div>
+        </button>
       </header>
 
       <section className="mock-game__stage" aria-labelledby="mock-game-title">
