@@ -12,14 +12,20 @@ import { ResultScreen } from './features/results'
 import type { ResultScreenData } from './types/result'
 import { RealProfilePage } from './features/profile/RealProfilePage'
 import { unlockCrashAudio } from './features/game/hooks/useCrashSounds'
+import { backgroundMusic } from './audio/backgroundMusic'
 
 const pathOf = () => window.location.pathname.replace(/\/+$/, '') || '/'
 
 export function App() {
+  useEffect(() => {
+    backgroundMusic.mount()
+    return () => backgroundMusic.unmount()
+  }, [])
+
   const game = useGameSession()
   const [path, setPath] = useState(pathOf)
   const { unlockSkySounds } = useSkySounds({ enabled: game.soundOn, flightActive: Boolean(game.round) })
-  const unlockAudio = useCallback(() => { unlockSkySounds(); unlockCrashAudio() }, [unlockSkySounds])
+  const unlockAudio = useCallback(() => { backgroundMusic.unlock(); unlockSkySounds(); unlockCrashAudio() }, [unlockSkySounds])
   useEffect(() => { const onPop = () => setPath(pathOf()); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop) }, [])
   const navigate = useCallback((next: string, replace = false) => { (replace ? window.history.replaceState : window.history.pushState).call(window.history, null, '', next); setPath(next); window.scrollTo(0, 0) }, [])
   useEffect(() => { if (!game.loading && !game.user && path !== '/' && path !== '/login') navigate('/login', true) }, [game.loading, game.user, navigate, path])
