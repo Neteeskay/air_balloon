@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const ONBOARDING_KEY = 'air-balloon-flight-mode-onboarding-complete:00000000-0000-4000-8000-000000000001'
+const MOCK_STATE_KEY = 'air-balloon:full-mock:v1'
 
 async function login(page: Page) {
   await page.goto('/')
@@ -22,7 +23,20 @@ async function start(page: Page) {
   await expect(page).toHaveURL(/\/game$/)
 }
 
+async function setCrashPoint(page: Page, crashMultiplier: number) {
+  await page.evaluate(({ key, crashMultiplier: value }) => {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return
+    const state = JSON.parse(raw)
+    state.mockRound.crashMultiplier = value
+    sessionStorage.setItem(key, JSON.stringify(state))
+  }, { key: MOCK_STATE_KEY, crashMultiplier })
+  await page.reload()
+  await expect(page).toHaveURL(/\/game$/)
+}
+
 async function finishWin(page: Page) {
+  await setCrashPoint(page, 1.4)
   await expect(page.getByTestId('cashout-button')).toBeEnabled({ timeout: 3_000 })
   await page.getByTestId('cashout-button').click()
   await page.waitForTimeout(6_500)
@@ -30,7 +44,8 @@ async function finishWin(page: Page) {
 }
 
 async function finishLoss(page: Page) {
-  await page.waitForTimeout(6_500)
+  await setCrashPoint(page, 1.2)
+  await page.waitForTimeout(4_000)
   await expect(page).toHaveURL(/\/result\/loss$/)
 }
 
@@ -42,7 +57,7 @@ test('GREEN complete flow is mock-only and awards one puzzle fragment on WIN', a
   await login(page)
   await chooseMode(page, 'green')
   await start(page)
-  await expect(page.getByText(/9 уровней/)).toBeVisible()
+  await expect(page.locator('.crash-level')).toHaveCount(9)
   await finishWin(page)
   await expect(page.getByText('Полёт удался')).toBeVisible()
   await expect(page.getByText('6 / 6')).toBeVisible()
@@ -53,7 +68,7 @@ test('RED reaches its 12-level gameplay and LOSS grants no fragment', async ({ p
   await login(page)
   await chooseMode(page, 'red')
   await start(page)
-  await expect(page.getByText(/12 уровней/)).toBeVisible()
+  await expect(page.locator('.crash-level')).toHaveCount(12)
   await finishLoss(page)
   await expect(page.getByText('В этот раз не успели')).toBeVisible()
   await expect(page.getByText('5 / 6')).toBeVisible()

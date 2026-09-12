@@ -31,8 +31,8 @@ vi.mock('../features/betting/pages/BetSelectionPage', () => ({
   ),
 }))
 
-vi.mock('../features/game/MockGameplay', () => ({
-  MockGameplay: ({ onCashout, onComplete, onProfile }: any) => <><button onClick={() => { onCashout(2.2); onComplete('win') }}>WIN</button><button onClick={() => onComplete('loss')}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
+vi.mock('../features/game/pages/CrashGamePage', () => ({
+  CrashGamePage: ({ onCashout, onFinish, onProfile }: any) => <><button onClick={() => { onCashout(2.2); onFinish() }}>WIN</button><button onClick={onFinish}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
 }))
 
 vi.mock('../features/results', () => ({

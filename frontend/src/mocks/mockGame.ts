@@ -1,5 +1,6 @@
 import type { CurrentUser } from '../types/auth'
 import type { ResultScreenData, RoundOutcome } from '../types/result'
+import { createCrashRoundMock } from '../features/game/mocks/crashRound'
 
 export type MockTheme = 'green' | 'red'
 export type MockBooster = 1 | 2 | 3 | 4
@@ -34,7 +35,6 @@ export type MockRound = {
   stake: number
   booster: MockBooster
   startedAt: number
-  crashAfterMs: number
   crashMultiplier: number
   cashoutMultiplier: number | null
   status: 'flying' | 'cashed-out' | 'finished'
@@ -151,7 +151,6 @@ export function readMockState(): MockGameState {
           stake: typeof parsedRound.stake === 'number' ? parsedRound.stake : 15,
           booster: [1, 2, 3, 4].includes(Number(parsedRound.booster)) ? Number(parsedRound.booster) as MockBooster : 1 as const,
           startedAt: typeof parsedRound.startedAt === 'number' ? parsedRound.startedAt : Date.now(),
-          crashAfterMs: typeof parsedRound.crashAfterMs === 'number' ? parsedRound.crashAfterMs : 5600,
           crashMultiplier: typeof parsedRound.crashMultiplier === 'number' ? parsedRound.crashMultiplier : 1.47,
           cashoutMultiplier: typeof parsedRound.cashoutMultiplier === 'number' ? parsedRound.cashoutMultiplier : null,
           status: parsedRound.status === 'cashed-out' || parsedRound.status === 'finished' ? parsedRound.status : 'flying' as const,
@@ -178,6 +177,8 @@ export function beginMockRound(
 ): MockGameState {
   if (!state.currentUser || !state.selectedTheme || stake <= 0 || stake > state.currentUser.balance) return state
 
+  const crashMock = createCrashRoundMock()
+
   return {
     ...state,
     currentUser: { ...state.currentUser, balance: state.currentUser.balance - stake },
@@ -189,10 +190,7 @@ export function beginMockRound(
       stake,
       booster,
       startedAt: Date.now(),
-      // Deterministic UI fixture: the balloon reaches the crash point after a
-      // short, refresh-safe flight. This is not production crash mathematics.
-      crashAfterMs: state.selectedTheme === 'red' ? 6200 : 5600,
-      crashMultiplier: 1.47,
+      crashMultiplier: crashMock.crashAt,
       cashoutMultiplier: null,
       status: 'flying',
     },

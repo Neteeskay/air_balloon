@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AvatarProfile } from '../features/avatar/AvatarProfile'
 import { BetSelectionPage } from '../features/betting/pages/BetSelectionPage'
-import { MockGameplay } from '../features/game/MockGameplay'
+import { CrashGamePage } from '../features/game/pages/CrashGamePage'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { ResultScreen } from '../features/results'
 import {
@@ -107,6 +107,13 @@ export default function App() {
     navigate('/game')
   }
 
+  const topUp = useCallback(() => {
+    setState((current) => current.currentUser ? ({
+      ...current,
+      currentUser: { ...current.currentUser, balance: current.currentUser.balance + 50 },
+    }) : current)
+  }, [])
+
   const cashOutRound = (multiplier: number) => {
     setState((current) => cashOutMockRound(current, multiplier))
   }
@@ -167,10 +174,7 @@ export default function App() {
         onProfile={openProfile}
         onThemeChange={(selectedTheme) => setState((current) => ({ ...current, selectedTheme }))}
         onStart={startRound}
-        onTopUp={() => setState((current) => current.currentUser ? ({
-          ...current,
-          currentUser: { ...current.currentUser, balance: current.currentUser.balance + 50 },
-        }) : current)}
+        onTopUp={topUp}
         onOpenTournament={() => navigate('/tournament')}
         onCloseTournament={() => navigate(path === '/rating' ? '/mode' : '/bet')}
       />
@@ -179,13 +183,14 @@ export default function App() {
 
   if (path === '/game' && state.mockRound) {
     return (
-      <MockGameplay
+      <CrashGamePage
         round={state.mockRound}
         user={state.currentUser}
         onCashout={cashOutRound}
-        onComplete={finishRound}
+        onFinish={() => finishRound()}
         onBack={returnToBet}
         onProfile={openProfile}
+        onTopUp={topUp}
       />
     )
   }

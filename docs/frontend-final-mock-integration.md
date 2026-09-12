@@ -4,12 +4,12 @@
 
 - Base: `fix/mode-page-polish` (`6b0d8f1dc17d2031a4ca6b2505ec0745b83852bd`).
 - Requested game source: `feature/bet-selection-page-pre-game` (`0b7457412a8e2aacaafbe5a3c7532cdec5bce697`).
-- The requested source contains the Bet/pre-game implementation and sky assets, but no full Gameplay implementation (`frontend/src/features/game/.gitkeep` only). The temporary bridge on the base explicitly confirmed this.
-- The integration therefore uses a manual semantic integration: current base routing, Mode, Profile, Result and mock state remain authoritative; Bet assets and the gameplay contract are connected without cherry-picking old `App.tsx`, routes or Result styles.
+- The exact requested SHA is the pre-game checkpoint: it contains the Bet page and no gameplay route yet. The branch tip subsequently adds the actual game in `6998e1c` and polishes it in `ca2b077fbc25103b756086b3253ec1aaec41eb63`.
+- The integration uses the exact source components, hooks, mock crash model, CSS and flight assets from that branch tip, while keeping the current app's routing, profile/result screens and shared mock session state authoritative.
 
 ## Gameplay integration
 
-`MockGameplay` replaces `MockGameplayBridge`. A `MockRound` now stores its start time, deterministic demo crash window, crash multiplier, cashout multiplier and lifecycle status in the existing `air-balloon:full-mock:v1` session state. Refreshing `/game` restores that round. Green renders 9 levels; Red renders 12. Cashout is available after level one, booster markers are shown for ×2/×3/×4 and absent for ×1, and crash transitions to the current Result screen.
+`CrashGamePage` is now the route component. The import chain is `BetSelectionPage → onStart → App.startRound → /game → CrashGamePage → useCrashRound → DynamicFlightBackground / CoefficientDisplay / LevelProgressTrack / BalloonFlight / CrashRoundPanel → cashout or crash → current ResultScreen`. `MockRound` persists the source crash point, start time, cashout multiplier and lifecycle in `air-balloon:full-mock:v1`, so refresh restores the active round. Green renders 9 levels; Red renders 12. Cashout is available after level one, booster markers are shown for ×2/×3/×4 and absent for ×1.
 
 ## Product semantics
 
