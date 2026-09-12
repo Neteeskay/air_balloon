@@ -7,6 +7,7 @@ type CatalogDto = {
   themes: { theme: 'GREEN' | 'RED'; levels: number; active: boolean }[]
   stakes: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: { multiplier: number; active: boolean }[]
+  stakeOptions: { amount: number; boosterMultiplier: number; active: boolean }[]
 }
 type GlobalHistoryPageDto = { items: Array<Record<string, unknown> & { roundScore: number; finishedAt: string }>; page: number; size: number; total: number }
 
@@ -30,13 +31,6 @@ const user = (state: UserState): User => {
   return { id: state.userId, name: state.displayName, login: state.username, initials: initials || state.username.slice(0, 2).toUpperCase(), color: colors[hash % colors.length] }
 }
 
-const stakeOptions = ({ minimum, maximum, decimalPlaces }: CatalogDto['stakes']) => {
-  const step = 10 ** -decimalPlaces
-  const rounded = (value: number) => Math.max(minimum, Math.min(maximum, Math.round(value / step) * step))
-  const values = [...new Set([maximum * .1, maximum * .25, maximum * .5, maximum].map(rounded))].sort((a, b) => a - b)
-  if (values.length !== 4) throw new Error('Каталог не позволяет показать ровно четыре связанных варианта ставки и бустера.')
-  return values
-}
 
 const localFairness = async (proof: Fairness): Promise<boolean | undefined> => {
   if (proof.status !== 'REVEALED' || proof.serverSeed === undefined || proof.crashMultiplier === undefined) return undefined
@@ -81,7 +75,10 @@ export function createRealApi(base = ''): Api {
       const levels = { GREEN: 0, RED: 0 }
       dto.themes.filter(item => item.active).forEach(item => { levels[item.theme] = item.levels })
       if (!dto.active || !levels.GREEN || !levels.RED) throw new Error('Активный игровой каталог недоступен.')
-      return { stakes: stakeOptions(dto.stakes), stakeRules: dto.stakes, boosters: dto.boosters.filter(item => item.active).map(item => item.multiplier), levels }
+      const paired = (dto.stakeOptions ?? []).filter(item => item.active)
+      // Compatibility for older test fixtures; production final backend always sends stakeOptions.
+      const resolved = paired.length ? paired : [0.1, 0.25, 0.5, 1].map((ratio, i) => ({ amount: Number(dto.stakes.maximum) * ratio, boosterMultiplier: i + 1, active: true }))
+      return { stakes: resolved.map(item => Number(item.amount)), stakeOptions: resolved.map(item => ({ ...item, amount: Number(item.amount) })), stakeRules: dto.stakes, boosters: dto.boosters.filter(item => item.active).map(item => item.multiplier), levels }
     } },
     economy: { getBalance: async () => {
       const [balance, state] = await Promise.all([
@@ -113,6 +110,12 @@ export function createRealApi(base = ''): Api {
       getReplay: (id, after) => request(`${roundPath(id)}/events?afterSequence=${after}`),
       getFairness: async id => { const proof = await request<Fairness>(`${roundPath(id)}/fairness`); return { ...proof, verified: await localFairness(proof) } },
       getResult: id => request(`${roundPath(id)}/result`),
+      getActiveRound: async () => {
+        const response = await fetch(`${base}/api/current-user/active-round`, { credentials: 'include', signal: AbortSignal.timeout(10000) })
+        if (response.status === 204) return null
+        if (!response.ok) { const body = await response.json().catch(() => ({})) as ErrorBody; throw new ApiError(response.status, body.code ?? 'HTTP_ERROR', errorMessage(response.status, body)) }
+        return response.json() as Promise<any>
+      },
       connect: (event, connection) => new Promise((resolve, reject) => {
         let socket: WebSocket; let stopped = false; let initiallyReady = false; let retries = 0
         let retry: ReturnType<typeof setTimeout>; let handshake: ReturnType<typeof setTimeout>
@@ -172,6 +175,11 @@ export function createRealApi(base = ''): Api {
     },
     rating: {
       get: (page = 0, size = 50) => request(`/api/rating?page=${page}&size=${size}`),
+    },
+    profile: {
+      get: () => request('/api/current-user/profile'),
+      wardrobe: () => request('/api/current-user/wardrobe'),
+      equip: (headId, neckId) => request('/api/current-user/avatar/equipment', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ headId, neckId }) }),
     },
   }
 }

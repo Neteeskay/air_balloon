@@ -2,7 +2,7 @@ import { demoUsers, SESSION_KEY } from './demoUsers'
 import type { Api, Catalog, Connection, Fairness, GameEvent, HistoryItem, Preset, Round, Scenario8Offer, Scenario8Purchase, StartInput, Wallet } from './types'
 
 export const mockCatalog: Catalog = {
-  stakes: [100, 250, 500, 1000], stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
+  stakes: [100, 250, 500, 1000], stakeOptions: [1,2,3,4].map((boosterMultiplier, i) => ({ amount: [100,250,500,1000][i], boosterMultiplier, active: true })), stakeRules: { minimum: 1, maximum: 1000, decimalPlaces: 0 },
   boosters: [1, 2, 3, 4], levels: { GREEN: 9, RED: 12 }, pointsPerLevel: 100, cashoutPoints: 50,
 }
 const thresholds: Record<'GREEN' | 'RED', number[]> = { GREEN: [1.2, 1.5, 2, 3, 4, 6, 8, 10, 12], RED: [1.2, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] }
@@ -164,6 +164,7 @@ export class MockBackend {
       getReplay: async (id, after) => { this.requireOnline(); const r = this.owned(id); this.tick(); const oldest = r.events[0]?.sequence ?? 1; return { roundId: id, events: clone(r.events.filter(e => e.sequence > after)), oldestAvailableSequence: oldest, latestSequence: r.view.sequence, snapshotRequired: after < oldest - 1 || after > r.view.sequence, serverTime: new Date(this.now()).toISOString() } },
       getFairness: async id => { this.requireOnline(); const r = this.owned(id); this.tick(); return this.proof(r) },
       getResult: async id => { const r = this.owned(id); this.tick(); const v = r.view; if (v.status !== 'FINISHED') throw new Error('Раунд ещё не завершён.'); return { roundId: id, result: v.cashoutPerformed ? 'WIN' : 'LOSS', betAmount: v.betAmount, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, potentialWinAmount: Math.floor(v.betAmount * v.crashMultiplier!), score: v.roundScore, reward: { type: 'CLOUD', rarity: 'COMMON' } } },
+      getActiveRound: async () => { this.tick(); const owner = this.user(); const active = Object.values(this.db.rounds).find(r => r.owner === owner && r.view.status !== 'FINISHED'); return active ? this.publicRound(active) : null },
       connect: async (event, connection) => {
         const listener = { event, connection }; this.listeners.add(listener); connection(this.online ? 'connected' : 'disconnected')
         if (Object.values(this.db.rounds).some(r => r.view.status !== 'FINISHED')) this.ensureTimer()
@@ -187,6 +188,7 @@ export class MockBackend {
         return { entries: entries.slice(page * size, (page + 1) * size), currentPlayer, totalParticipants: entries.length, page, size, revision: entries.reduce((sum, entry) => sum + entry.score, 0) }
       },
     },
+    profile: { get: async () => ({}), wardrobe: async () => [], equip: async () => ({}) },
     dev: {
       setPreset: p => { this.preset = p },
       setBalance: (id, balance) => { this.db.wallets[id].bonusBalance = balance; this.save() },

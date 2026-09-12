@@ -8,6 +8,7 @@ export type Scenario8Purchase = { offerId: string; roundId: string; price: numbe
 export type Catalog = {
   stakes: number[]; stakeRules: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: number[]; levels: Record<Theme, number>; pointsPerLevel?: number; cashoutPoints?: number
+  stakeOptions: Array<{ amount: number; boosterMultiplier: number; active: boolean }>
 }
 export type Fairness = { roundId: string; commitment: string; status: 'COMMITTED' | 'REVEALED'; serverSeed?: string; crashMultiplier?: number; boosterLevel?: number; verified?: boolean; canonicalInput?: string; algorithm?: string; format?: string; example?: boolean }
 export type Round = {
@@ -23,7 +24,7 @@ export type GameEvent = { type: string; roundId: string; sequence: number; event
 export type Replay = { roundId: string; events: GameEvent[]; oldestAvailableSequence: number; latestSequence: number; snapshotRequired: boolean; serverTime: string }
 export type HistoryItem = { roundId: string; username?: string; theme: Theme; betAmount: number; boosterMultiplier: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; result: 'WIN' | 'LOSS'; completedAt: string; reward?: { id?: string; type: string; rarity: string; createdAt?: string } }
 export type HistoryPage = { items: HistoryItem[]; page: number; size: number; total: number; serverTime?: string }
-export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; potentialWinAmount?: number; score: number; reward?: { type: string; rarity: string } }
+export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; potentialWinAmount?: number; score: number; balanceAfter?: number; playerCharacter?: { code: string; title: string; description: string }; reward?: { type: string; rarity: string; fragmentId?: string; currentFragments?: number; totalFragments?: number; completed?: boolean; clothingId?: string } }
 export type StartInput = { theme: Theme; betAmount: number; boosterMultiplier: number }
 export type Tournament = { id: string; name: string; description: string; status: string; startsAt: string; endsAt: string; secondsRemaining: number; serverTime: string; revision: number }
 export type LeaderboardEntry = { position: number; userId: string; username: string; score: number }
@@ -39,6 +40,7 @@ export interface GameApi {
   getReplay(id: string, after: number): Promise<Replay>
   getFairness(id: string): Promise<Fairness>
   getResult(id: string): Promise<Result>
+  getActiveRound(): Promise<Round | null>
   connect(event: (e: GameEvent) => void, connection: (s: Connection) => void): Promise<() => void>
 }
 export interface Api {
@@ -56,5 +58,6 @@ export interface Api {
     connect(id: string, update: (value: TournamentUpdate) => void, connection: (state: Connection) => void): Promise<() => void>
   }
   rating: { get(page?: number, size?: number): Promise<GlobalRating> }
+  profile: { get(): Promise<unknown>; wardrobe(): Promise<unknown>; equip(headId: string | null, neckId: string | null): Promise<unknown> }
   dev?: { setPreset(p: Preset): void; disconnect(): void; setBalance(id: string, balance: number): void }
 }
