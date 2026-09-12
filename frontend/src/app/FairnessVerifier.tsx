@@ -23,7 +23,7 @@ export function FairnessVerifier({ onBack }: { onBack: () => void }) {
   }
   return <section className="history-card verifier-card" aria-label="Проверка честности раунда">
     <div className="history-title"><div><p className="eyebrow">ПРОЗРАЧНОСТЬ РАУНДА</p><h2>Проверка честности</h2><p>Проверка выполняется прямо в браузере — proof не отправляется на сервер.</p></div><button className="secondary" onClick={onBack}>К игре ↗</button></div>
-    <div className="verifier-help"><strong>Как проверить результат</strong><span>После завершения раунда нажмите «Скопировать proof», вставьте JSON сюда и нажмите «Проверить proof».</span></div>
+    <div className="verifier-help"><strong>Как проверить результат</strong><span className="verifier-flow">Commit → reveal → X</span><span>После завершения раунда нажмите «Скопировать proof», вставьте JSON сюда и нажмите «Проверить proof».</span></div>
     <label className="verifier-input">Proof JSON<textarea value={raw} onChange={event => setRaw(event.target.value)} placeholder={'{\n  "roundId": "…",\n  "commitment": "sha256:…",\n  "serverSeed": "…",\n  "crashMultiplier": 2.34\n}'} spellCheck={false} /></label>
     <div className="verifier-actions"><label className="secondary file-button">Загрузить JSON<input type="file" accept="application/json,.json" onChange={loadFile} /></label><button className="primary" disabled={!raw.trim() || busy} onClick={() => void verify()}>{busy ? 'Проверяем…' : 'Проверить proof'}</button></div>
     {error && <p className="error" role="alert">{error}</p>}
