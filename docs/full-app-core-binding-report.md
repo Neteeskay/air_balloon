@@ -51,8 +51,9 @@ demo-only in this first core pass. Fortune Wheel is not connected to economy.
 
 - Frontend typecheck/build: **PASS** (`npm run build`).
 - Frontend tests: **PASS** (64 tests).
-- Backend source and migrations were not changed; backend regression remains the
-  `integration/backend-final-binding` baseline.
+- Backend `./mvnw.cmd -B verify`: **PASS** (338 unit + 86 integration/acceptance,
+  424 total; PostgreSQL 17 Testcontainers; Flyway validated/applied through
+  V307).
 
 ### FINAL VERDICT
 
