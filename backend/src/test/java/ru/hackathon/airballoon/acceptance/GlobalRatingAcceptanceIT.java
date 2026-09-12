@@ -37,6 +37,9 @@ class GlobalRatingAcceptanceIT extends TournamentIntegrationSupport {
         join(tournament, a, "A", 1000, 1);
         join(tournament, c, "C", 2500, 1);
         join(tournament, e, "E", 0, 0);
+        // This acceptance assertion verifies participant membership/order; keep the
+        // production default masking policy out of the expected display-name values.
+        properties.setMaskOtherPlayerNames(false);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Test-Principal", a.toString());
