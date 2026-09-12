@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import type { CurrentUser } from '../types/auth'
 
-type FlightMode = 'RED' | 'GREEN'
+export type FlightMode = 'RED' | 'GREEN'
 type TutorialStep = 1 | 2 | 3 | 4 | 5
 
 const ONBOARDING_KEY_PREFIX = 'air-balloon-flight-mode-onboarding-complete:'
@@ -94,7 +94,17 @@ function ModeCard({ mode, title, levels, description, balloon, selected, tutoria
   )
 }
 
-export default function FlightModePage({ currentUser, onLogout }: { currentUser: CurrentUser; onLogout: () => void }) {
+export default function FlightModePage({
+  currentUser,
+  onLogout,
+  onModeSelected,
+  onOpenRating,
+}: {
+  currentUser: CurrentUser
+  onLogout: () => void
+  onModeSelected: (mode: FlightMode) => void
+  onOpenRating: () => void
+}) {
   const [tutorialVisible, setTutorialVisible] = useState(
     () => readStorage(onboardingKey(currentUser.userId)) !== 'true',
   )
@@ -139,7 +149,7 @@ export default function FlightModePage({ currentUser, onLogout }: { currentUser:
 
     writeStorage(themeKey(currentUser.userId), mode)
     setSelectedMode(mode)
-    window.dispatchEvent(new CustomEvent<FlightMode>('air-balloon:mode-selected', { detail: mode }))
+    onModeSelected(mode)
   }
 
   return (
@@ -197,12 +207,17 @@ export default function FlightModePage({ currentUser, onLogout }: { currentUser:
         />
       </section>
 
-      <section className={`rating-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`} aria-label="Рейтинг участников">
+      <button
+        className={`rating-card ${tutorialVisible && tutorialStep === 5 ? 'is-tutorial-target' : ''}`}
+        type="button"
+        onClick={tutorialVisible ? undefined : onOpenRating}
+        aria-label="Открыть глобальный рейтинг игроков"
+      >
         <span className={`rating-card__trophy ${tutorialVisible && tutorialStep === 4 ? 'is-tutorial-target' : ''}`}><TrophyIcon /></span>
         <div><h2>Рейтинг участников</h2><p>Успей заработать больше всех очков<br />и получай награды!</p></div>
         <span className="rating-card__days"><ClockIcon />25 дней</span>
         <ArrowIcon />
-      </section>
+      </button>
 
       {tutorialVisible && (
         <section className="tutorial-layer" aria-label={`Обучение, шаг ${tutorialStep} из 5`}>

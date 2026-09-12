@@ -11,7 +11,13 @@ import type { CurrentUser } from '../types/auth';
 
 void backgroundAsset;
 
-export default function LoginPage({ onAuthenticated }: { onAuthenticated: (user: CurrentUser) => void }) {
+export default function LoginPage({
+  onAuthenticated,
+  onBack,
+}: {
+  onAuthenticated: (user: CurrentUser) => void
+  onBack: () => void
+}) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,13 +36,9 @@ export default function LoginPage({ onAuthenticated }: { onAuthenticated: (user:
     if (result.ok && result.user) onAuthenticated(result.user);
   };
 
-  const goBack = () => {
-    if (window.history.length > 1) window.history.back();
-  };
-
   return (
     <main className="auth-page" aria-label="Вход в Воздушный шар">
-      <button className="back-button" type="button" onClick={goBack} aria-label="Назад">
+      <button className="back-button" type="button" onClick={onBack} aria-label="Назад">
         <span className="back-button__arrow" aria-hidden="true">←</span>
         <span>Назад</span>
       </button>
