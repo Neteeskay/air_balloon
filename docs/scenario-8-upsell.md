@@ -24,6 +24,8 @@ ticket count and eligibility decision. No admin UI is included in this release.
 ## Persistence and security
 
 `users.lottery_ticket_count` and `scenario8_offers` are persisted by migration V305.
+The ledger operation uses the widened transaction type column required by the descriptive
+`SCENARIO8_TICKET_PURCHASE` event name.
 Purchase uses the existing PostgreSQL economy ledger, locks the offer and user rows, and
 updates bonus balance, ticket count and ledger in one transaction. The client cannot supply
 price, ticket count or WIN amount. An `Idempotency-Key` is required: a retry with the same
