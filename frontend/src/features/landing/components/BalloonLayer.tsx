@@ -1,4 +1,5 @@
-import { CSSProperties, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { createBalloonPath } from '../animations/balloonPath';
 import { SPRITES } from '../config/sprites';
 import type { BalloonColor } from '../config/sprites';
@@ -33,6 +34,7 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
         if (!balloon) return null;
 
         return createBalloonPath(el, {
+          delay: balloon.floatDelay,
           xOffset: balloon.pathConfig?.xOffset,
           yOffset: balloon.pathConfig?.yOffset,
           rotation: balloon.pathConfig?.rotation,
@@ -41,7 +43,9 @@ export function BalloonLayer({ balloons, className = '' }: BalloonLayerProps) {
       .filter((anim): anim is ReturnType<typeof createBalloonPath> => anim !== null);
 
     return () => {
-      animations.forEach((anim) => anim.kill());
+      animations.forEach((anim) => {
+        anim.kill();
+      });
     };
   }, [balloons]);
 

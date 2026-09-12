@@ -4,7 +4,7 @@
 
 /* CSS Variables */
 :root {
-  /* Sky colors - dynamic gradient */
+  /* Sky colors */
   --sky-dark: #5a7a9e;
   --sky-top: #6fa3d8;
   --sky-middle: #a8d5f5;
@@ -42,7 +42,7 @@
 }
 
 /* ========================================
-   Section Base Styles
+   Section Base
    ======================================== */
 
 section {
@@ -53,65 +53,87 @@ section {
 }
 
 /* ========================================
-   Cloud Intro Section
+   Cloud Layers — fixed, full viewport
    ======================================== */
-
-/* Removed - integrated into single landing page */
 
 .cloud-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  will-change: transform;
+  overflow: visible;
 }
 
+/* Depth variants — extra styling per layer */
+.cloud-layer--far {
+  z-index: 1;
+}
+
+.cloud-layer--middle {
+  z-index: 2;
+}
+
+.cloud-layer--near {
+  z-index: 3;
+}
+
+/* ========================================
+   Cloud Images
+   ======================================== */
+
 .cloud {
-  max-width: 500px;
   width: 100%;
   height: auto;
   user-select: none;
-  transition: filter 0.3s ease;
   pointer-events: none;
+  transition: filter 0.3s ease;
 }
 
-/* Specific cloud sizes based on sprite number */
+/* Large clouds (sprites 1-6) */
 .cloud--1,
 .cloud--2,
 .cloud--3,
 .cloud--4,
 .cloud--5,
-.cloud--6,
-.cloud--7 {
-  max-width: 550px; /* Large clouds */
+.cloud--6 {
+  max-width: 520px;
 }
 
-.cloud--8,
+/* Medium-large clouds (sprites 7-8) */
+.cloud--7,
+.cloud--8 {
+  max-width: 440px;
+}
+
+/* Medium clouds (sprites 9-11) */
 .cloud--9,
 .cloud--10,
 .cloud--11 {
-  max-width: 450px; /* Medium clouds */
+  max-width: 380px;
 }
 
+/* Small clouds (sprites 12-16) */
 .cloud--12,
 .cloud--13,
 .cloud--14,
 .cloud--15,
 .cloud--16 {
-  max-width: 350px; /* Small clouds */
+  max-width: 300px;
 }
 
 /* ========================================
-   Landing Page - Single Continuous Scene
+   Landing Page — single continuous scene
    ======================================== */
 
 .landing-page {
   position: relative;
   width: 100%;
-  min-height: 300vh; /* Достаточно места для скролла */
+  min-height: 300vh;
   background-image: url('/img/back.png');
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-  background-attachment: scroll; /* Фон прокручивается вместе со страницей */
+  background-attachment: scroll;
   overflow: hidden;
 }
 
@@ -123,25 +145,22 @@ section {
   will-change: opacity;
 }
 
-/* Cloud layers */
-.intro-clouds,
-.bg-clouds,
-.mid-clouds,
-.fg-clouds {
-  position: fixed;
+/* ========================================
+   Balloon Layer
+   ======================================== */
+
+.balloon-layer {
+  position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 4;
   will-change: transform;
 }
 
-.balloon-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-}
+/* ========================================
+   Hero Content
+   ======================================== */
 
-/* Hero Content - видим сразу */
 .hero-content {
   position: fixed;
   top: 50%;
@@ -198,17 +217,10 @@ section {
   min-width: 240px;
 }
 
-/* Final Area */
-.final-area {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  pointer-events: none;
-}
+/* ========================================
+   Final Content
+   ======================================== */
 
-/* Final Content - внизу страницы */
 .final-content {
   position: absolute;
   bottom: 10vh;
@@ -270,13 +282,6 @@ section {
    Balloon Styles
    ======================================== */
 
-.balloon-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-}
-
 .balloon {
   max-width: 140px;
   height: auto;
@@ -324,22 +329,42 @@ section {
 }
 
 /* ========================================
-   Responsive Design
+   Responsive — Tablet
    ======================================== */
 
-/* Tablet */
 @media (max-width: 1199px) {
-  .hero__content,
-  .final__content {
+  .hero-content,
+  .final-content {
     padding: 2rem;
   }
 
-  .cloud--large {
-    max-width: 300px;
+  /* Reduce cloud sizes */
+  .cloud--1,
+  .cloud--2,
+  .cloud--3,
+  .cloud--4,
+  .cloud--5,
+  .cloud--6 {
+    max-width: 380px;
   }
 
-  .cloud--medium {
-    max-width: 250px;
+  .cloud--7,
+  .cloud--8 {
+    max-width: 320px;
+  }
+
+  .cloud--9,
+  .cloud--10,
+  .cloud--11 {
+    max-width: 280px;
+  }
+
+  .cloud--12,
+  .cloud--13,
+  .cloud--14,
+  .cloud--15,
+  .cloud--16 {
+    max-width: 220px;
   }
 
   .balloon {
@@ -347,57 +372,88 @@ section {
   }
 }
 
-/* Mobile */
+/* ========================================
+   Responsive — Mobile
+   ======================================== */
+
 @media (max-width: 767px) {
-  .hero,
-  .final {
-    padding: 1rem;
-  }
-
-  .hero__content,
-  .final__content {
+  .hero-content,
+  .final-content {
     padding: 1.5rem;
-    border-radius: 16px;
   }
 
-  .hero__cta,
-  .final__cta {
+  .hero-content__cta,
+  .final-content__cta {
     padding: 0.875rem 2rem;
     width: 100%;
     max-width: 280px;
   }
 
-  .cloud--large {
-    max-width: 250px;
+  /* Further reduce clouds */
+  .cloud--1,
+  .cloud--2,
+  .cloud--3,
+  .cloud--4,
+  .cloud--5,
+  .cloud--6 {
+    max-width: 280px;
   }
 
-  .cloud--medium {
-    max-width: 180px;
+  .cloud--7,
+  .cloud--8 {
+    max-width: 240px;
   }
 
-  .cloud--small {
-    max-width: 120px;
+  .cloud--9,
+  .cloud--10,
+  .cloud--11 {
+    max-width: 200px;
+  }
+
+  .cloud--12,
+  .cloud--13,
+  .cloud--14,
+  .cloud--15,
+  .cloud--16 {
+    max-width: 150px;
   }
 
   .balloon {
     max-width: 80px;
   }
 
-  /* Hide some balloons on mobile for performance */
+  /* Hide extra balloons on mobile */
   .balloon:nth-child(n + 4) {
+    display: none;
+  }
+
+  /* Hide some far clouds on mobile for perf */
+  .cloud-layer--far .cloud:nth-child(n + 6) {
     display: none;
   }
 }
 
-/* Small mobile */
+/* ========================================
+   Responsive — Small mobile
+   ======================================== */
+
 @media (max-width: 390px) {
-  .hero__content,
-  .final__content {
+  .hero-content,
+  .final-content {
     padding: 1.25rem;
   }
 
   .button {
     font-size: 0.9375rem;
+  }
+
+  /* Minimal clouds on very small screens */
+  .cloud-layer--far .cloud:nth-child(n + 4) {
+    display: none;
+  }
+
+  .cloud-layer--middle .cloud:nth-child(n + 5) {
+    display: none;
   }
 }
 
@@ -413,7 +469,6 @@ section {
   }
 }
 
-/* Focus visible for keyboard navigation */
 .button:focus-visible {
   outline: 3px solid var(--accent-blue);
   outline-offset: 3px;
