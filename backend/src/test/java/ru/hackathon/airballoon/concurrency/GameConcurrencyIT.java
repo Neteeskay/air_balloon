@@ -54,7 +54,7 @@ class GameConcurrencyIT extends GameAcceptanceSupport {
 
     @Test void duplicateBoosterEventChangesNeitherPointsNorMultiplier() {
         Player user = user("BoosterDuplicate", 1000);
-        Round round = ok(driver.start(user.id(), Theme.GREEN, bet, 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
+        Round round = ok(driver.start(user.id(), Theme.GREEN, new BigDecimal("500"), 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
         driver.reachLevel(round.id(), 2);
         Round before = driver.round(round.id()); long score = driver.player(user.id()).gameScore();
         driver.redeliverBoosterEvent(round.id()); driver.redeliverBoosterEvent(round.id());

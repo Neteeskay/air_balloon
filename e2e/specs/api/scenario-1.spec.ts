@@ -27,7 +27,7 @@ test.describe.serial('Scenario 1 — login identity, balance, selection and star
 
     const afterGreen = await api.currentState();
     expect(decimalToScale(afterGreen.bonusBalance, 2)).toBe(
-      decimalToScale(before.bonusBalance, 2) - decimalToScale(settings.stake, 2)
+      decimalToScale(before.bonusBalance, 2) - decimalToScale(green.betAmount, 2)
     );
 
     const red = await api.startRound('RED', settings.stake, 1);
@@ -36,7 +36,7 @@ test.describe.serial('Scenario 1 — login identity, balance, selection and star
     expect(red.levelThresholds).toHaveLength(12);
     const afterRed = await api.currentState();
     expect(decimalToScale(afterRed.bonusBalance, 2)).toBe(
-      decimalToScale(afterGreen.bonusBalance, 2) - decimalToScale(settings.stake, 2)
+      decimalToScale(afterGreen.bonusBalance, 2) - decimalToScale(red.betAmount, 2)
     );
   });
 
@@ -45,10 +45,11 @@ test.describe.serial('Scenario 1 — login identity, balance, selection and star
       baseURL: settings.apiUrl,
       storageState: { cookies: [], origins: [] }
     });
-    const beforeTotal = (await (await anonymous.get('/api/history?size=100')).json()).total;
+    const beforeHistory = await anonymous.get('/api/history?size=100');
+    expect(beforeHistory.status()).toBe(401);
     const response = await anonymous.post('/api/rounds', { data: { theme: 'GREEN', betAmount: settings.stake, boosterMultiplier: 1 } });
     expect(response.status()).toBe(401); expect((await response.json()).code).toBe('AUTH_REQUIRED');
-    expect((await (await anonymous.get('/api/history?size=100')).json()).total).toBe(beforeTotal);
+    expect((await (await anonymous.get('/api/history?size=100')).json()).code).toBe('AUTH_REQUIRED');
     await anonymous.dispose();
   });
 });

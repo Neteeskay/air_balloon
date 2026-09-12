@@ -11,7 +11,7 @@ test('START-IDEMPOTENCY 100 simultaneous retries create one round and one debit'
   const rounds = await Promise.all(Array.from({ length: 100 }, () => api.startRound('GREEN', settings.stake, 2, key)));
   expect(new Set(rounds.map((round) => round.id)).size).toBe(1);
   const after = await api.currentState();
-  expect(decimalToScale(after.bonusBalance, 2)).toBe(decimalToScale(before.bonusBalance, 2) - decimalToScale(settings.stake, 2));
+  expect(decimalToScale(after.bonusBalance, 2)).toBe(decimalToScale(before.bonusBalance, 2) - decimalToScale(rounds[0].betAmount, 2));
 });
 
 test('RELIABILITY 100 parallel rounds produce unique round IDs and commitments', async ({ request }) => {

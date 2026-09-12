@@ -47,7 +47,7 @@ class CoreTournamentScoreIntegrationIT extends GameAcceptanceSupport {
     void oneHundredLevelAndBoosterRedeliveriesDoNotDuplicateScoreOrLeaderboard() {
         var tournament = driver.createActiveTournament();
         Player player = user("Retry", 1000);
-        Round round = ok(driver.start(player.id(), Theme.GREEN, bet, 3,
+        Round round = ok(driver.start(player.id(), Theme.GREEN, new BigDecimal("500"), 3,
                 SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
         driver.reachLevel(round.id(), 2);
         long score = driver.player(player.id()).gameScore();
@@ -68,7 +68,7 @@ class CoreTournamentScoreIntegrationIT extends GameAcceptanceSupport {
     void restartThenRetryKeepsScoreAndLeaderboardExactlyOnce() {
         var tournament = driver.createActiveTournament();
         Player player = user("RestartRetry", 1000);
-        Round round = ok(driver.start(player.id(), Theme.GREEN, new BigDecimal("100"), 3,
+        Round round = ok(driver.start(player.id(), Theme.GREEN, new BigDecimal("500"), 3,
                 SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
         driver.reachLevel(round.id(), 2);
         driver.reachCrash(round.id());

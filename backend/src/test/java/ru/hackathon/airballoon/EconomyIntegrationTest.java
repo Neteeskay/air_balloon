@@ -35,7 +35,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties="app.admin-token=test-admin-token")
+@SpringBootTest(classes = ru.airballoon.AirBalloonApplication.class,
+        properties="app.admin-token=test-admin-token")
 @AutoConfigureMockMvc
 @ActiveProfiles("demo")
 class EconomyIntegrationTest extends PostgresSupport {
@@ -422,10 +423,14 @@ class EconomyIntegrationTest extends PostgresSupport {
         start(anna,100,1); // Active round must not appear.
         var page=history.getHistory(0,2);
         assertThat(page.total()).isEqualTo(3);assertThat(page.items()).hasSize(2);
-        assertThat(page.items().getFirst().username()).isEqualTo("liza");
-        assertThat(history.getHistory(1,2).items().getFirst().username()).isEqualTo("anna");
-        http.perform(get("/api/history?size=3")).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(3));
-        http.perform(get("/api/history?size=101")).andExpect(status().isBadRequest());
+        // Global history exposes the privacy-safe display name, never the login identifier.
+        assertThat(page.items().getFirst().displayName()).isNotBlank();
+        assertThat(history.getHistory(1,2).items().getFirst().displayName()).isNotBlank();
+        http.perform(get("/api/history?size=3")).andExpect(status().isUnauthorized());
+        var login = http.perform(post("/api/auth/demo-login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"anna\",\"password\":\"balloon1\"}")).andReturn();
+        http.perform(get("/api/history?size=101").session((org.springframework.mock.web.MockHttpSession) login.getRequest().getSession(false)))
+                .andExpect(status().isBadRequest());
     }
     @Test void winningRoundRemainsWinAfterCrash() {
         var r=start(anna,100,1);

@@ -14,7 +14,7 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
   await socket.connect();
   try {
     const round = await api.startRound('GREEN', settings.stake, settings.booster);
-    expect(equalDecimal(round.cashoutPreviewAmount!, settings.stake, 2)).toBe(true);
+    expect(equalDecimal(round.cashoutPreviewAmount!, round.betAmount, 2)).toBe(true);
     const early = await api.cashout(round.id);
     expect(early.response.status()).toBe(409);
     expect(early.body.code).toBe('CASHOUT_NOT_AVAILABLE_YET');
@@ -31,7 +31,7 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
     const fixed = first.body.cashoutMultiplier;
     const payout = first.body.winAmount;
     expect(decimalToScale(payout, 2)).toBeGreaterThanOrEqual(decimalToScale(beforeCashout.cashoutPreviewAmount!, 2));
-    expect(decimalToScale(payout, 0)).toBe(decimalToScale(multiplyMoney(settings.stake, fixed), 0));
+    expect(decimalToScale(payout, 0)).toBe(decimalToScale(multiplyMoney(round.betAmount, fixed), 0));
 
     const retry = await api.cashout(round.id, key);
     expect(retry.response.status()).toBe(200);
@@ -49,7 +49,7 @@ test('S2-API successful cashout is fixed, paid once, finishes and enters result/
 
     const current = await api.currentState();
     expect(decimalToScale(current.bonusBalance, 2)).toBe(
-      decimalToScale(initial.bonusBalance, 2) - decimalToScale(settings.stake, 2) + decimalToScale(payout, 2)
+      decimalToScale(initial.bonusBalance, 2) - decimalToScale(round.betAmount, 2) + decimalToScale(payout, 2)
     );
     const result = await api.result(round.id);
     expect(result.roundId).toBe(round.id);

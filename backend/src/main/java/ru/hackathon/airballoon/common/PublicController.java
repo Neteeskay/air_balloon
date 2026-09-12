@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.ObjectProvider;
 import ru.airballoon.game.application.GameService;
 import ru.airballoon.game.infrastructure.web.RoundView;
 import ru.airballoon.game.infrastructure.web.CurrentUser;
@@ -17,9 +18,9 @@ import ru.hackathon.airballoon.user.*;
 public class PublicController {
     private final HistoryService history;
     private final UserService users;
-    private final GameService games;
+    private final ObjectProvider<GameService> games;
     private final Clock clock;
-    public PublicController(HistoryService history,UserService users,GameService games,Clock clock) { this.history=history;this.users=users;this.games=games;this.clock=clock; }
+    public PublicController(HistoryService history,UserService users,ObjectProvider<GameService> games,Clock clock) { this.history=history;this.users=users;this.games=games;this.clock=clock; }
 
     @GetMapping({"/current-user","/current-user/state"})
     public UserState currentUser(Principal principal) { return users.getState(CurrentUser.id(principal)); }
@@ -32,7 +33,9 @@ public class PublicController {
 
     @GetMapping("/current-user/active-round")
     public ResponseEntity<RoundView> activeRound(Principal principal) {
-        var round = games.findActiveRound(CurrentUser.id(principal));
+        GameService gameService = games.getIfAvailable();
+        if (gameService == null) return ResponseEntity.status(503).build();
+        var round = gameService.findActiveRound(CurrentUser.id(principal));
         return round.map(r -> ResponseEntity.ok(RoundView.from(r, clock.instant())))
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }

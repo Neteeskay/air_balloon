@@ -81,6 +81,7 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
         jdbc.update("DELETE FROM tournament.participants");
         jdbc.update("DELETE FROM tournament.tournaments");
         jdbc.update("DELETE FROM round_rewards");
+        jdbc.update("DELETE FROM scenario8_offers");
         jdbc.update("DELETE FROM score_events");
         jdbc.update("DELETE FROM core_round_events");
         jdbc.update("DELETE FROM core_round_checkpoints");
@@ -253,12 +254,13 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
     @Override
     public Response<HistoryPage> history(int page, int size) {
         ResponseEntity<JsonNode> response = http.exchange(url("/api/history?page=" + page + "&size=" + size),
-                HttpMethod.GET, HttpEntity.EMPTY, JsonNode.class);
+                HttpMethod.GET, sessions.isEmpty() ? HttpEntity.EMPTY
+                        : new HttpEntity<>(playerHeaders(sessions.keySet().iterator().next())), JsonNode.class);
         if (!successful(response)) return new Response<>(status(response), errorCode(response), null);
         List<History> items = new ArrayList<>();
         for (JsonNode item : response.getBody().path("items")) {
             items.add(new History(UUID.fromString(item.path("roundId").asText()),
-                    UUID.fromString(item.path("userId").asText()), item.path("result").asText(),
+                    null, item.path("result").asText(),
                     decimalOrNull(item.get("cashoutMultiplier")), Instant.parse(item.path("finishedAt").asText())));
         }
         return new Response<>(status(response), null, new HistoryPage(List.copyOf(items),
@@ -454,7 +456,12 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
     public String sessionCookie(UUID userId) { return sessions.get(userId); }
 
     public ResponseEntity<JsonNode> post(UUID userId, String path, Object body) {
+        return post(userId, path, body, null);
+    }
+
+    public ResponseEntity<JsonNode> post(UUID userId, String path, Object body, String idempotencyKey) {
         HttpHeaders headers=playerHeaders(userId);
+        if (idempotencyKey != null) headers.set("Idempotency-Key", idempotencyKey);
         HttpEntity<?> request;
         if (body==null) request=new HttpEntity<>(headers);
         else {

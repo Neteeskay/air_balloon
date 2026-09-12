@@ -46,10 +46,7 @@ test('S5-VALIDATION every accepted edge config can start a round; engine-incompa
     { alpha: 1 }
   ];
   for (const mutation of incompatible) {
-    const response = await request.put('/api/admin/config', {
-      headers: { 'X-Admin-Token': settings.adminToken },
-      data: { expectedVersion: original.version, config: { ...original.config, ...mutation } }
-    });
+    const response = await api.validateAdminConfig({ ...original.config, ...mutation });
     expect(response.status(), `${JSON.stringify(mutation)}: ${await response.text()}`).toBe(400);
   }
   let accepted: any;

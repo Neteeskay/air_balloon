@@ -15,7 +15,7 @@ test('S3-API crash without cashout loses stake and updates result/history', asyn
   expect(decimalToScale(final.winAmount, 2)).toBe(0n);
   const current = await api.currentState();
   expect(decimalToScale(current.bonusBalance, 2)).toBe(
-    decimalToScale(initial.bonusBalance, 2) - decimalToScale(settings.stake, 2)
+    decimalToScale(initial.bonusBalance, 2) - decimalToScale(round.betAmount, 2)
   );
   const result = await api.result(round.id);
   expect(result.result).toBe('LOSS');

@@ -52,26 +52,26 @@ class RoundApiIT extends IntegrationSupport {
 
     @Test void fullHttpScenarioFixesPayoutAndFinishesAfterCrash() throws Exception {
         String id = start();
-        assertThat(balances.balance(user)).isEqualByComparingTo("900.00");
+        assertThat(balances.balance(user)).isEqualByComparingTo("500.00");
         clock.atMillis(1000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("currentMultiplier").value(1.1))
                 .andExpect(jsonPath("cashoutAvailable").value(false))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(110.0));
+                .andExpect(jsonPath("cashoutPreviewAmount").value(550.0));
         clock.atMillis(2000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(jsonPath("currentLevel").value(1)).andExpect(jsonPath("cashoutAvailable").value(true))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(120.0));
+                .andExpect(jsonPath("cashoutPreviewAmount").value(600.0));
         clock.atMillis(10000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(jsonPath("currentMultiplier").value(6.0)).andExpect(jsonPath("boosterActivated").value(true))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(600.0));
+                .andExpect(jsonPath("cashoutPreviewAmount").value(3000.0));
         clock.atMillis(10100);
         JsonNode cashout = json(mvc.perform(post("/api/rounds/" + id + "/cashout").principal(() -> user.toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("cashoutMultiplier").value(6.03))
-                .andExpect(jsonPath("winAmount").value(603.0)).andExpect(jsonPath("status").value("CASHED_OUT"))
+                .andExpect(jsonPath("winAmount").value(3015.0)).andExpect(jsonPath("status").value("CASHED_OUT"))
                 .andExpect(jsonPath("cashoutPreviewAmount").doesNotExist()).andReturn());
-        assertThat(balances.balance(user)).isEqualByComparingTo("1503.00");
+        assertThat(balances.balance(user)).isEqualByComparingTo("3515.00");
         clock.atMillis(11000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(jsonPath("currentMultiplier").value(6.3)).andExpect(jsonPath("finishedAt").doesNotExist());
@@ -87,7 +87,7 @@ class RoundApiIT extends IntegrationSupport {
 
     @Test void startResponseExposesBoosterPositionWithoutExposingCrash() throws Exception {
         mvc.perform(post("/api/rounds").principal(() -> user.toString()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3}"))
+                        .content("{\"theme\":\"GREEN\",\"betAmount\":500,\"boosterMultiplier\":3}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("boosterLevel").value(3))
                 .andExpect(jsonPath("boosterActivated").value(false))
@@ -98,7 +98,7 @@ class RoundApiIT extends IntegrationSupport {
     @ParameterizedTest
     @ValueSource(strings = {"currentMultiplier", "cashoutPreviewAmount", "cashoutMultiplier", "winAmount", "seed", "crashMultiplier", "boosterLevel", "score", "elapsedTime", "status", "userId"})
     void rejectsClientAuthorityFieldsAtStart(String field) throws Exception {
-        String request = "{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3,\"" + field + "\":999}";
+        String request = "{\"theme\":\"GREEN\",\"betAmount\":500,\"boosterMultiplier\":3,\"" + field + "\":999}";
         mvc.perform(post("/api/rounds").principal(() -> user.toString()).contentType(MediaType.APPLICATION_JSON).content(request))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("INVALID_REQUEST"));
         assertThat(balances.balance(user)).isEqualByComparingTo("1000");
@@ -149,7 +149,7 @@ class RoundApiIT extends IntegrationSupport {
 
     private String start() throws Exception {
         return json(mvc.perform(post("/api/rounds").principal(() -> user.toString()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3}"))
+                .content("{\"theme\":\"GREEN\",\"betAmount\":500,\"boosterMultiplier\":3}"))
                 .andExpect(status().isCreated()).andReturn()).get("id").asText();
     }
 

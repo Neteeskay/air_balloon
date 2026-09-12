@@ -16,8 +16,8 @@ test('MULTI-USER two cookie sessions isolate personal state and share global his
   const roundA = await apiA.startRound('GREEN', settings.stake, 2);
   const roundB = await apiB.startRound('RED', settings.stake, 2);
   const afterA = await apiA.currentState(); const afterB = await apiB.currentState();
-  expect(decimalToScale(afterA.bonusBalance, 2)).toBe(decimalToScale(beforeA.bonusBalance, 2) - decimalToScale(settings.stake, 2));
-  expect(decimalToScale(afterB.bonusBalance, 2)).toBe(decimalToScale(beforeB.bonusBalance, 2) - decimalToScale(settings.stake, 2));
+  expect(decimalToScale(afterA.bonusBalance, 2)).toBe(decimalToScale(beforeA.bonusBalance, 2) - decimalToScale(roundA.betAmount, 2));
+  expect(decimalToScale(afterB.bonusBalance, 2)).toBe(decimalToScale(beforeB.bonusBalance, 2) - decimalToScale(roundB.betAmount, 2));
   await Promise.all([
     apiA.waitForSnapshot(roundA.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs),
     apiB.waitForSnapshot(roundB.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs)

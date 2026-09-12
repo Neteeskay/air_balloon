@@ -17,7 +17,7 @@ test('PERSISTENCE-VERIFY user, balance, history and completed result survive bac
   const state = await api.currentState();
   expect(state.userId).toBe(checkpoint.userId);
   const expectedBalance = checkpoint.activeRoundId
-    ? decimalToScale(checkpoint.balance, 2) - decimalToScale(settings.stake, 2)
+    ? decimalToScale(checkpoint.balance, 2) - decimalToScale(checkpoint.activeStake, 2)
     : decimalToScale(checkpoint.balance, 2);
   expect(decimalToScale(state.bonusBalance, 2)).toBe(expectedBalance);
   if (checkpoint.activeRoundId) expect(Number(state.gameScore)).toBeGreaterThanOrEqual(Number(checkpoint.gameScore));

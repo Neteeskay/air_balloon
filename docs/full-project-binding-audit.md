@@ -2,6 +2,16 @@
 
 Дата аудита: 2026-09-12 (Europe/Moscow)
 
+> **Final acceptance addendum (integration/backend-final-binding).** The earlier
+> pre-binding counts below are historical. Final binding tests now exercise the
+> canonical four `stakeOptions`, authenticated/privacy-safe global history,
+> current Result/Balance DTOs, active-round recovery and live S8 WIN purchase
+> idempotency plus LOSS `204`. Acceptance reset also removes S8 offers before
+> economy rows and tops up only the dedicated Compose fixtures. Remaining
+> limitations are legacy browser selectors and the mock frontend adapters;
+> backend contract blockers are closed. See
+> [backend-final-acceptance-report.md](backend-final-acceptance-report.md).
+
 ## Source and delta
 
 Проверена ветка `integration/backend-admin-improvements`, HEAD

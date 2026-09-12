@@ -11,7 +11,7 @@ test('CURRENT-IDENTITY login principal, economy and history refer to the same us
   const before = await api.currentState();
   const round = await api.startRound('GREEN', settings.stake, 2);
   const after = await api.currentState();
-  expect(decimalToScale(after.bonusBalance, 2)).toBe(decimalToScale(before.bonusBalance, 2) - decimalToScale(settings.stake, 2));
+  expect(decimalToScale(after.bonusBalance, 2)).toBe(decimalToScale(before.bonusBalance, 2) - decimalToScale(round.betAmount, 2));
   await api.waitForSnapshot(round.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs);
   const personal = historyItems(await api.personalHistory());
   expect(personal.some((item) => item.roundId === round.id)).toBe(true);

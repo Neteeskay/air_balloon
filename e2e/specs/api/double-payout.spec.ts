@@ -23,7 +23,7 @@ test('DOUBLE-PAYOUT 100 simultaneous retries with one idempotency key credit exa
     await api.waitForSnapshot(round.id, (item) => item.status === 'FINISHED', settings.eventTimeoutMs);
     const current = await api.currentState();
     expect(decimalToScale(current.bonusBalance, 2)).toBe(
-      decimalToScale(initial.bonusBalance, 2) - decimalToScale(settings.stake, 2) + decimalToScale(payout, 2)
+      decimalToScale(initial.bonusBalance, 2) - decimalToScale(round.betAmount, 2) + decimalToScale(payout, 2)
     );
   } finally {
     socket.abort();

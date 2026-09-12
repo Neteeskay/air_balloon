@@ -16,14 +16,14 @@ test.describe.serial('Scenario 4 — booster', () => {
       expect(round.boosterMultiplier).toBe(2);
       expect(round.boosterLevel).toBeGreaterThanOrEqual(1);
       expect(round.boosterActivated).toBe(false);
-      expect(decimalToScale(round.cashoutPreviewAmount!, 0)).toBe(decimalToScale(settings.stake, 0));
+      expect(decimalToScale(round.cashoutPreviewAmount!, 0)).toBe(decimalToScale(round.betAmount, 0));
       const event = await socket.waitForRound(round.id, (item) => item.type === 'BOOSTER_ACTIVATED', settings.eventTimeoutMs);
       expect(event.data.booster).toBe(2);
       expect(event.data.level).toBeGreaterThanOrEqual(1);
       expect(decimalToScale(event.data.afterMultiplier, 4)).toBe(decimalToScale(event.data.beforeMultiplier, 4) * 2n);
       expect(Number(event.data.pointsToAward)).toBeGreaterThan(0);
       expect(decimalToScale(event.data.cashoutPreviewAmount, 0)).toBe(
-        decimalToScale(settings.stake, 0) * decimalToScale(event.data.afterMultiplier, 4) / 10_000n
+        decimalToScale(round.betAmount, 0) * decimalToScale(event.data.afterMultiplier, 4) / 10_000n
       );
       const snapshot = await api.snapshot(round.id);
       expect(snapshot.boosterActivated).toBe(true);

@@ -24,11 +24,7 @@ test('S8-API WIN offer is owner-only and 100 purchase retries debit and credit e
 
   const beforePurchase = await api.currentState();
   const key = randomUUID();
-  const purchases = await Promise.all(Array.from({ length: 100 }, () => api.scenario8Purchase(offer.offerId, key, {
-    price: 1,
-    ticketCount: 999_999,
-    winAmount: 999_999
-  })));
+  const purchases = await Promise.all(Array.from({ length: 100 }, () => api.scenario8Purchase(offer.offerId, key)));
   expect(purchases.every(item => item.response.status() === 200)).toBe(true);
   expect(purchases.filter(item => item.body.replayed === false)).toHaveLength(1);
   expect(purchases.every(item => item.body.price === offer.price && item.body.ticketCount === offer.ticketCount)).toBe(true);
@@ -37,7 +33,7 @@ test('S8-API WIN offer is owner-only and 100 purchase retries debit and credit e
   expect(decimalToScale(after.bonusBalance, 0)).toBe(decimalToScale(beforePurchase.bonusBalance, 0) - BigInt(offer.price));
   expect(decimalToScale(after.lotteryTicketCount ?? 0, 0)).toBe(decimalToScale(beforePurchase.lotteryTicketCount ?? 0, 0) + BigInt(offer.ticketCount));
   expect(decimalToScale(beforePurchase.bonusBalance, 0)).toBe(
-    decimalToScale(beforeRound.bonusBalance, 0) - decimalToScale(settings.stake, 0) + decimalToScale(payout, 0)
+    decimalToScale(beforeRound.bonusBalance, 0) - decimalToScale(round.betAmount, 0) + decimalToScale(payout, 0)
   );
   const consumed = await api.scenario8Purchase(offer.offerId, randomUUID());
   expect(consumed.response.status()).toBe(409);

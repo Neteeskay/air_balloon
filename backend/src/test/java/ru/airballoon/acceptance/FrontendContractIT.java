@@ -62,8 +62,14 @@ class FrontendContractIT extends GameAcceptanceSupport {
         JsonNode bobHistory=body(core.get(bob.id(),"/api/current-user/history?size=100"));
         assertThat(roundIds(aliceHistory)).contains(aliceRound.id()).doesNotContain(bobRound.id());
         assertThat(roundIds(bobHistory)).contains(bobRound.id()).doesNotContain(aliceRound.id());
-        assertThat(roundIds(body(core.getAnonymous("/api/history?size=100"))))
-                .contains(aliceRound.id(),bobRound.id());
+        // Global history is authenticated and privacy-safe; it does not expose userId.
+        assertError(core.getAnonymous("/api/history?size=100"), 401, "AUTH_REQUIRED");
+        JsonNode globalHistory = body(core.get(alice.id(), "/api/history?size=100"));
+        assertThat(roundIds(globalHistory)).contains(aliceRound.id(), bobRound.id());
+        for (JsonNode item : globalHistory.path("items")) {
+            assertThat(item.has("userId")).isFalse();
+            assertThat(item.has("username")).isFalse();
+        }
     }
 
     @Test
@@ -78,17 +84,20 @@ class FrontendContractIT extends GameAcceptanceSupport {
         assertThat(minimum).isEqualByComparingTo("1");
         assertThat(maximum).isEqualByComparingTo("1000");
 
+        assertThat(catalog.path("stakeOptions").size()).isEqualTo(4);
         Player player=user("Catalog",5000);
-        for (JsonNode booster : catalog.path("boosters")) {
-            assertThat(booster.path("active").asBoolean()).isTrue();
-            assertThat(booster.path("extraCost").decimalValue()).isEqualByComparingTo(BigDecimal.ZERO);
-            Response<Round> started=driver.start(player.id(),Theme.GREEN,minimum,booster.path("multiplier").asInt(),
+        for (JsonNode option : catalog.path("stakeOptions")) {
+            BigDecimal amount = option.path("amount").decimalValue();
+            int multiplier = option.path("boosterMultiplier").asInt();
+            Response<Round> started=driver.start(player.id(),Theme.GREEN,amount,multiplier,
                     SeedProfile.LATE_CRASH_AFTER_LEVEL_3,Map.of());
             assertThat(started.status()).isEqualTo(201);
+            driver.reachCrash(started.body().id());
         }
-        Player maximumStakePlayer=user("CatalogMax",5000);
-        assertThat(driver.start(maximumStakePlayer.id(),Theme.RED,maximum,1,
-                SeedProfile.LATE_CRASH_AFTER_LEVEL_3,Map.of()).status()).isEqualTo(201);
+        // The unpaired option-1 amount with x4 must be rejected by the HTTP contract.
+        Player invalid=user("CatalogInvalid",5000);
+        assertThat(driver.start(invalid.id(), Theme.RED, catalog.path("stakeOptions").get(0).path("amount").decimalValue(), 4,
+                SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()).status()).isEqualTo(400);
     }
 
     @Test
@@ -109,7 +118,7 @@ class FrontendContractIT extends GameAcceptanceSupport {
     void cashoutAndBoosterScoreMatchesEveryDtoAndTournamentProjection() {
         UUID tournament=driver.createActiveTournament();
         Player player=user("AllBonuses",1000);
-        Round round=ok(driver.start(player.id(),Theme.GREEN,bet,3,
+        Round round=ok(driver.start(player.id(),Theme.GREEN,new BigDecimal("500"),3,
                 SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH,Map.of()));
         driver.reachLevel(round.id(),2);
         assertThat(ok(driver.cashout(player.id(),round.id(),Map.of())).state()).isEqualTo("RUNNING");
@@ -126,6 +135,39 @@ class FrontendContractIT extends GameAcceptanceSupport {
         assertThat(historyScore(player.id(),round.id())).isEqualTo(expected);
         assertThat(driver.player(player.id()).gameScore()).isEqualTo(expected);
         assertThat(ok(driver.leaderboard(tournament,player.id(),0,50)).currentPlayer().score()).isEqualTo(expected);
+    }
+
+    @Test
+    void scenario8WinOfferPurchaseIsAtomicAndLossHasNoOffer() {
+        Player winner = user("S8Winner", 1000);
+        Round winRound = start(winner, 1);
+        driver.reachLevel(winRound.id(), 1);
+        ok(driver.cashout(winner.id(), winRound.id(), Map.of()));
+        driver.reachCrash(winRound.id());
+
+        JsonNode offer = body(core.get(winner.id(), "/api/current-user/upsell/lottery-tickets/offer?roundId=" + winRound.id()));
+        assertThat(offer.path("offerId").isTextual()).isTrue();
+        assertThat(offer.path("price").asLong()).isPositive();
+        assertThat(offer.path("ticketCount").asInt()).isPositive();
+        long balanceBefore = body(core.get(winner.id(), "/api/current-user/state")).path("bonusBalance").asLong();
+        long ticketsBefore = body(core.get(winner.id(), "/api/current-user/state")).path("lotteryTicketCount").asLong();
+        String key = "22222222-2222-4222-8222-222222222222";
+        JsonNode purchased = body(core.post(winner.id(), "/api/current-user/upsell/lottery-tickets/purchase",
+                Map.of("offerId", offer.path("offerId").asText()), key));
+        assertThat(purchased.path("replayed").asBoolean()).isFalse();
+        assertThat(purchased.path("bonusBalance").asLong()).isEqualTo(balanceBefore - offer.path("price").asLong());
+        assertThat(purchased.path("lotteryTicketCount").asLong()).isEqualTo(ticketsBefore + offer.path("ticketCount").asInt());
+        JsonNode replay = body(core.post(winner.id(), "/api/current-user/upsell/lottery-tickets/purchase",
+                Map.of("offerId", offer.path("offerId").asText()), key));
+        assertThat(replay.path("replayed").asBoolean()).isTrue();
+        assertThat(replay.path("bonusBalance").asLong()).isEqualTo(purchased.path("bonusBalance").asLong());
+        assertThat(replay.path("lotteryTicketCount").asLong()).isEqualTo(purchased.path("lotteryTicketCount").asLong());
+
+        Player loser = user("S8Loser", 1000);
+        Round lossRound = start(loser, 1);
+        driver.reachCrash(lossRound.id());
+        ResponseEntity<JsonNode> lossOffer = core.get(loser.id(), "/api/current-user/upsell/lottery-tickets/offer?roundId=" + lossRound.id());
+        assertThat(lossOffer.getStatusCode().value()).isEqualTo(204);
     }
 
     @Test

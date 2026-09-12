@@ -126,6 +126,13 @@ try {
       & docker compose -p $ComposeProject exec -T postgres psql -v ON_ERROR_STOP=1 -U $dbUser -d $dbName -c "SELECT count(*) AS constraints FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_type IN ('PRIMARY KEY','FOREIGN KEY','UNIQUE','CHECK');"
       if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect PostgreSQL constraints' }
       Add-PhaseResult 'database-constraints' 'PASS'
+      # Canonical paired stake options (100/250/500/1000) make the full
+      # black-box suite intentionally spend more than the demo seed balance.
+      # Top up only the dedicated acceptance fixtures; product defaults remain
+      # unchanged and this command never targets a non-Compose database.
+      & docker compose -p $ComposeProject exec -T postgres psql -v ON_ERROR_STOP=1 -U $dbUser -d $dbName -c "UPDATE users SET bonus_balance = 100000, game_score = 0, game_score_version = 0, lottery_ticket_count = 0;"
+      if ($LASTEXITCODE -ne 0) { throw 'Unable to seed acceptance fixture balances' }
+      Add-PhaseResult 'acceptance-fixtures' 'PASS' 'Demo users topped up for canonical stake matrix'
     } catch {
       Add-PhaseResult 'docker-postgres' 'BLOCKED' $_.Exception.Message
       $exitCode = 2
@@ -136,6 +143,16 @@ try {
 
   # Auth setup must always create a fresh server session; a stale cookie can
   # belong to another demo user after a previous local run.
+  # Keep Playwright targets in sync with the Compose ports selected by the
+  # caller; otherwise its defaults (18080/5173) can silently hit another app.
+  if (-not $env:ACCEPTANCE_API_URL) {
+    $backendPort = if ($env:BACKEND_PORT) { $env:BACKEND_PORT } else { '8080' }
+    $env:ACCEPTANCE_API_URL = "http://127.0.0.1:$backendPort"
+  }
+  if (-not $env:ACCEPTANCE_FRONTEND_URL) {
+    $frontendPort = if ($env:FRONTEND_PORT) { $env:FRONTEND_PORT } else { '5173' }
+    $env:ACCEPTANCE_FRONTEND_URL = "http://127.0.0.1:$frontendPort"
+  }
   $authState = Join-Path $e2eRoot '.auth\anna.json'
   if (Test-Path -LiteralPath $authState) { Remove-Item -LiteralPath $authState -Force }
   if (-not $SkipBrowserInstall) {

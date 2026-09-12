@@ -41,7 +41,13 @@ public abstract class GameAcceptanceSupport extends PostgresSupport {
     }
     protected Player user(String name, long balance) { return driver.createPlayer(name, BigDecimal.valueOf(balance), 0); }
     protected Round start(Player user, int booster) {
-        return ok(driver.start(user.id(), Theme.GREEN, bet, booster, SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()));
+        BigDecimal amount = switch (booster) {
+            case 1 -> new BigDecimal("100"); case 2 -> new BigDecimal("250");
+            case 3 -> new BigDecimal("500"); case 4 -> new BigDecimal("1000");
+            default -> throw new IllegalArgumentException("Unsupported booster " + booster);
+        };
+        return ok(driver.start(user.id(), Theme.GREEN, amount, booster,
+                SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()));
     }
     protected <T> T ok(Response<T> response) {
         assertThat(response.status()).as("HTTP status; error=%s", response.errorCode()).isBetween(200, 299);

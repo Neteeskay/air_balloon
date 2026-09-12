@@ -78,6 +78,9 @@ export type ReplayView = {
 };
 
 export class ApiClient {
+  private catalogPromise?: Promise<any>;
+  private adminBearer?: string;
+
   constructor(
     private readonly request: APIRequestContext,
     private readonly headers: Record<string, string> = {}
@@ -112,7 +115,21 @@ export class ApiClient {
   }
 
   async catalog(): Promise<any> {
-    return this.requiredJson<any>(await this.request.get('/api/game/catalog', { headers: this.headers }), 'Catalog is unavailable');
+    this.catalogPromise ??= this.requiredJson<any>(
+      await this.request.get('/api/game/catalog', { headers: this.headers }),
+      'Catalog is unavailable'
+    );
+    return this.catalogPromise;
+  }
+
+  async stakeOption(boosterMultiplier: number): Promise<{ amount: string | number; boosterMultiplier: number }> {
+    const catalog = await this.catalog();
+    if (!Array.isArray(catalog.stakeOptions) || catalog.stakeOptions.length !== 4) {
+      throw new Error('Catalog must expose exactly four authoritative stakeOptions');
+    }
+    const option = catalog.stakeOptions.find((item: any) => item.boosterMultiplier === boosterMultiplier);
+    if (!option) throw new Error(`Catalog has no stake option paired with x${boosterMultiplier}`);
+    return option;
   }
 
   async userState(userId: string): Promise<UserState> {
@@ -120,10 +137,11 @@ export class ApiClient {
     return this.requiredJson<UserState>(response, 'Persistent user/economy API is not integrated');
   }
 
-  async startRound(theme: 'GREEN' | 'RED', betAmount: string, boosterMultiplier: number, idempotencyKey = randomUUID()): Promise<RoundView> {
+  async startRound(theme: 'GREEN' | 'RED', _legacyBetAmount: string, boosterMultiplier: number, idempotencyKey = randomUUID()): Promise<RoundView> {
+    const option = await this.stakeOption(boosterMultiplier);
     const response = await this.request.post('/api/rounds', {
       headers: { ...this.headers, 'Idempotency-Key': idempotencyKey },
-      data: { theme, betAmount, boosterMultiplier }
+      data: { theme, betAmount: option.amount, boosterMultiplier: option.boosterMultiplier }
     });
     return this.requiredJson<RoundView>(response, 'Game Core start-round API is not integrated', 201);
   }
@@ -186,19 +204,41 @@ export class ApiClient {
     return { response, body: await safeJson(response) };
   }
 
-  async adminConfig(adminToken: string): Promise<any> {
-    const response = await this.request.get('/api/admin/config', {
-      headers: { ...this.headers, 'X-Admin-Token': adminToken }
+  async adminConfig(_legacyAdminToken?: string): Promise<any> {
+    const response = await this.request.get('/api/admin/config/current', {
+      headers: { ...this.headers, Authorization: `Bearer ${await this.adminToken()}` }
     });
-    return this.requiredJson<any>(response, 'Runtime game-config API is not integrated');
+    return normalizeAdmin(await this.requiredJson<any>(response, 'Runtime game-config API is not integrated'));
   }
 
-  async updateAdminConfig(adminToken: string, expectedVersion: number, config: any): Promise<any> {
-    const response = await this.request.put('/api/admin/config', {
-      headers: { ...this.headers, 'X-Admin-Token': adminToken },
-      data: { expectedVersion, config }
+  async updateAdminConfig(_legacyAdminToken: string, expectedVersion: number, config: any): Promise<any> {
+    const token = await this.adminToken();
+    const currentResponse = await this.request.get('/api/admin/config/current', {
+      headers: { ...this.headers, Authorization: `Bearer ${token}` }
     });
-    return this.requiredJson<any>(response, 'Runtime game-config API is not integrated');
+    const current = await this.requiredJson<any>(currentResponse, 'Runtime game-config API is not integrated');
+    const draftResponse = await this.request.post('/api/admin/config', {
+      headers: { ...this.headers, Authorization: `Bearer ${token}` },
+      data: adminWrite(current, Math.max(expectedVersion + 1, current.revision + 1), config)
+    });
+    const draft = await this.requiredJson<any>(draftResponse, 'Runtime game-config draft API is not integrated', 201);
+    const activated = await this.request.post(`/api/admin/config/${draft.id}/activate`, {
+      headers: { ...this.headers, Authorization: `Bearer ${token}` }
+    });
+    this.catalogPromise = undefined;
+    return normalizeAdmin(await this.requiredJson<any>(activated, 'Runtime game-config activation API is not integrated'));
+  }
+
+  async validateAdminConfig(config: any): Promise<APIResponse> {
+    const token = await this.adminToken();
+    const currentResponse = await this.request.get('/api/admin/config/current', {
+      headers: { ...this.headers, Authorization: `Bearer ${token}` }
+    });
+    const current = await this.requiredJson<any>(currentResponse, 'Runtime game-config API is not integrated');
+    return this.request.post('/api/admin/config/validate', {
+      headers: { ...this.headers, Authorization: `Bearer ${token}` },
+      data: adminWrite(current, current.revision + 1, config)
+    });
   }
 
   async waitForSnapshot(roundId: string, predicate: (round: RoundView) => boolean, timeoutMs = 120_000): Promise<RoundView> {
@@ -219,6 +259,77 @@ export class ApiClient {
     }
     return (await response.json()) as T;
   }
+
+  private async adminToken(): Promise<string> {
+    if (this.adminBearer) return this.adminBearer;
+    const response = await this.request.post('/api/admin/auth/login', {
+      headers: this.headers,
+      data: { username: 'admin', password: 'admin' }
+    });
+    const body = await this.requiredJson<any>(response, 'Admin bearer login is unavailable');
+    const token = String(body.accessToken ?? '');
+    if (!token) throw new Error('Admin login response did not include accessToken');
+    this.adminBearer = token;
+    return token;
+  }
+}
+
+function normalizeAdmin(value: any): any {
+  return {
+    version: value.revision,
+    id: value.id,
+    config: {
+      gameId: value.gameId,
+      gameName: value.gameName,
+      gameType: value.gameType,
+      isActive: value.isActive,
+      alpha: value.crash.alpha,
+      maxCrashMultiplier: value.crash.maxMultiplier,
+      minCrashMultiplier: value.crash.minCrashMultiplier,
+      growthRate: value.crash.multiplierGrowthRate,
+      fps: value.crash.fps,
+      delta: value.crash.delta,
+      boosterValues: [value.boosters.multiplierTier1Value, value.boosters.multiplierTier2Value,
+        value.boosters.multiplierTier3Value, value.boosters.multiplierTier4Value],
+      green: value.boosters.green,
+      red: value.boosters.red,
+      pointsPerLevel: value.points.pointsPerLine,
+      pointsCashoutBonus: value.points.pointsCashoutBonus,
+      pointsXNBonus: value.points.pointsXNBonus
+    }
+  };
+}
+
+function adminWrite(current: any, revision: number, config: any): any {
+  const boosters = Array.isArray(config.boosterValues) ? config.boosterValues : [
+    current.boosters.multiplierTier1Value, current.boosters.multiplierTier2Value,
+    current.boosters.multiplierTier3Value, current.boosters.multiplierTier4Value
+  ];
+  return {
+    gameId: current.gameId,
+    gameName: config.gameName ?? current.gameName,
+    gameType: current.gameType,
+    isActive: config.isActive ?? current.isActive,
+    revision,
+    crash: {
+      alpha: config.alpha ?? current.crash.alpha,
+      maxMultiplier: config.maxCrashMultiplier ?? current.crash.maxMultiplier,
+      minCrashMultiplier: config.minCrashMultiplier ?? current.crash.minCrashMultiplier,
+      multiplierGrowthRate: config.growthRate ?? current.crash.multiplierGrowthRate,
+      fps: current.crash.fps,
+      delta: current.crash.delta
+    },
+    boosters: {
+      multiplierTier1Value: boosters[0], multiplierTier2Value: boosters[1],
+      multiplierTier3Value: boosters[2], multiplierTier4Value: boosters[3],
+      green: current.boosters.green, red: current.boosters.red
+    },
+    points: {
+      pointsPerLine: config.pointsPerLevel ?? current.points.pointsPerLine,
+      pointsCashoutBonus: config.pointsCashoutBonus ?? current.points.pointsCashoutBonus,
+      pointsXNBonus: config.pointsXNBonus ?? current.points.pointsXNBonus
+    }
+  };
 }
 
 async function safeJson(response: APIResponse): Promise<any> {

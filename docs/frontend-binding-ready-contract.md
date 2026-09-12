@@ -1,7 +1,8 @@
 # Frontend binding-ready contract
 
-Backend branch `integration/backend-binding-ready` is the source of truth for the
-next frontend integration. The mock frontend is intentionally unchanged.
+Final backend acceptance is frozen on `integration/backend-final-binding`, derived
+from `integration/backend-binding-ready`. The mock frontend is intentionally
+unchanged; this document is the binding source of truth for the next frontend.
 
 ## Authentication and ownership
 

@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import ru.airballoon.game.application.GameService;
 import ru.hackathon.airballoon.AirBalloonApplication;
 import ru.hackathon.airballoon.support.PostgresSupport;
 import ru.hackathon.airballoon.tournament.api.*;
@@ -23,6 +25,11 @@ class DemoAndRecoveryIT extends PostgresSupport {
         SpringApplication app = new SpringApplication(AirBalloonApplication.class);
         app.setWebApplicationType(WebApplicationType.NONE);
         app.setAdditionalProfiles(profiles);
+        app.addInitializers(ctx -> {
+            if (!ctx.getBeanFactory().containsBean("gameService")) {
+                ctx.getBeanFactory().registerSingleton("legacyGameService", Mockito.mock(GameService.class));
+            }
+        });
         return app.run(props.entrySet().stream().map(e -> "--" + e.getKey() + "=" + e.getValue()).toArray(String[]::new));
     }
     @Test void demoSeedingSimulationAndActualContextRestartRetainLeaderboard() {

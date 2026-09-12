@@ -71,7 +71,8 @@ class CoreIdentityIntegrationTest extends PostgresSupport {
 
         var startedResponse = mvc.perform(post("/api/rounds").session(session)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3}"))
+                        // Catalog option 3 is the authoritative paired stake for x3.
+                        .content("{\"theme\":\"GREEN\",\"betAmount\":500,\"boosterMultiplier\":3}"))
                 .andExpect(status().isCreated()).andReturn();
         JsonNode started = json.readTree(startedResponse.getResponse().getContentAsString());
         String roundId = started.get("id").asText();
@@ -83,7 +84,7 @@ class CoreIdentityIntegrationTest extends PostgresSupport {
         var afterDebitResponse = mvc.perform(get("/api/auth/me").session(session))
                 .andExpect(status().isOk()).andReturn();
         JsonNode afterDebit = json.readTree(afterDebitResponse.getResponse().getContentAsString());
-        assertThat(afterDebit.get("bonusBalance").asLong()).isEqualTo(before.get("bonusBalance").asLong() - 100);
+        assertThat(afterDebit.get("bonusBalance").asLong()).isEqualTo(before.get("bonusBalance").asLong() - 500);
 
         Thread.sleep(1_300);
         String key = "11111111-2222-4333-8444-555555555556";

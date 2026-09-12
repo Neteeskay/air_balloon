@@ -32,7 +32,7 @@ class ReconnectIT extends IntegrationSupport {
         clock.atMillis(0); UUID user = UUID.randomUUID();
         {
             var oldEvents = new Listener(); var old = connect(user, oldEvents); oldEvents.next();
-            var started = request(user, "POST", "/api/rounds", "{\"theme\":\"GREEN\",\"betAmount\":100,\"boosterMultiplier\":3}");
+            var started = request(user, "POST", "/api/rounds", "{\"theme\":\"GREEN\",\"betAmount\":500,\"boosterMultiplier\":3}");
             UUID id = UUID.fromString(started.path("id").asText());
             var startEvent = oldEvents.next();
             assertThat(startEvent.path("type").asText()).isEqualTo("ROUND_STARTED");
@@ -48,14 +48,14 @@ class ReconnectIT extends IntegrationSupport {
                 assertThat(snapshot.path("currentLevel").asInt()).isEqualTo(6);
                 assertThat(snapshot.path("boosterActivated").asBoolean()).isTrue();
                 assertThat(snapshot.path("currentMultiplier").decimalValue()).isEqualByComparingTo("6");
-                assertThat(snapshot.path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("600");
+                assertThat(snapshot.path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("3000");
                 assertThat(snapshot.path("serverTime").asText()).isEqualTo(START.plusSeconds(10).toString());
                 assertThat(service.activeRoundCount()).isGreaterThanOrEqualTo(1);
                 var replay = request(user, "GET", "/api/rounds/" + id + "/events?afterSequence=1", null);
                 assertThat(replay.path("snapshotRequired").asBoolean()).isFalse();
                 assertThat(replay.path("events").findValuesAsText("type")).contains("LEVEL_REACHED", "BOOSTER_ACTIVATED");
                 var payout = request(user, "POST", "/api/rounds/" + id + "/cashout", null);
-                assertThat(payout.path("winAmount").decimalValue()).isEqualByComparingTo("600");
+                assertThat(payout.path("winAmount").decimalValue()).isEqualByComparingTo("3000");
                 clock.atMillis(100000); var tail = newEvents.untilFinished(id);
                 assertThat(tail.stream().map(e -> e.path("type").asText())).containsSubsequence("CASHOUT_SUCCESS", "CRASH", "ROUND_FINISHED");
                 assertThat(tail.stream().map(e -> e.path("sequence").asLong())).isSorted().doesNotHaveDuplicates();

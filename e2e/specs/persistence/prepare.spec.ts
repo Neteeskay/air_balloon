@@ -36,10 +36,12 @@ test('PERSISTENCE-PREPARE stores completed-round checkpoint before backend resta
     result,
     final
   };
+  checkpoint.stake = String(round.betAmount);
   if (process.env.ACCEPTANCE_ACTIVE_ROUND_RECOVERY === '1') {
     const active = await api.startRound('RED', settings.stake, 2);
     checkpoint.activeRoundId = active.id;
     checkpoint.activeSequence = active.sequence;
+    checkpoint.activeStake = String(active.betAmount);
   }
   const output = path.resolve(__dirname, '..', '..', '..', 'artifacts', 'acceptance');
   fs.mkdirSync(output, { recursive: true });

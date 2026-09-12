@@ -11,7 +11,7 @@ class GameScenariosIT extends GameAcceptanceSupport {
     void scenario1BetAndStart() {
         Player user = user("StartGreen", 1000);
         Round round = start(user, 2);
-        assertThat(driver.player(user.id()).balance()).isEqualByComparingTo("900");
+        assertThat(driver.player(user.id()).balance()).isEqualByComparingTo("750");
         assertThat(driver.ledgerCount(round.id(), "BET_DEBIT")).isEqualTo(1);
         assertThat(round.state()).isEqualTo("RUNNING");
         assertThat(round.theme()).isEqualTo(Theme.GREEN);
@@ -20,10 +20,10 @@ class GameScenariosIT extends GameAcceptanceSupport {
         assertThat(round.cashoutAvailable()).isFalse();
         assertThat(driver.events(round.id())).extracting(Event::type).contains("ROUND_STARTED");
         Player red = user("StartRed", 1000);
-        Round redRound = ok(driver.start(red.id(), Theme.RED, bet, 2, SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()));
+        Round redRound = ok(driver.start(red.id(), Theme.RED, new BigDecimal("250"), 2, SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()));
         assertThat(redRound.theme()).isEqualTo(Theme.RED);
         assertThat(redRound.levels()).isEqualTo(12);
-        assertThat(driver.player(red.id()).balance()).isEqualByComparingTo("900");
+        assertThat(driver.player(red.id()).balance()).isEqualByComparingTo("750");
     }
 
     @Test @DisplayName("SCENARIO 2 Cashout + continued flight + crash + result")
@@ -64,7 +64,8 @@ class GameScenariosIT extends GameAcceptanceSupport {
     @Test @DisplayName("SCENARIO 4 x3 Booster activates once and cashout uses boosted value")
     void scenario4Booster() {
         Player user = user("Booster", 1000);
-        Round round = ok(driver.start(user.id(), Theme.GREEN, bet, 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
+        BigDecimal boosterBet = new BigDecimal("500");
+        Round round = ok(driver.start(user.id(), Theme.GREEN, boosterBet, 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
         driver.reachLevel(round.id(), 2);
         var boosters = driver.events(round.id()).stream().filter(e -> e.type().equals("BOOSTER_ACTIVATED")).toList();
         assertThat(boosters).hasSize(1);
@@ -74,11 +75,11 @@ class GameScenariosIT extends GameAcceptanceSupport {
         assertThat(cashed.boosterActivated()).isTrue();
         assertThat(cashed.boosterPoints()).isEqualTo(boosters.getFirst().points());
         assertThat(cashed.cashoutMultiplier()).isGreaterThanOrEqualTo(boosters.getFirst().multiplierAfter());
-        assertThat(cashed.winAmount()).isEqualByComparingTo(bet.multiply(cashed.cashoutMultiplier()));
+        assertThat(cashed.winAmount()).isEqualByComparingTo(boosterBet.multiply(cashed.cashoutMultiplier()));
         driver.reachCrash(round.id()); persistedFinal(round.id(), "WIN");
         assertThat(driver.events(round.id()).stream().filter(e -> e.type().equals("BOOSTER_ACTIVATED"))).hasSize(1);
         Player early = user("CashoutBeforeBooster", 1000);
-        Round earlyRound = ok(driver.start(early.id(), Theme.GREEN, bet, 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
+        Round earlyRound = ok(driver.start(early.id(), Theme.GREEN, boosterBet, 3, SeedProfile.X3_BOOSTER_AT_LEVEL_2_LATE_CRASH, Map.of()));
         driver.reachLevel(earlyRound.id(), 1);
         ok(driver.cashout(early.id(), earlyRound.id(), Map.of()));
         driver.reachCrash(earlyRound.id());
