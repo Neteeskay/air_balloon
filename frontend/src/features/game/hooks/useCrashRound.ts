@@ -15,7 +15,7 @@ export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
   const finished = useRef(false)
   const cashoutPending = useRef(false)
   const cashoutKey = useRef(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${performance.now()}`)
-  const { play } = useCrashSounds(soundOn)
+  const { play, unlock } = useCrashSounds(soundOn)
   const apply = useCallback((r: Round) => {
     setServer(r)
     setStatus(r.status === 'CASHED_OUT' ? 'cashed-out' : r.status === 'CRASHED' || r.status === 'FINISHED' ? 'crashed' : 'flying')
@@ -32,5 +32,5 @@ export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
   const cashout = useCallback(() => { if (!server || status !== 'flying' || !server.cashoutAvailable || cashoutPending.current) return; cashoutPending.current = true; void api.game.cashout(roundId, cashoutKey.current).then(apply).then(() => play('cashout')).catch(() => {}).finally(() => { cashoutPending.current = false }) }, [apply, play, roundId, server, status])
   const levels = (server?.levelThresholds ?? []).map(Number)
   const raw = Number(server?.currentMultiplier ?? 1)
-  return { canCashout: status === 'flying' && Boolean(server?.cashoutAvailable), cashout, cashoutCoefficient: server?.cashoutMultiplier ? Number(server.cashoutMultiplier) : null, cashoutPayout: Number(server?.winAmount ?? 0), coefficient: raw, levels, mock: { boosterLevel: Number(server?.boosterLevel ?? 0), pointsPerLine: 0 }, points: Number(server?.roundScore ?? 0), potentialPayout: Number(server?.cashoutPreviewAmount ?? 0), rawCoefficient: raw, reachedLevels: Number(server?.currentLevel ?? 0), status, connection }
+  return { canCashout: status === 'flying' && Boolean(server?.cashoutAvailable), cashout, cashoutCoefficient: server?.cashoutMultiplier ? Number(server.cashoutMultiplier) : null, cashoutPayout: Number(server?.winAmount ?? 0), coefficient: raw, levels, boosterActivated: Boolean(server?.boosterActivated), boosterLevel: Number(server?.boosterLevel ?? 0), unlockSounds: unlock, mock: { boosterLevel: Number(server?.boosterLevel ?? 0), pointsPerLine: 0 }, points: Number(server?.roundScore ?? 0), potentialPayout: Number(server?.cashoutPreviewAmount ?? 0), rawCoefficient: raw, reachedLevels: Number(server?.currentLevel ?? 0), status, connection }
 }

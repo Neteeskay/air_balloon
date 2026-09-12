@@ -7,6 +7,7 @@ import { Login } from './pages/Login'
 import { Overview } from './pages/Overview'
 import { Simulation } from './pages/Simulation'
 import { Versions } from './pages/Versions'
+import './admin.css'
 
 export type AdminPage = 'overview' | 'config' | 'versions' | 'audit' | 'simulation'
 

@@ -24,6 +24,8 @@ type BetSelectionPageProps = {
   onTopUp: () => void
   onUnlockAudio: () => void
   options: BetOption[]
+  onBack?: () => void
+  onProfile?: () => void
 }
 
 export function BetSelectionPage({
@@ -36,12 +38,12 @@ export function BetSelectionPage({
   onTopUp,
   onUnlockAudio,
   options,
+  onBack,
+  onProfile,
 }: BetSelectionPageProps) {
   const {
     activatingId,
-    boosterHintOpen,
     canStart,
-    closeBoosterHint,
     closeModal,
     modal,
     notice,
@@ -49,7 +51,6 @@ export function BetSelectionPage({
     openTournament,
     puzzleIds,
     selectedId,
-    selectedMultiplier,
     selectOption,
     startGame,
     switchTheme,
@@ -70,13 +71,12 @@ export function BetSelectionPage({
         onToggleSound={onToggleSound}
         onTopUp={topUpBalance}
         soundOn={soundOn}
+        onBack={onBack}
+        onProfile={onProfile}
       />
 
       <GameHistoryStrip />
       <LevelsIndicator
-        boosterHintOpen={boosterHintOpen}
-        multiplier={selectedMultiplier}
-        onCloseBoosterHint={closeBoosterHint}
         theme={theme}
       />
       <HeroBalloon theme={theme} />

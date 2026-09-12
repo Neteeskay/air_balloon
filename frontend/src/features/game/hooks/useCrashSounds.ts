@@ -8,13 +8,30 @@ const FREQUENCIES: Record<CrashSoundName, number> = {
   level: 510,
 }
 
+let sharedAudioContext: AudioContext | null = null
+
+export function unlockCrashAudio() {
+  if (typeof window === 'undefined') return
+  const AudioContextClass = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return
+  sharedAudioContext ??= new AudioContextClass()
+  if (sharedAudioContext.state === 'suspended') void sharedAudioContext.resume().catch(() => {})
+}
+
 export function useCrashSounds(enabled: boolean) {
   const audioContextRef = useRef<AudioContext | null>(null)
+
+  const unlock = useCallback(() => {
+    if (!enabled || typeof window === 'undefined') return
+    unlockCrashAudio()
+    audioContextRef.current = sharedAudioContext
+  }, [enabled])
 
   const play = useCallback((name: CrashSoundName) => {
     if (!enabled) return
 
-    const context = audioContextRef.current ?? new window.AudioContext()
+    const context = audioContextRef.current ?? sharedAudioContext
+    if (!context) return
     audioContextRef.current = context
     if (context.state === 'suspended') void context.resume()
 
@@ -72,9 +89,7 @@ export function useCrashSounds(enabled: boolean) {
     oscillator.stop(context.currentTime + duration)
   }, [enabled])
 
-  useEffect(() => () => {
-    void audioContextRef.current?.close()
-  }, [])
+  useEffect(() => () => { audioContextRef.current = null }, [])
 
-  return { play }
+  return { play, unlock }
 }

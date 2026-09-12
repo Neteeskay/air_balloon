@@ -295,6 +295,7 @@ html.landing-lock-scroll body {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   align-items: center;
+  padding-top: clamp(2rem, 7vh, 6rem);
   gap: clamp(1rem, 4vw, 3rem);
   padding: 0 clamp(2rem, 7vw, 7rem);
   color: var(--text-light);
@@ -303,6 +304,7 @@ html.landing-lock-scroll body {
 
 .landing-page .hero__copy {
   text-align: left;
+  transform: translateY(clamp(-5rem, -7vh, -2rem));
 }
 
 .landing-page .hero__title {
@@ -805,11 +807,13 @@ html.landing-lock-scroll body {
     align-content: center;
     gap: 0.5rem;
     padding: 1.5rem;
+    padding-top: 3.5rem;
     text-align: center;
   }
 
   .landing-page .hero__copy {
     text-align: center;
+    transform: translateY(clamp(-2.5rem, -5vh, -1rem));
   }
 
   .landing-page .hero__cta-row {

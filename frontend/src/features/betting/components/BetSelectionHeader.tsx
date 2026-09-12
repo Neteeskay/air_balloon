@@ -9,6 +9,8 @@ type BetSelectionHeaderProps = {
   onOpenTournament: () => void
   onToggleSound: () => void
   onTopUp: () => void
+  onBack?: () => void
+  onProfile?: () => void
 }
 
 export function BetSelectionHeader({
@@ -18,10 +20,12 @@ export function BetSelectionHeader({
   onOpenTournament,
   onToggleSound,
   onTopUp,
+  onBack,
+  onProfile,
 }: BetSelectionHeaderProps) {
   return (
     <header className="topbar">
-      <button className="back-button" type="button">
+      <button className="back-button" type="button" onClick={onBack} aria-label="Назад">
         <ArrowLeft size={20} />
         <span>Назад</span>
       </button>
@@ -45,7 +49,7 @@ export function BetSelectionHeader({
         >
           {soundOn ? <Volume2 size={23} /> : <VolumeX size={23} />}
         </IconButton>
-        <IconButton label="Профиль">
+        <IconButton label="Профиль" onClick={onProfile}>
           <UserRound size={23} />
         </IconButton>
       </nav>

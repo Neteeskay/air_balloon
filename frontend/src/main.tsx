@@ -8,6 +8,7 @@ import './styles/login.css'
 import './styles/betting.css'
 import './styles/crash-game.css'
 import './styles/sky.css'
+import './styles/flight-mode.css'
 
 // eslint-disable-next-line react-refresh/only-export-components
 function RootRouter() {

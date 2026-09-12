@@ -19,8 +19,10 @@ export function LevelProgressTrack({
   theme,
 }: LevelProgressTrackProps) {
   const boosterIcon = getBoosterIconByMultiplier(boosterMultiplier)
-  const firstLevel = levels[0]
-  let levelPosition = -0.6 + Math.min(1, Math.max(0, (rawCoefficient - 1) / (firstLevel - 1))) * 0.6
+  const firstLevel = levels[0] ?? 2
+  let levelPosition = levels.length
+    ? -0.6 + Math.min(1, Math.max(0, (rawCoefficient - 1) / Math.max(0.0001, firstLevel - 1))) * 0.6
+    : 0
 
   for (let index = 0; index < levels.length - 1; index += 1) {
     if (rawCoefficient >= levels[index]) {
@@ -35,9 +37,12 @@ export function LevelProgressTrack({
   if (rawCoefficient >= levels[levels.length - 1]) levelPosition = levels.length - 1
 
   const spacing = 92
+  // Keep the marker tied to the authoritative coefficient for the whole
+  // round. The previous fixed 178px clamp made it visually freeze after the
+  // first couple of levels on long (GREEN/RED) rounds.
   const naturalMarkerY = (levelPosition + 0.6) * spacing
-  const markerY = Math.min(178, naturalMarkerY)
-  const trackShift = Math.max(0, naturalMarkerY - markerY)
+  const markerY = naturalMarkerY
+  const trackShift = 0
 
   return (
     <aside className={`crash-levels theme-${theme}`} aria-label="Прогресс по уровням">
