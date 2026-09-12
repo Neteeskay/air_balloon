@@ -33,6 +33,11 @@ export type MockRound = {
   theme: MockTheme
   stake: number
   booster: MockBooster
+  startedAt: number
+  crashAfterMs: number
+  crashMultiplier: number
+  cashoutMultiplier: number | null
+  status: 'flying' | 'cashed-out' | 'finished'
 }
 
 export type MockGameState = {
@@ -138,7 +143,21 @@ export function readMockState(): MockGameState {
     const parsed = JSON.parse(raw) as Partial<MockGameState>
     const currentUser = normalizeMockUser(parsed.currentUser)
     if (!currentUser) return EMPTY_MOCK_STATE
-    return { ...EMPTY_MOCK_STATE, ...parsed, currentUser }
+    const parsedRound = parsed.mockRound
+    const mockRound = parsedRound && typeof parsedRound === 'object'
+      ? {
+          id: typeof parsedRound.id === 'string' ? parsedRound.id : `mock-${Date.now()}`,
+          theme: parsedRound.theme === 'red' ? 'red' as const : 'green' as const,
+          stake: typeof parsedRound.stake === 'number' ? parsedRound.stake : 15,
+          booster: [1, 2, 3, 4].includes(Number(parsedRound.booster)) ? Number(parsedRound.booster) as MockBooster : 1 as const,
+          startedAt: typeof parsedRound.startedAt === 'number' ? parsedRound.startedAt : Date.now(),
+          crashAfterMs: typeof parsedRound.crashAfterMs === 'number' ? parsedRound.crashAfterMs : 5600,
+          crashMultiplier: typeof parsedRound.crashMultiplier === 'number' ? parsedRound.crashMultiplier : 1.47,
+          cashoutMultiplier: typeof parsedRound.cashoutMultiplier === 'number' ? parsedRound.cashoutMultiplier : null,
+          status: parsedRound.status === 'cashed-out' || parsedRound.status === 'finished' ? parsedRound.status : 'flying' as const,
+        }
+      : null
+    return { ...EMPTY_MOCK_STATE, ...parsed, currentUser, mockRound }
   } catch {
     return EMPTY_MOCK_STATE
   }
@@ -169,6 +188,13 @@ export function beginMockRound(
       theme: state.selectedTheme,
       stake,
       booster,
+      startedAt: Date.now(),
+      // Deterministic UI fixture: the balloon reaches the crash point after a
+      // short, refresh-safe flight. This is not production crash mathematics.
+      crashAfterMs: state.selectedTheme === 'red' ? 6200 : 5600,
+      crashMultiplier: 1.47,
+      cashoutMultiplier: null,
+      status: 'flying',
     },
     mockResult: null,
   }
@@ -179,12 +205,13 @@ export function finishMockRound(state: MockGameState, outcome: RoundOutcome): Mo
   if (state.mockResult?.roundId === state.mockRound.id) return state
 
   const { currentUser, mockRound } = state
-  const cashoutMultiplier = outcome === 'win' ? 2.2 : undefined
+  const cashoutMultiplier = outcome === 'win' ? (mockRound.cashoutMultiplier ?? 2.2) : undefined
   const payoutAmount = cashoutMultiplier ? Math.round(mockRound.stake * cashoutMultiplier) : 0
   const earnedPoints = outcome === 'win' ? 120 * mockRound.booster : 20 * mockRound.booster
   const puzzleIndex = currentUser.puzzles.findIndex((puzzle) => !puzzle.completed)
   const puzzle = currentUser.puzzles[puzzleIndex] ?? currentUser.puzzles[0]
-  const fragmentAwarded = puzzleIndex >= 0
+  // Product policy: only a successful cashout grants a puzzle fragment.
+  const fragmentAwarded = outcome === 'win' && puzzleIndex >= 0
   const nextCollected = fragmentAwarded
     ? Math.min(puzzle.totalFragments, puzzle.collectedFragments + 1)
     : puzzle.collectedFragments
@@ -206,7 +233,7 @@ export function finishMockRound(state: MockGameState, outcome: RoundOutcome): Mo
   return {
     ...state,
     currentUser: nextUser,
-    mockResult: {
+      mockResult: {
       roundId: mockRound.id,
       result: outcome,
       theme: mockRound.theme,
@@ -214,12 +241,12 @@ export function finishMockRound(state: MockGameState, outcome: RoundOutcome): Mo
       payoutAmount: outcome === 'win' ? payoutAmount : undefined,
       bonusBalance: nextUser.balance,
       cashoutMultiplier,
-      crashMultiplier: outcome === 'win' ? 3.14 : 1.47,
-      potentialMaxMultiplier: outcome === 'win' ? 3.14 : undefined,
+      crashMultiplier: mockRound.crashMultiplier,
+      potentialMaxMultiplier: outcome === 'win' ? mockRound.crashMultiplier : undefined,
       earnedPoints,
       reward: {
         count: fragmentAwarded ? 1 : 0,
-        label: fragmentAwarded ? 'Получен фрагмент' : 'Пазл уже собран',
+        label: fragmentAwarded ? 'Получен фрагмент' : puzzle.completed ? 'Пазл уже собран' : 'Фрагмент не получен',
         puzzleName: puzzle.name,
         collectedFragments: nextCollected,
         totalFragments: puzzle.totalFragments,
@@ -230,6 +257,22 @@ export function finishMockRound(state: MockGameState, outcome: RoundOutcome): Mo
       canRepeatBet: nextUser.balance >= mockRound.stake,
     },
   }
+}
+
+export function cashOutMockRound(state: MockGameState, multiplier: number): MockGameState {
+  if (!state.mockRound || state.mockRound.status !== 'flying') return state
+  const normalized = Math.max(1, Math.round(multiplier * 100) / 100)
+  return {
+    ...state,
+    mockRound: { ...state.mockRound, cashoutMultiplier: normalized, status: 'cashed-out' },
+  }
+}
+
+export function finishActiveMockRound(state: MockGameState): MockGameState {
+  if (!state.mockRound || state.mockRound.status === 'finished') return state
+  const outcome: RoundOutcome = state.mockRound.status === 'cashed-out' ? 'win' : 'loss'
+  const next = finishMockRound(state, outcome)
+  return next.mockRound ? { ...next, mockRound: { ...next.mockRound, status: 'finished' } } : next
 }
 
 export function saveMockAvatar(state: MockGameState, petName: string, equipped: MockEquippedClothing): MockGameState {

@@ -31,8 +31,8 @@ vi.mock('../features/betting/pages/BetSelectionPage', () => ({
   ),
 }))
 
-vi.mock('../features/game/MockGameplayBridge', () => ({
-  MockGameplayBridge: ({ onWin, onLoss, onProfile }: any) => <><button onClick={onWin}>WIN</button><button onClick={onLoss}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
+vi.mock('../features/game/MockGameplay', () => ({
+  MockGameplay: ({ onCashout, onComplete, onProfile }: any) => <><button onClick={() => { onCashout(2.2); onComplete('win') }}>WIN</button><button onClick={() => onComplete('loss')}>LOSS</button><button onClick={onProfile}>Game Profile</button></>,
 }))
 
 vi.mock('../features/results', () => ({
@@ -101,13 +101,13 @@ describe('full mock application flow', () => {
     expect(window.location.pathname).toBe('/bet')
 
     fireEvent.click(screen.getByText('Start'))
-    fireEvent.click(screen.getByText('LOSS'))
+    fireEvent.click(screen.getByText('WIN'))
     expect(screen.getByText('6 / 6')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Result Profile'))
     expect(window.location.pathname).toBe('/profile')
     expect(screen.getByText('6 / 6')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Profile Back'))
-    expect(window.location.pathname).toBe('/result/loss')
+    expect(window.location.pathname).toBe('/result/win')
   })
 
   it('redirects a direct result route without a round to a safe screen', async () => {

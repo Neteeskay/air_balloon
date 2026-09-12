@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AvatarProfile } from '../features/avatar/AvatarProfile'
 import { BetSelectionPage } from '../features/betting/pages/BetSelectionPage'
-import { MockGameplayBridge } from '../features/game/MockGameplayBridge'
+import { MockGameplay } from '../features/game/MockGameplay'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { ResultScreen } from '../features/results'
 import {
@@ -9,7 +9,9 @@ import {
   beginMockRound,
   clearMockRound,
   createMockUser,
+  finishActiveMockRound,
   finishMockRound,
+  cashOutMockRound,
   readMockState,
   saveMockAvatar,
   writeMockState,
@@ -61,7 +63,10 @@ export default function App() {
   }, [state])
 
   useEffect(() => {
-    document.body.style.overflow = path === '/' ? 'auto' : 'hidden'
+    // Gameplay is intentionally taller than a phone viewport so its cashout
+    // controls remain reachable by scrolling; other product screens retain
+    // the fixed-canvas behavior from the authoritative mode UI.
+    document.body.style.overflow = path === '/' || path === '/game' ? 'auto' : 'hidden'
     return () => {
       document.body.style.overflow = ''
     }
@@ -102,9 +107,17 @@ export default function App() {
     navigate('/game')
   }
 
-  const finishRound = (outcome: RoundOutcome) => {
-    setState((current) => finishMockRound(current, outcome))
-    navigate(`/result/${outcome}`)
+  const cashOutRound = (multiplier: number) => {
+    setState((current) => cashOutMockRound(current, multiplier))
+  }
+
+  const finishRound = (forcedOutcome?: RoundOutcome) => {
+    setState((current) => {
+      const next = forcedOutcome ? finishMockRound(current, forcedOutcome) : finishActiveMockRound(current)
+      const outcome = next.mockResult?.result
+      if (outcome) navigate(`/result/${outcome}`)
+      return next
+    })
   }
 
   const returnToBet = () => {
@@ -166,11 +179,11 @@ export default function App() {
 
   if (path === '/game' && state.mockRound) {
     return (
-      <MockGameplayBridge
+      <MockGameplay
         round={state.mockRound}
         user={state.currentUser}
-        onWin={() => finishRound('win')}
-        onLoss={() => finishRound('loss')}
+        onCashout={cashOutRound}
+        onComplete={finishRound}
         onBack={returnToBet}
         onProfile={openProfile}
       />

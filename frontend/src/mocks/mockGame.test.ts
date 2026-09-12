@@ -29,13 +29,16 @@ describe('mock game adapter', () => {
     expect(next.mockRound).toMatchObject({ theme: 'green', stake: 15, booster: 2 })
   })
 
-  it('awards one puzzle fragment after both WIN and LOSS', () => {
-    for (const outcome of ['win', 'loss'] as const) {
-      const state = readyState()
-      state.currentUser!.puzzles[0].collectedFragments = 2
-      const result = finishMockRound(beginMockRound(state, 15, 2), outcome)
-      expect(result.mockResult?.reward).toMatchObject({ count: 1, collectedFragments: 3, totalFragments: 6 })
-    }
+  it('awards one puzzle fragment after WIN and none after LOSS', () => {
+    const winState = readyState()
+    winState.currentUser!.puzzles[0].collectedFragments = 2
+    const win = finishMockRound(beginMockRound(winState, 15, 2), 'win')
+    expect(win.mockResult?.reward).toMatchObject({ count: 1, collectedFragments: 3, totalFragments: 6 })
+
+    const lossState = readyState()
+    lossState.currentUser!.puzzles[0].collectedFragments = 2
+    const loss = finishMockRound(beginMockRound(lossState, 15, 2), 'loss')
+    expect(loss.mockResult?.reward).toMatchObject({ count: 0, collectedFragments: 2, totalFragments: 6 })
   })
 
   it('creates a WIN result, credits payout and keeps lottery tickets separate', () => {
@@ -47,7 +50,7 @@ describe('mock game adapter', () => {
   })
 
   it('completes the deterministic 5/6 puzzle and unlocks clothing once', () => {
-    const completed = finishMockRound(beginMockRound(readyState(), 15, 2), 'loss')
+    const completed = finishMockRound(beginMockRound(readyState(), 15, 2), 'win')
     expect(completed.currentUser?.puzzles[0]).toMatchObject({ collectedFragments: 6, completed: true })
     expect(completed.currentUser?.unlockedClothingIds).toContain(DEMO_REWARD_CLOTHING_ID)
     expect(completed.mockResult?.reward).toMatchObject({ puzzleCompleted: true, clothingReward: { id: DEMO_REWARD_CLOTHING_ID } })
@@ -55,7 +58,7 @@ describe('mock game adapter', () => {
     const duplicateAttempt = finishMockRound(completed, 'loss')
     expect(duplicateAttempt).toBe(completed)
 
-    const nextRound = finishMockRound(beginMockRound(clearMockRound(completed), 15, 2), 'win')
+    const nextRound = finishMockRound(beginMockRound(clearMockRound(completed), 15, 2), 'loss')
     expect(nextRound.mockResult?.reward).toMatchObject({ count: 0, puzzleCompleted: false })
     expect(nextRound.currentUser?.unlockedClothingIds.filter((id) => id === DEMO_REWARD_CLOTHING_ID)).toHaveLength(1)
   })
@@ -65,7 +68,7 @@ describe('mock game adapter', () => {
     const blocked = saveMockAvatar(locked, 'Облачко', { headId: 'aviator', neckId: DEMO_REWARD_CLOTHING_ID })
     expect(blocked.currentUser?.equippedClothing.neckId).toBe('bow')
 
-    const unlocked = finishMockRound(beginMockRound(readyState(), 15, 1), 'loss')
+    const unlocked = finishMockRound(beginMockRound(readyState(), 15, 1), 'win')
     const equipped = saveMockAvatar(unlocked, 'Облачко', { headId: 'sunhat', neckId: DEMO_REWARD_CLOTHING_ID })
     expect(equipped.currentUser).toMatchObject({
       petName: 'Облачко',
@@ -74,7 +77,7 @@ describe('mock game adapter', () => {
   })
 
   it('persists puzzle, inventory and equipped outfit across a refresh', () => {
-    const unlocked = finishMockRound(beginMockRound(readyState(), 15, 1), 'loss')
+    const unlocked = finishMockRound(beginMockRound(readyState(), 15, 1), 'win')
     const equipped = saveMockAvatar(unlocked, 'Облачко', { headId: 'aviator', neckId: DEMO_REWARD_CLOTHING_ID })
     writeMockState(equipped)
     const restored = readMockState()
