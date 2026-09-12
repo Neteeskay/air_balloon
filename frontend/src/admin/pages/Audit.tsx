@@ -31,9 +31,9 @@ export function Audit({ client }: { client: AdminClient }) {
   const submit = (event: FormEvent) => { event.preventDefault(); void load(0) }
   const reset = () => { setAction(''); setAdministrator(''); setVersion(''); setFrom(''); setTo(''); }
   return <div>
-    <div className="admin-page-head"><div><p className="admin-eyebrow">ЖУРНАЛ ДЕЙСТВИЙ</p><h1>Аудит</h1></div></div>
-    {error && <div role="alert" className="admin-error admin-mb-16">{error}</div>}
-    <section className="admin-card admin-mb-16">
+    <div className="admin-page-head"><div><p className="admin-eyebrow">ЖУРНАЛ ДЕЙСТВИЙ</p><h1>Журнал</h1></div></div>
+    {error && <div role="alert" className="admin-error admin-mb-14">{error}</div>}
+    <section className="admin-card admin-mb-14">
       <form className="admin-filter-grid" onSubmit={submit}>
         <label className="admin-form-label"><span>Действие</span>
           <select value={action} onChange={e => setAction(e.target.value)}>
@@ -58,12 +58,12 @@ export function Audit({ client }: { client: AdminClient }) {
     {pageData && <section className="admin-card">
       <p className="admin-hint">Найдено записей: {pageData.totalElements}.</p>
       <table className="admin-table">
-        <thead><tr><th>Когда</th><th>Администратор</th><th>Действие</th><th>Объект</th><th>Версия</th><th>Trace</th></tr></thead>
+        <thead><tr><th>Когда</th><th>Администратор</th><th>Действие</th><th>Объект</th><th>Версия</th><th>Запрос</th></tr></thead>
         <tbody>
           {pageData.content.map(e => <tr key={e.id}>
             <td>{date(e.timestamp)}</td>
             <td>{e.administrator}</td>
-            <td><span className="admin-action">{actionLabel(e.action)}</span><small className="admin-mono admin-hint"> · {e.action}</small></td>
+            <td><span className="admin-action">{actionLabel(e.action)}</span></td>
             <td>{e.affectedEntity ?? '—'}</td>
             <td className="admin-mono">{e.configId ? shortId(e.configId) : '—'}</td>
             <td className="admin-mono">{e.traceId && shortId(e.traceId)}</td>

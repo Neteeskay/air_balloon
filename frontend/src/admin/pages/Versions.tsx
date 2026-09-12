@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AdminApiError, AdminClient } from '../client'
 import { StatusPill, Modal } from '../components'
-import { date, shortId, formatValue, number } from '../format'
+import { date, formatValue, number } from '../format'
+import { ruParam } from '../labels'
 import { formParameters } from '../model'
 import type { ConfigDiff, ConfigMetadata, ConfigurationVersionSummary, GameConfiguration, ParameterMetadata } from '../types'
 
@@ -18,7 +19,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
   const load = useCallback(() => {
     Promise.all([client.versions(0, 50), client.getCurrent()])
       .then(([page, current]) => {
-        setVersions(page.content)
+        setVersions(page.content.filter(v => v.status !== 'DRAFT'))
         setActiveId(current.id)
         setError('')
       })
@@ -32,7 +33,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
     catch (e) { setDetailId(null); setError((e as Error).message) }
   }, [client])
   const openDiff = useCallback(async (fromId: string, toId: string | null) => {
-    if (!toId) { setDiffError('Нет второй версии для сравнения.'); return }
+    if (!toId) { setDiffError('Нет текущей версии для сравнения.'); return }
     setDetailId(null); setDiff(null); setDiffError('')
     try { setDiff(await client.diff(fromId, toId)) }
     catch (e) { setDiffError((e as Error).message) }
@@ -42,44 +43,40 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
     try { await client.rollback(confirmRollback.id); setConfirmRollback(null); await load() }
     catch (e) { setError(e instanceof AdminApiError ? e.message : (e as Error).message); setConfirmRollback(null) }
   }, [client, confirmRollback, load])
-  const params = useMemo(() => (metadata ? formParameters(metadata) : []), [metadata])
+  const params = useMemo(() => (metadata ? formParameters(metadata).map(ruParam) : []), [metadata])
   const byName = useMemo(() => new Map(params.map(p => [p.technicalName, p])), [params])
-  if (loading) return <div className="admin-loading">Загружаем список версий…</div>
+  if (loading) return <div className="admin-loading">Загружаем список сохранений…</div>
   return <div>
-    <div className="admin-page-head"><div><p className="admin-eyebrow">ИСТОРИЯ ИЗМЕНЕНИЙ</p><h1>Версии</h1>
-      <p className="admin-hint">Каждый черновик и активация создают новую ревизию. Архивные версии можно откатить.</p></div>
+    <div className="admin-page-head"><div><p className="admin-eyebrow">ИСТОРИЯ ИЗМЕНЕНИЙ</p><h1>История</h1>
+      <p className="admin-hint">Каждое сохранение создаёт новую ревизию. Из любой версии можно восстановить настройки.</p></div>
       <button className="admin-secondary" onClick={() => void load()}>Обновить</button></div>
-    {error && <div role="alert" className="admin-error admin-mb-16">{error}</div>}
+    {error && <div role="alert" className="admin-error admin-mb-14">{error}</div>}
     <section className="admin-card">
       <table className="admin-table">
-        <thead><tr><th>Ревизия</th><th>Статус</th><th>Создана</th><th>Автор</th><th>Основание</th><th></th></tr></thead>
+        <thead><tr><th>Ревизия</th><th>Статус</th><th>Сохранена</th><th>Автор</th><th></th></tr></thead>
         <tbody>
           {versions.map(v => <tr key={v.id}>
             <td className="admin-mono">#{v.revision}</td>
             <td><StatusPill status={v.status} /></td>
             <td>{date(v.createdAt)}</td>
             <td>{v.createdBy}</td>
-            <td>{v.baseRevision ? `#${v.baseRevision}` : '—'}</td>
             <td><div className="admin-row-actions">
-              <button className="admin-link-button" onClick={() => void openDetail(v.id)} disabled={!metadata}>Детали</button>
-              <button className="admin-link-button" onClick={() => void openDiff(v.id, activeId)} disabled={v.id === activeId || !activeId}>Сравнить с активной</button>
-              <button className="admin-link-button" onClick={() => setConfirmRollback(v)} disabled={v.status === 'ACTIVE'}>Откатить</button>
+              <button className="admin-link-button" onClick={() => void openDetail(v.id)} disabled={!metadata}>Подробнее</button>
+              <button className="admin-link-button" onClick={() => void openDiff(v.id, activeId)} disabled={v.id === activeId || !activeId}>Сравнить с текущей</button>
+              <button className="admin-link-button" onClick={() => setConfirmRollback(v)} disabled={v.status === 'ACTIVE'}>Восстановить</button>
             </div></td>
           </tr>)}
         </tbody>
       </table>
-      {versions.length === 0 && <p className="admin-hint admin-p-16">Версий пока нет. Создайте первую конфигурацию в редакторе.</p>}
+      {versions.length === 0 && <p className="admin-hint admin-p-16">История пока пуста. Измените и сохраните настройки на вкладке «Конфигурация».</p>}
     </section>
-    {detailId !== null && <Modal title={detail ? `Версия #${detail.revision} · ${detail.status}` : 'Загрузка…'} onClose={() => setDetailId(null)}>
+    {detailId !== null && <Modal title={detail ? `Ревизия #${detail.revision}` : 'Загрузка…'} onClose={() => setDetailId(null)}>
       {!detail && <div className="admin-loading">Загружаем…</div>}
       {detail && <>
         <dl className="admin-fields admin-fields-3">
           <div className="admin-field-row"><dt>Ревизия</dt><dd>#{detail.revision}</dd></div>
           <div className="admin-field-row"><dt>Статус</dt><dd><StatusPill status={detail.status} /></dd></div>
-          <div className="admin-field-row"><dt>Создана</dt><dd>{date(detail.createdAt)}<small>{detail.createdBy}</small></dd></div>
-          <div className="admin-field-row"><dt>Активирована</dt><dd>{detail.activatedAt ? date(detail.activatedAt) : '—'}<small>{detail.activatedBy}</small></dd></div>
-          <div className="admin-field-row"><dt>Основание</dt><dd>{detail.baseRevision ? `#${detail.baseRevision}` : '—'}</dd></div>
-          <div className="admin-field-row"><dt>ID</dt><dd className="admin-mono">{shortId(detail.id)}</dd></div>
+          <div className="admin-field-row"><dt>Сохранена</dt><dd>{date(detail.createdAt)}<small>{detail.createdBy}</small></dd></div>
         </dl>
         <div className="admin-fields admin-fields-2">
           {params.map(p => <div key={p.technicalName} className="admin-field-row" data-testid={`detail-${p.technicalName}`}>
@@ -96,7 +93,7 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
         <thead><tr><th>Параметр</th><th>Было</th><th>Стало</th></tr></thead>
         <tbody>
           {diff.changes.map((c, i) => <tr key={`${c.field}-${i}`}>
-            <td className="admin-mono">{c.field}{labelOf(c.field, byName) && <small className="admin-hint"> · {labelOf(c.field, byName)}</small>}</td>
+            <td className="admin-mono">{c.field}<small>{labelOf(c.field, byName)}</small></td>
             <td>{fmt(c.before)}</td>
             <td><strong>{fmt(c.after)}</strong></td>
           </tr>)}
@@ -104,10 +101,10 @@ export function Versions({ client, metadata }: { client: AdminClient; metadata: 
       </table>
     </Modal>}
     {diffError && <Modal title="Сравнение версий" onClose={() => setDiffError('')}><p role="alert" className="admin-error">{diffError}</p></Modal>}
-    {confirmRollback && <Modal title={`Откатить на версию #${confirmRollback.revision}?`} onClose={() => setConfirmRollback(null)}>
-      <p className="admin-flex-p">Откат создаст новую активную ревизию с параметрами версии #{confirmRollback.revision}. Текущая конфигурация будет заархивирована. Продолжить?</p>
+    {confirmRollback && <Modal title={`Восстановить ревизию #${confirmRollback.revision}?`} onClose={() => setConfirmRollback(null)}>
+      <p className="admin-flex-p">Будет создана новая активная версия с настройками ревизии #${confirmRollback.revision}. Продолжить?</p>
       <div className="admin-flex-row">
-        <button className="admin-primary" onClick={() => void rollback()}>Откатить</button>
+        <button className="admin-primary" onClick={() => void rollback()}>Восстановить</button>
         <button className="admin-secondary" onClick={() => setConfirmRollback(null)}>Отмена</button>
       </div>
     </Modal>}
@@ -129,7 +126,10 @@ const getPath = (config: GameConfiguration, technicalName: string): unknown => {
   return undefined
 }
 
-const labelOf = (field: string, byName: Map<string, ParameterMetadata>) => byName.get(field)?.displayName ?? (field.startsWith('boosters.') && /line\dLootProb/.test(field) ? field : '')
+const labelOf = (field: string, byName: Map<string, ParameterMetadata>) => {
+  const param = byName.get(field)
+  return param?.displayName ?? ''
+}
 
 const fmt = (value: unknown) => {
   if (value === null || value === undefined) return '—'

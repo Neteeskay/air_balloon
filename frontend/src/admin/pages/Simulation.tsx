@@ -8,6 +8,8 @@ import type { GameConfiguration } from '../types'
 
 const MAX_GAMES = 1_000_000
 const MONEY = 'бонусов'
+const THEORY_COLOR = '#d97706'
+const EMPIRIC_COLOR = '#2f6fa8'
 
 const parseOr = (value: string, fallback: number) => {
   const trimmed = value.trim()
@@ -62,8 +64,8 @@ export function Simulation({ client }: { client: AdminClient }) {
 
   const run = useCallback(() => {
     setRunError('')
-    if (!paramsValid) { setRunError('Проверьте переопределения параметров модели.'); return }
-    if (invalidGames || invalidBet || invalidTarget) { setRunError('Проверьте значения: N, ставка и целевой множитель должны быть корректными.'); return }
+    if (!paramsValid) { setRunError('Проверьте параметры модели.'); return }
+    if (invalidGames || invalidBet || invalidTarget) { setRunError('Проверьте значения: количество игр, ставка и целевой множитель.'); return }
     const seedValue = seed.trim() === '' ? undefined : seedFromString(seed)
     try {
       const res = simulateGames({
@@ -77,11 +79,11 @@ export function Simulation({ client }: { client: AdminClient }) {
   }, [effectiveParams, paramsValid, gamesN, betN, targetN, seed, invalidGames, invalidBet, invalidTarget])
 
   const theoreticalSeries = useMemo(() => effectiveParams
-    ? [{ name: `Теория P(X ≥ x) = (1 − α)/x, α = ${effectiveParams.alpha}`, color: '#246b50', points: theoreticalCurve(effectiveParams) }]
+    ? [{ name: `Теория: P(X ≥ x) = (1 − α) / x`, color: THEORY_COLOR, dashed: true, points: theoreticalCurve(effectiveParams) }]
     : [], [effectiveParams])
 
   const empiricalSeries = useMemo(() => result
-    ? [{ name: `Фактическая симуляция (N = ${result.games})`, color: '#2f6fa8', points: result.empirical }]
+    ? [{ name: `Симуляция (${result.games.toLocaleString('ru-RU')} игр)`, color: EMPIRIC_COLOR, points: result.empirical }]
     : [], [result])
 
   const theoreticalWinRate = effectiveParams && Number.isFinite(targetN) ? survival(targetN, effectiveParams.alpha) : null
@@ -89,82 +91,88 @@ export function Simulation({ client }: { client: AdminClient }) {
   if (loadError) return <div className="admin-error">{loadError} <button className="admin-link-button" onClick={reload}>Повторить</button></div>
   if (!config) return <div className="admin-loading">Загружаем активную конфигурацию…</div>
   return <div>
-    <div className="admin-page-head"><div><p className="admin-eyebrow">ИССЛЕДОВАНИЕ МОДЕЛИ</p><h1>Симуляция N игр</h1>
-      <p className="admin-hint">Для каждой игры генерируется точка краша X по математической модели, затем рассчитывается финансовый результат стратегии «выйти при множителе target».</p></div></div>
+    <div className="admin-page-head"><div><p className="admin-eyebrow">ПРОВЕРКА МОДЕЛИ</p><h1>Симуляция</h1>
+      <p className="admin-hint">Посчитаем N игр по текущей модели: сколько выигрышей, сколько проигрышей и какой итоговый результат.</p></div></div>
     <div className="admin-sim-layout">
-      <section className="admin-card admin-mb-16">
-        <h2 className="admin-card-title">Параметры симуляции</h2>
+      <section className="admin-card">
+        <h2 className="admin-card-title">Что симулируем</h2>
         <div className="admin-sim-form">
-          <label className="admin-form-label"><span>N — количество игр</span>
+          <label className="admin-form-label"><span>Количество игр</span>
             <input type="number" min={1} max={MAX_GAMES} value={games} onChange={e => setGames(e.target.value)} />
             {invalidGames && <small className="admin-hint admin-hint-error">От 1 до {number(MAX_GAMES)}.</small>}
-            {Number.isFinite(gamesN) && gamesN > 200_000 && <small className="admin-hint">Запуск может занять несколько секунд.</small>}
+            {Number.isFinite(gamesN) && gamesN > 200_000 && !invalidGames && <small className="admin-hint">Запуск может занять несколько секунд.</small>}
           </label>
-          <label className="admin-form-label"><span>Ставка на одну игру ({MONEY})</span>
+          <label className="admin-form-label"><span>Ставка на игру ({MONEY})</span>
             <input type="number" min={0} step="1" value={bet} onChange={e => setBet(e.target.value)} />
             {invalidBet && <small className="admin-hint admin-hint-error">Ставка должна быть больше нуля.</small>}
           </label>
           <label className="admin-form-label"><span>Целевой множитель выхода</span>
             <input type="number" min={1.01} step="0.05" value={cashoutTarget} onChange={e => setCashoutTarget(e.target.value)} />
             {invalidTarget && <small className="admin-hint admin-hint-error">Множитель должен быть больше 1.</small>}
-            {!invalidTarget && targetAboveMax && <small className="admin-hint admin-hint-error">Выше максимума модели ({effectiveParams!.maxMultiplier}) — выигрышных игр не будет.</small>}
+            {!invalidTarget && targetAboveMax && <small className="admin-hint admin-hint-error">Выше максимума модели ({effectiveParams!.maxMultiplier}) — выигрышей не будет.</small>}
           </label>
-          <label className="admin-form-label"><span>Seed (необязательно)</span>
-            <input type="text" value={seed} onChange={e => setSeed(e.target.value)} placeholder="пусто = случайно" />
-            <small className="admin-hint">Одинаковый seed даёт одинаковый результат симуляции.</small>
+          <label className="admin-form-label"><span>Случайный ключ (seed)</span>
+            <input type="text" value={seed} onChange={e => setSeed(e.target.value)} placeholder="необязательно" />
+            <small className="admin-hint">Одинаковый ключ — одинаковый результат.</small>
           </label>
         </div>
-        <div className="admin-editor-controls">
-          <button className="admin-primary" onClick={run}>Запустить симуляцию</button>
+        <div className="admin-editor-controls admin-mt-14">
+          <button className="admin-primary" onClick={run} disabled={invalidGames || invalidBet || invalidTarget || !paramsValid}>Запустить симуляцию</button>
         </div>
-        {runError && <div role="alert" className="admin-error">{runError}</div>}
+        {runError && <div role="alert" className="admin-error admin-mt-12">{runError}</div>}
       </section>
-      <section className="admin-card admin-mb-16">
-        <div className="admin-card-head"><h2 className="admin-card-title">Конфигурация математической модели</h2>
-          <span className="admin-pill">ревизия #{config.revision}</span></div>
-        <dl className="admin-fields admin-fields-3 admin-mb-20">
-          <div className="admin-field-row"><dt>Alpha</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
-          <div className="admin-field-row"><dt>Min crash multiplier</dt><dd>{effectiveParams?.minCrashMultiplier ?? config.crash.minCrashMultiplier}</dd></div>
-          <div className="admin-field-row"><dt>Max multiplier</dt><dd>{effectiveParams?.maxMultiplier ?? config.crash.maxMultiplier}</dd></div>
-        </dl>
-        <div className="admin-sim-exp">
-          <h3 className="admin-section-label">Эксперимент без активации<small>оставьте пустым — используется активная версия</small></h3>
-          <div className="admin-sim-form admin-sim-form-3">
-            <label className="admin-form-label"><span>α (переопределение)</span>
-              <input type="number" min={0} max={1} step="0.01" value={overrideAlpha} onChange={e => setOverrideAlpha(e.target.value)} placeholder={String(config.crash.alpha)} />
-            </label>
-            <label className="admin-form-label"><span>Min crash multiplier</span>
-              <input type="number" min={0} step="0.1" value={overrideMinCrashMultiplier} onChange={e => setOverrideMinCrashMultiplier(e.target.value)} placeholder={String(config.crash.minCrashMultiplier)} />
-            </label>
-            <label className="admin-form-label"><span>Max multiplier</span>
-              <input type="number" min={1} step="1" value={overrideMaxMultiplier} onChange={e => setOverrideMaxMultiplier(e.target.value)} placeholder={String(config.crash.maxMultiplier)} />
-            </label>
-          </div>
-          <p className="admin-hint">Чтобы изменения применились к самой игре, сохраните и активируйте их в разделе «Конфигурация». Новая симуляция подхватит новую активную ревизию — так можно сравнить результат до и после изменения параметров.</p>
+      <section className="admin-card">
+        <div className="admin-card-head"><h2 className="admin-card-title">Модель</h2><span className="admin-pill">ревизия #{config.revision}</span></div>
+        <div className="admin-fields admin-fields-3">
+          <div className="admin-field-row"><dt>Шанс краха (α)</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
+          <div className="admin-field-row"><dt>Мин. множитель</dt><dd>{effectiveParams?.minCrashMultiplier ?? config.crash.minCrashMultiplier}</dd></div>
+          <div className="admin-field-row"><dt>Макс. множитель</dt><dd>×{effectiveParams?.maxMultiplier ?? config.crash.maxMultiplier}</dd></div>
         </div>
+        <h3 className="admin-section-label">Попробовать другой вариант модели<small>без сохранения — поля можно оставить пустыми</small></h3>
+        <div className="admin-sim-form admin-sim-form-3">
+          <label className="admin-form-label"><span>Шанс краха (α)</span>
+            <input type="number" min={0} max={1} step="0.01" value={overrideAlpha} onChange={e => setOverrideAlpha(e.target.value)} placeholder={String(config.crash.alpha)} />
+          </label>
+          <label className="admin-form-label"><span>Мин. множитель</span>
+            <input type="number" min={0} step="0.1" value={overrideMinCrashMultiplier} onChange={e => setOverrideMinCrashMultiplier(e.target.value)} placeholder={String(config.crash.minCrashMultiplier)} />
+          </label>
+          <label className="admin-form-label"><span>Макс. множитель</span>
+            <input type="number" min={1} step="1" value={overrideMaxMultiplier} onChange={e => setOverrideMaxMultiplier(e.target.value)} placeholder={String(config.crash.maxMultiplier)} />
+          </label>
+        </div>
+        <p className="admin-hint">Чтобы применить новый вариант к самой игре, сохраните его на вкладке «Конфигурация».</p>
       </section>
     </div>
-    {result ? <section className="admin-card admin-mb-16">
-      <div className="admin-card-head"><h2 className="admin-card-title">Финансовый результат</h2>
-        <span className={`admin-verdict admin-verdict-${result.verdict}`}>{result.verdict === 'plus' ? 'Плюс' : result.verdict === 'minus' ? 'Минус' : 'Ноль'}</span></div>
-      <dl className="admin-fields admin-fields-3">
-        <div className="admin-field-row"><dt>Количество игр</dt><dd>{number(result.games)}</dd></div>
-        <div className="admin-field-row"><dt>Размер ставки</dt><dd>{number(result.bet)} {MONEY}</dd></div>
-        <div className="admin-field-row"><dt>Общая сумма ставок</dt><dd>{number(result.totalStakes)} {MONEY}</dd></div>
-        <div className="admin-field-row"><dt>Общая сумма выплат</dt><dd>{number(result.totalPayouts)} {MONEY}</dd></div>
-        <div className="admin-field-row"><dt>Итоговый результат = выплаты − ставки</dt><dd className={result.netResult > 0 ? 'admin-pos' : result.netResult < 0 ? 'admin-neg' : 'admin-neu'}>{result.netResult > 0 ? '+' : ''}{number(result.netResult)} {MONEY}</dd></div>
-        <div className="admin-field-row"><dt>Средний результат на игру</dt><dd>{result.averageNet} {MONEY}</dd></div>
-        <div className="admin-field-row"><dt>Выигрышные игры (X ≥ {result.cashoutTarget})</dt><dd>{number(result.winCount)} из {number(result.games)} · {((result.winCount / result.games) * 100).toFixed(2)}%</dd></div>
-        <div className="admin-field-row"><dt>Теоретическая вероятность выигрыша</dt><dd>{theoreticalWinRate !== null ? `${(theoreticalWinRate * 100).toFixed(2)}%` : '—'}</dd></div>
-        <div className="admin-field-row"><dt>Вердикт</dt><dd>{result.verdict === 'plus' ? 'Игрок в плюсе' : result.verdict === 'minus' ? 'Игрок в минусе' : 'Нулевой результат'}</dd></div>
-      </dl>
-    </section> : <section className="admin-card admin-mb-16">
-      <div className="admin-loading">Запустите симуляцию, чтобы увидеть финансовый результат и график.</div>
+    {result ? <>
+      <div className="admin-kpis">
+        <div className="admin-kpi">
+          <span>Итоговый результат</span>
+          <strong className={result.netResult > 0 ? 'admin-pos' : result.netResult < 0 ? 'admin-neg' : 'admin-neu'}>{result.netResult > 0 ? '+' : ''}{number(result.netResult)} {MONEY}</strong>
+          <small>выплаты − ставки ({result.netResult > 0 ? 'игрок в плюсе' : result.netResult < 0 ? 'игрок в минусе' : 'в ноль'})</small>
+        </div>
+        <div className="admin-kpi">
+          <span>Средний результат за игру</span>
+          <strong>{result.averageNet > 0 ? '+' : ''}{number(result.averageNet)} {MONEY}</strong>
+          <small>итог, поделённый на число игр</small>
+        </div>
+        <div className="admin-kpi">
+          <span>Выигрышных игр</span>
+          <strong>{number(result.winCount)} из {number(result.games)}</strong>
+          <small>{((result.winCount / result.games) * 100).toFixed(2)}% всех игр</small>
+        </div>
+        <div className="admin-kpi">
+          <span>Теоретическая вероятность</span>
+          <strong>{theoreticalWinRate !== null ? `${(theoreticalWinRate * 100).toFixed(2)}%` : '—'}</strong>
+          <small>P(X ≥ {result.cashoutTarget}) по формуле модели</small>
+        </div>
+      </div>
+      <section className="admin-card admin-mb-0">
+        <div className="admin-card-head"><h2 className="admin-card-title">Симуляция против теории</h2></div>
+        <LineChart height={320} xLabel="X — множитель" yLabel="P(X ≥ x)" series={[...theoreticalSeries, ...empiricalSeries]} />
+        <p className="admin-hint admin-mt-12">Пунктир — теоретическая вероятность P(X ≥ x) = (1 − α) / x. Сплошная линия — доля игр симуляции, где шар добрался до x. Чем больше игр, тем ближе симуляция к теории.</p>
+      </section>
+    </> : <section className="admin-card">
+      <div className="admin-loading">Запустите симуляцию — здесь появятся итоговый результат и график.</div>
     </section>}
-    <section className="admin-card">
-      <div className="admin-card-head"><h2 className="admin-card-title">Результаты N игр и теоретическая зависимость</h2></div>
-      <LineChart height={340} xLabel="X — множитель" yLabel="P(X ≥ x)" series={[...theoreticalSeries, ...empiricalSeries]} />
-      <p className="admin-hint admin-mt-12">Теоретическая линия строится по формуле P(X ≥ x) = (1 − α) / x. Эмпирическая кривая — доля игр симуляции, где точка краша X ≥ x. С ростом N эмпирическая кривая приближается к теоретической.</p>
-    </section>
   </div>
 }

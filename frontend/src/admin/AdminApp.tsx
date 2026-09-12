@@ -28,13 +28,13 @@ export default function AdminApp({ client = adminClient }: { client?: AdminClien
   if (!session) return <Login client={client} onSession={setSession} />
   return <div className="admin">
     <header className="admin-topbar">
-      <div className="admin-brand"><span aria-hidden="true">◈</span><span>Админ</span></div>
-      <nav aria-label="Админ-навигация">
+      <div className="admin-brand"><span aria-hidden="true">◈</span><span>Воздушный Шар · Настройка</span></div>
+      <nav aria-label="Навигация">
         <button aria-current={page === 'overview' ? 'page' : undefined} onClick={() => setPage('overview')}>Обзор</button>
         <button aria-current={page === 'config' ? 'page' : undefined} onClick={() => setPage('config')}>Конфигурация</button>
         <button aria-current={page === 'simulation' ? 'page' : undefined} onClick={() => setPage('simulation')}>Симуляция</button>
-        <button aria-current={page === 'versions' ? 'page' : undefined} onClick={() => setPage('versions')}>Версии</button>
-        <button aria-current={page === 'audit' ? 'page' : undefined} onClick={() => setPage('audit')}>Аудит</button>
+        <button aria-current={page === 'versions' ? 'page' : undefined} onClick={() => setPage('versions')}>История</button>
+        <button aria-current={page === 'audit' ? 'page' : undefined} onClick={() => setPage('audit')}>Журнал</button>
       </nav>
       <div className="admin-topbar-actions">
         <button className="admin-link-button" onClick={() => { location.hash = '#/' }}>К игре</button>
