@@ -99,8 +99,10 @@ class CoreTournamentScoreIntegrationIT extends GameAcceptanceSupport {
         GameEvent event = json.readValue(payload, GameEvent.class);
 
         jdbc.update("DELETE FROM core_round_events WHERE round_id=? AND sequence=?", round.id(), event.sequence());
-        jdbc.update("DELETE FROM tournament.participants WHERE tournament_id=? AND user_id=?",
-                tournament, player.id());
+        jdbc.update("""
+                UPDATE tournament.participants SET score=0,score_version=0,updated_at=now()
+                WHERE tournament_id=? AND user_id=?
+                """, tournament, player.id());
         jdbc.update("DELETE FROM score_events WHERE round_id=? AND type='LEVEL' AND event_key=1", round.id());
         jdbc.update("UPDATE users SET game_score=0,game_score_version=0 WHERE id=?", player.id());
 
@@ -109,8 +111,8 @@ class CoreTournamentScoreIntegrationIT extends GameAcceptanceSupport {
             assertThat(jdbc.queryForObject("SELECT game_score FROM users WHERE id=?",
                     Long.class, player.id())).isEqualTo(100L);
             assertThat(jdbc.queryForObject("""
-                    SELECT count(*) FROM tournament.participants WHERE tournament_id=? AND user_id=?
-                    """, Long.class, tournament, player.id())).isEqualTo(1L);
+                    SELECT score FROM tournament.participants WHERE tournament_id=? AND user_id=?
+                    """, Long.class, tournament, player.id())).isEqualTo(100L);
             tx.setRollbackOnly();
         });
 
@@ -120,7 +122,7 @@ class CoreTournamentScoreIntegrationIT extends GameAcceptanceSupport {
                 SELECT count(*) FROM score_events WHERE round_id=? AND type='LEVEL' AND event_key=1
                 """, Long.class, round.id())).isZero();
         assertThat(jdbc.queryForObject("""
-                SELECT count(*) FROM tournament.participants WHERE tournament_id=? AND user_id=?
+                SELECT score FROM tournament.participants WHERE tournament_id=? AND user_id=?
                 """, Long.class, tournament, player.id())).isZero();
         assertThat(jdbc.queryForObject("""
                 SELECT count(*) FROM core_round_events WHERE round_id=? AND sequence=?

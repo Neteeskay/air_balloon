@@ -32,6 +32,13 @@ describe('real backend adapter', () => {
     expect(fetch.mock.calls.map(call => call[0])).toEqual(['/api/current-user/balance', '/api/current-user/state', '/api/current-user/history?page=0&size=20'])
   })
 
+  it('uses the dedicated global rating endpoint instead of Tournament', async () => {
+    const payload = { entries: [], currentPlayer: { rank: 153, displayName: 'Анна Ветрова', score: 700, currentPlayer: true }, totalParticipants: 200, page: 0, size: 3, revision: 9 }
+    const fetch = vi.fn().mockResolvedValue(json(payload)); vi.stubGlobal('fetch', fetch)
+    await expect(createRealApi().rating.get(0, 3)).resolves.toEqual(payload)
+    expect(fetch).toHaveBeenCalledWith('/api/rating?page=0&size=3', expect.objectContaining({ credentials: 'include' }))
+  })
+
   it('notifies the app on an expired authenticated request', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(json({ code: 'AUTH_REQUIRED', message: 'raw backend message' }, 401))))
     const api = createRealApi(); const listener = vi.fn(); api.auth.onRequired!(listener)

@@ -176,6 +176,17 @@ export class MockBackend {
       join: async () => {},
       connect: async (_id, _update, connection) => { connection('connected'); return () => {} },
     },
+    rating: {
+      get: async (page = 0, size = 50) => {
+        this.tick()
+        const current = this.user()
+        const entries = demoUsers.map(user => ({ user, score: this.db.wallets[user.id]?.gameScore ?? 0 }))
+          .sort((a, b) => b.score - a.score || a.user.id.localeCompare(b.user.id))
+          .map((value, index) => ({ rank: index + 1, displayName: value.user.name, score: value.score, currentPlayer: value.user.id === current }))
+        const currentPlayer = entries.find(entry => entry.currentPlayer)!
+        return { entries: entries.slice(page * size, (page + 1) * size), currentPlayer, totalParticipants: entries.length, page, size, revision: entries.reduce((sum, entry) => sum + entry.score, 0) }
+      },
+    },
     dev: {
       setPreset: p => { this.preset = p },
       setBalance: (id, balance) => { this.db.wallets[id].bonusBalance = balance; this.save() },

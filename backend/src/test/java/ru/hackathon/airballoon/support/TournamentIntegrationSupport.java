@@ -44,6 +44,13 @@ public abstract class TournamentIntegrationSupport extends PostgresSupport {
     protected PlayerScore score(UUID user, String name, long value, long version) {
         PlayerScore player = new PlayerScore(user, name, value, version, clock.instant());
         scores.put(player);
+        // Test fixtures model explicit membership. A score event itself must never join a tournament.
+        for (UUID id : jdbc.query("SELECT id FROM tournament.tournaments WHERE starts_at<=? AND ends_at>?",
+                (rs, n) -> rs.getObject(1, UUID.class), java.sql.Timestamp.from(clock.instant()),
+                java.sql.Timestamp.from(clock.instant()))) {
+            if (jdbc.queryForObject("SELECT count(*) FROM tournament.participants WHERE tournament_id=? AND user_id=?",
+                    Long.class, id, user) == 0) service.join(id, user);
+        }
         new TransactionTemplate(transactionManager).executeWithoutResult(s -> events.publishEvent(new ScoreChanged(player)));
         return player;
     }

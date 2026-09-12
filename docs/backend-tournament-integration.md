@@ -31,7 +31,7 @@ Tournament не вычисляет level, booster или cashout points. `CorePl
 
 ## Atomicity и idempotency
 
-`PostgresRoundEventStore.append`, score insert, user total/version и Tournament projection выполняются одним datasource/transaction manager. Синхронный `ScoreChanged` listener присоединяется к этой транзакции; rollback удаляет все четыре изменения. STOMP publish выполняется только `AFTER_COMMIT`.
+`PostgresRoundEventStore.append`, score insert, user total/version и Tournament projection существующего участника выполняются одним datasource/transaction manager. Синхронный `ScoreChanged` listener присоединяется к этой транзакции; rollback удаляет все четыре изменения. Event не создаёт membership: новый участник появляется только через явный join. STOMP publish выполняется только `AFTER_COMMIT`.
 
 Защита имеет два слоя:
 
@@ -53,7 +53,7 @@ Flyway `V300__tournaments.sql` создаёт `tournament.tournaments`, `tournam
 
 ## Demo и acceptance
 
-Профиль `demo` создаёт 24 canonical UUID users. Первые три (`anna`, `maks`, `liza`) доступны через demo-login; ещё 21 являются leaderboard participants. Все 24 добавляются в дневной Tournament без отдельного Tournament identity.
+Профиль `demo` создаёт 24 canonical UUID users. Первые три (`anna`, `maks`, `liza`) доступны через demo-login; demo initializer явно добавляет все 24 в дневной Tournament без отдельного Tournament identity. Это fixture и не означает автоматическое участие по score event. Global Rating читает все 24 профиля независимо от membership.
 
 ```powershell
 .\mvnw.cmd -Pacceptance verify
