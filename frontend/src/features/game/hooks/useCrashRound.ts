@@ -8,7 +8,7 @@ import { useCrashSounds } from './useCrashSounds'
 export type CrashRoundStatus = 'flying' | 'cashed-out' | 'crashed'
 type Props = { bet: number; boosterMultiplier: BetOption['multiplier']; onFinish: (result: CrashGameFinish) => void; roundId: string; soundOn: boolean; theme: Theme }
 
-export function useCrashRound({ bet, boosterMultiplier, onFinish, roundId, soundOn }: Props) {
+export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
   const [server, setServer] = useState<Round | null>(null)
   const [status, setStatus] = useState<CrashRoundStatus>('flying')
   const [connection, setConnection] = useState<'connected'|'recovering'|'disconnected'>('recovering')

@@ -94,6 +94,7 @@ export function ThemeSwitcher({ theme, onSwitch }: ThemeSwitcherProps) {
     }, THEME_TRANSITION_MS)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => clearTransition(), [])
 
   const handleSwitch = () => {

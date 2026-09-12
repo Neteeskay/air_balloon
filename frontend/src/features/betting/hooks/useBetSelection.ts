@@ -31,7 +31,6 @@ type UseBetSelectionOptions = {
 
 export function useBetSelection({
   balance,
-  theme,
   onStartGame,
   onSwitchTheme,
   onTopUp,

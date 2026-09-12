@@ -1,0 +1,59 @@
+.animated-sky {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sky-element {
+  position: absolute;
+  left: 0;
+  display: block;
+  will-change: transform;
+  animation: sky-flight linear infinite;
+}
+
+.sky-cloud {
+  width: clamp(260px, 31vw, 560px);
+  height: auto;
+  opacity: .3;
+  filter: blur(.15px) drop-shadow(0 10px 24px rgba(255,255,255,.18));
+}
+
+.sky-bird-flight { animation-name: bird-flight; }
+
+.sky-bird {
+  display: block;
+  width: clamp(52px, 5.5vw, 92px);
+  height: auto;
+  opacity: .82;
+  filter: drop-shadow(0 3px 3px rgba(36,67,88,.2));
+}
+
+.sky-bird.is-mirrored { transform: scaleX(-1); }
+
+.landing-page > .animated-sky {
+  position: fixed;
+  opacity: .58;
+}
+
+.flight-mode-page > .animated-sky {
+  opacity: .72;
+}
+
+@keyframes bird-flight {
+  from { transform: translate3d(var(--bird-start-x), var(--bird-start-y), 0) scale(var(--bird-scale)); }
+  50% { transform: translate3d(var(--bird-middle-x), var(--bird-middle-y), 0) scale(var(--bird-scale)); }
+  to { transform: translate3d(var(--bird-end-x), var(--bird-end-y), 0) scale(var(--bird-scale)); }
+}
+
+@keyframes sky-flight {
+  from { transform: translate3d(var(--sky-start-x), 0, 0) scale(var(--sky-scale)); }
+  50% { transform: translate3d(var(--sky-middle-x), var(--sky-drift), 0) scale(var(--sky-scale)); }
+  to { transform: translate3d(var(--sky-end-x), 0, 0) scale(var(--sky-scale)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-element { animation-play-state: paused; }
+}
