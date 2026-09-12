@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   BarChart3,
+  Coins,
   Menu,
+  Mountain,
   Play,
+  Rocket,
   RotateCcw,
+  ShieldCheck,
+  Snowflake,
   UserRound,
+  Zap,
+  type LucideIcon,
 } from 'lucide-react';
-import type { ResultScreenActions, ResultScreenData } from '../../types/result';
+import type { PlayerCharacterCode, ResultScreenActions, ResultScreenData } from '../../types/result';
 import { getResultBalloon, resultAssets } from './resultAssets';
 import './ResultScreen.css';
 
@@ -23,6 +30,15 @@ const formatBalance = (value: number) =>
   new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value);
 
 const formatMultiplier = (value: number) => `×${value.toFixed(2)}`;
+
+const characterIcons: Record<PlayerCharacterCode, LucideIcon> = {
+  CAUTIOUS: ShieldCheck,
+  COLD_BLOODED: Snowflake,
+  CLOSE_CALL: Zap,
+  BOOSTER_HUNTER: Rocket,
+  GREEDY: Coins,
+  ADVENTURER: Mountain,
+};
 
 export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultScreenProps) {
   const [secondsLeft, setSecondsLeft] = useState(autoReturnSeconds);
@@ -74,6 +90,7 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
 
   const balloon = getResultBalloon(data.theme, data.result);
   const fragmentAwarded = data.reward.count > 0;
+  const CharacterIcon = data.playerCharacter ? characterIcons[data.playerCharacter.code] : null;
 
   const markInteraction = () => {
     userInteracted.current = true;
@@ -162,6 +179,23 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
           <span>{display.sublineLead}</span>
           <strong>{display.sublineValue}</strong>
         </div>
+
+        {data.playerCharacter && CharacterIcon && (
+          <section
+            className={`result-character result-character--${data.playerCharacter.code.toLowerCase().replaceAll('_', '-')}`}
+            aria-labelledby="player-character-title"
+            data-testid="player-character"
+          >
+            <div className="result-character__icon" aria-hidden="true">
+              <CharacterIcon size={28} strokeWidth={2.5} />
+            </div>
+            <div className="result-character__copy">
+              <span>Характер этого полёта</span>
+              <strong id="player-character-title">{data.playerCharacter.title}</strong>
+              <p>{data.playerCharacter.description}</p>
+            </div>
+          </section>
+        )}
 
         {isWin && (
           <div className="result-info result-info--potential">

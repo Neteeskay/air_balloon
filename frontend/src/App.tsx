@@ -13,6 +13,7 @@ import type { ResultScreenData } from './types/result'
 import { RealProfilePage } from './features/profile/RealProfilePage'
 import { unlockCrashAudio } from './features/game/hooks/useCrashSounds'
 import { backgroundMusic } from './audio/backgroundMusic'
+import { adaptRoundResult } from './services/resultAdapter'
 
 const pathOf = () => window.location.pathname.replace(/\/+$/, '') || '/'
 
@@ -44,7 +45,13 @@ export function App() {
 }
 
 function ResultView({ result, user, balance, theme, onAgain, onRepeatBet, onProfile, onMenu }: { result: Result; user: User; balance: number; theme: 'green'|'red'; onAgain: () => void; onRepeatBet: () => Promise<void>; onProfile: () => void; onMenu: () => void }) {
-  const data: ResultScreenData = { result: result.result.toLowerCase() as 'win'|'loss', theme, roundId: result.roundId, betAmount: result.betAmount, payoutAmount: result.winAmount, bonusBalance: result.balanceAfter ?? balance, cashoutMultiplier: result.cashoutMultiplier, crashMultiplier: result.crashMultiplier, potentialMaxMultiplier: result.cashoutMultiplier, earnedPoints: result.score, reward: { count: result.reward ? 1 : 0, collectedFragments: result.reward?.currentFragments, totalFragments: result.reward?.totalFragments, puzzleCompleted: result.reward?.completed }, playerName: user.name, canRepeatBet: true }
+  const data: ResultScreenData = adaptRoundResult({
+    ...result,
+    theme,
+    bonusBalance: result.balanceAfter ?? balance,
+    playerName: user.name,
+    canRepeatBet: true,
+  })
   return <ResultScreen data={data} actions={{ onPlayAgain: onAgain, onRepeatBet, onHome: onMenu, onAutoReturn: onAgain, onMenu, onProfile }} />
 }
 

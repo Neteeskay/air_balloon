@@ -24,7 +24,15 @@ export type GameEvent = { type: string; roundId: string; sequence: number; event
 export type Replay = { roundId: string; events: GameEvent[]; oldestAvailableSequence: number; latestSequence: number; snapshotRequired: boolean; serverTime: string }
 export type HistoryItem = { roundId: string; username?: string; theme: Theme; betAmount: number; boosterMultiplier: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; result: 'WIN' | 'LOSS'; completedAt: string; reward?: { id?: string; type: string; rarity: string; createdAt?: string } }
 export type HistoryPage = { items: HistoryItem[]; page: number; size: number; total: number; serverTime?: string }
-export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; potentialWinAmount?: number; score: number; balanceAfter?: number; playerCharacter?: { code: string; title: string; description: string }; reward?: { type: string; rarity: string; fragmentId?: string; currentFragments?: number; totalFragments?: number; completed?: boolean; clothingId?: string } }
+export type PlayerCharacterCode = 'CAUTIOUS' | 'COLD_BLOODED' | 'CLOSE_CALL' | 'BOOSTER_HUNTER' | 'GREEDY' | 'ADVENTURER'
+export type PlayerCharacter = { code: PlayerCharacterCode; title: string; description: string }
+export type ResultReward = {
+  type: string; puzzleId?: string; puzzleName?: string; fragmentGranted?: number; fragments?: number
+  totalFragments?: number; puzzleCompleted?: boolean; unlockedClothing?: { id: string; name: string }; grantedAt?: string
+  /** Compatibility fields used only by legacy mock fixtures. */
+  rarity?: string; fragmentId?: string; currentFragments?: number; completed?: boolean; clothingId?: string
+}
+export type Result = { roundId: string; result: 'WIN' | 'LOSS'; betAmount: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; potentialWinAmount?: number; score: number; balanceAfter?: number; playerCharacter?: PlayerCharacter; reward?: ResultReward }
 export type StartInput = { theme: Theme; betAmount: number; boosterMultiplier: number }
 export type Tournament = { id: string; name: string; description: string; status: string; startsAt: string; endsAt: string; secondsRemaining: number; serverTime: string; revision: number }
 export type LeaderboardEntry = { position: number; userId: string; username: string; score: number }

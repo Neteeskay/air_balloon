@@ -1,6 +1,20 @@
 export type GameTheme = 'red' | 'green';
 export type RoundOutcome = 'win' | 'loss';
 
+export type PlayerCharacterCode =
+  | 'CAUTIOUS'
+  | 'COLD_BLOODED'
+  | 'CLOSE_CALL'
+  | 'BOOSTER_HUNTER'
+  | 'GREEDY'
+  | 'ADVENTURER';
+
+export interface PlayerCharacter {
+  code: PlayerCharacterCode;
+  title: string;
+  description: string;
+}
+
 export interface RoundReward {
   count: number;
   label?: string;
@@ -26,6 +40,7 @@ export interface ResultScreenData {
   potentialMaxMultiplier?: number;
   earnedPoints: number;
   reward: RoundReward;
+  playerCharacter?: PlayerCharacter;
   playerName: string;
   canRepeatBet: boolean;
 }

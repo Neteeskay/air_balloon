@@ -1,4 +1,10 @@
-import type { GameTheme, ResultScreenData, RoundOutcome } from '../types/result';
+import type {
+  GameTheme,
+  PlayerCharacter,
+  PlayerCharacterCode,
+  ResultScreenData,
+  RoundOutcome,
+} from '../types/result';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -24,6 +30,27 @@ const toBoolean = (value: unknown, fallback = false): boolean => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return value.toLowerCase() === 'true';
   return Boolean(value);
+};
+
+const playerCharacterCodes: ReadonlySet<string> = new Set<PlayerCharacterCode>([
+  'CAUTIOUS',
+  'COLD_BLOODED',
+  'CLOSE_CALL',
+  'BOOSTER_HUNTER',
+  'GREEDY',
+  'ADVENTURER',
+]);
+
+const toPlayerCharacter = (value: unknown): PlayerCharacter | undefined => {
+  if (value === undefined || value === null) return undefined;
+  const source = asRecord(value);
+  const code = String(source.code ?? '');
+  const title = source.title;
+  const description = source.description;
+  if (!playerCharacterCodes.has(code) || typeof title !== 'string' || typeof description !== 'string') {
+    return undefined;
+  }
+  return { code: code as PlayerCharacterCode, title, description };
 };
 
 export const normalizeGameTheme = (value: unknown): GameTheme => {
@@ -66,16 +93,35 @@ export const adaptRoundResult = (payload: unknown): ResultScreenData => {
     theme,
     betAmount,
     payoutAmount: result === 'win' ? toNumber(payoutRaw, 'payoutAmount') : undefined,
-    bonusBalance: toNumber(pick(source, ['bonusBalance', 'balance', 'bonusPoints']), 'bonusBalance'),
+    bonusBalance: toNumber(pick(source, ['bonusBalance', 'balance', 'bonusPoints', 'balanceAfter']), 'bonusBalance'),
     cashoutMultiplier: result === 'win' ? toNumber(cashoutRaw, 'cashoutMultiplier') : undefined,
     crashMultiplier,
     potentialMaxMultiplier:
       result === 'win' ? toNumber(potentialRaw, 'potentialMaxMultiplier', crashMultiplier) : undefined,
-    earnedPoints: toNumber(pick(source, ['earnedPoints', 'points', 'roundPoints']), 'earnedPoints', 0),
+    earnedPoints: toNumber(pick(source, ['earnedPoints', 'points', 'roundPoints', 'score']), 'earnedPoints', 0),
     reward: {
-      count: toNumber(pick(rewardSource, ['count', 'quantity']) ?? pick(source, ['rewardCount']), 'reward.count', 0),
-      label: String(pick(rewardSource, ['label', 'name']) ?? 'Новый фрагмент'),
+      count: toNumber(
+        pick(rewardSource, ['fragmentGranted', 'count', 'quantity']) ?? pick(source, ['rewardCount']),
+        'reward.count',
+        0,
+      ),
+      label: String(pick(rewardSource, ['puzzleName', 'label', 'name']) ?? 'Новый фрагмент'),
+      puzzleName: String(pick(rewardSource, ['puzzleName']) ?? '') || undefined,
+      collectedFragments: toNumber(
+        pick(rewardSource, ['fragments', 'currentFragments', 'collectedFragments']),
+        'reward.collectedFragments',
+        0,
+      ),
+      totalFragments: toNumber(pick(rewardSource, ['totalFragments']), 'reward.totalFragments', 0),
+      puzzleCompleted: toBoolean(pick(rewardSource, ['puzzleCompleted', 'completed'])),
+      clothingReward: (() => {
+        const clothing = asRecord(pick(rewardSource, ['unlockedClothing']));
+        return typeof clothing.id === 'string' && typeof clothing.name === 'string'
+          ? { id: clothing.id, name: clothing.name }
+          : undefined;
+      })(),
     },
+    playerCharacter: toPlayerCharacter(pick(source, ['playerCharacter'])),
     playerName: String(pick(source, ['playerName', 'username', 'displayName']) ?? 'Игрок'),
     canRepeatBet: toBoolean(pick(source, ['canRepeatBet', 'repeatBetAvailable']), true),
   };
