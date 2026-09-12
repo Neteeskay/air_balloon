@@ -15,46 +15,58 @@ export interface BalloonPathConfig {
 
 /**
  * Creates smooth floating animation for hot air balloons.
- * Balloons continuously rise upward with wave motion and loop back to start.
+ * Balloons continuously rise upward with wave motion.
+ *
+ * The loop only restarts at a position BELOW the bottom edge of the page
+ * (and exits above the top edge), so a balloon never visibly "reappears"
+ * in the middle of the screen.
  */
 export function createBalloonPath(
   element: HTMLElement,
   config: BalloonPathConfig = {},
 ) {
   const {
-    duration = 40 + Math.random() * 20, // 40-60 seconds для полного цикла
+    duration = 90 + Math.random() * 70, // 90-160s для полного цикла (медленно)
     yOffset = 0,
     xOffset = config.xOffset ?? ((Math.random() - 0.5) * 40),
     rotation = config.rotation ?? ((Math.random() - 0.5) * 6),
-    delay = config.delay ?? Math.random() * 40, // Случайное начало цикла
+    delay = config.delay ?? Math.random() * 40, // Лёгкая рассинхронизация старта
     wave = config.wave ?? (14 + Math.random() * 16), // Амплитуда волны 14-30px
     waveFrequency = config.waveFrequency ?? 4, // Частота волны на весь путь
   } = config;
 
-  // Шар должен гарантированно выйти за верхнюю границу экрана до того,
-  // как замкнётся цикл. Иначе при повторе он «телепортировался» бы обратно
-  // вниз, ещё не долетев до края (шар исчезал на середине видимого пути).
-  const startTop = element.getBoundingClientRect().top + window.scrollY;
-  const balloonHeight = element.offsetHeight + 120;
-  const riseDistance =
-    Math.max(
-      window.innerHeight * 2,
-      startTop + balloonHeight + window.innerHeight,
-    ) + yOffset;
+  // Слой (balloon-layer) растянут на всю страницу — его высота = высота сайта.
+  const layer = element.offsetParent as HTMLElement | null;
+  const pageHeight =
+    layer?.offsetHeight ??
+    element.parentElement?.offsetHeight ??
+    window.innerHeight * 3;
 
-  const tl = gsap.timeline({ repeat: -1, delay });
+  // Позиция шара от верхней границы сайта (offsetTop не зависит от scale).
+  const startTop = element.offsetTop;
+  // Полная высота шара с запасом, чтобы он полностью скрывался за краем.
+  const balloonBodyHeight = element.offsetHeight + 120;
 
-  // fromTo для плавного зацикливания — шар поднимается дальше,
-  // чем нужно, чтобы к моменту повторного цикла он был за экраном
+  // Нижняя точка цикла: шар полностью ниже нижней границы сайта.
+  const bottomY = pageHeight - startTop + balloonBodyHeight + yOffset;
+  // Верхняя точка цикла: шар полностью выше верхней границы сайта.
+  const topY = -(startTop + balloonBodyHeight + yOffset);
+  const travel = bottomY - topY;
+
+  const tl = gsap.timeline({ repeat: -1 });
+
+  // fromTo: цикл начинается снизу (за нижней границей) и заканчивается
+  // сверху (за верхней границей). При репите шар оказывается снова за
+  // нижней границей — «появление» невидимо для зрителя.
   tl.fromTo(
     element,
     {
-      y: 0,
+      y: bottomY,
       x: 0,
       rotation: 0,
     },
     {
-      y: -riseDistance, // Поднимаем далеко вверх (гарантированно за экран)
+      y: topY,
       x: xOffset,
       rotation,
       duration,
@@ -62,14 +74,20 @@ export function createBalloonPath(
       modifiers: {
         // Волнистая траектория (амплитуда/частота настраиваются на шар)
         x: (x: string) => {
-          const progress = gsap.getProperty(element, 'y') as number;
-          const normalized = Math.abs(progress) / riseDistance;
+          const currentY = gsap.getProperty(element, 'y') as number;
+          const normalized = (bottomY - currentY) / travel;
           const waveOffset = Math.sin(normalized * Math.PI * waveFrequency) * wave;
           return parseFloat(x) + waveOffset + 'px';
         },
       },
     }
   );
+
+  // Стартуем с фазы, когда шар стоит на своей DOM-позиции (startTop),
+  // а не за нижней границей — иначе при загрузке все шары были бы скрыты.
+  // delay добавляет лёгкую рассинхронизацию между шарами.
+  const anchorProgress = bottomY / travel;
+  tl.progress((anchorProgress + delay / duration) % 1);
 
   return tl;
 }

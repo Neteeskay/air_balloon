@@ -100,22 +100,22 @@ const MIDDLE_CLOUDS: CloudConfig[] = [
 // ============================================
 
 const BALLOONS: Balloon[] = [
-  { id: 'b-1', variant: 'balloon1', x: 12, y: 6, scale: 0.45, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 40, rotation: -4, duration: 28, wave: 12 } },
-  { id: 'b-2', variant: 'green', x: 78, y: 14, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 22, yOffset: 50, rotation: 5, duration: 52, wave: 22 } },
-  { id: 'b-3', variant: 'balloon2', x: 45, y: 22, scale: 0.35, floatDelay: 1, pathConfig: { xOffset: 15, yOffset: 35, rotation: 3, duration: 44, wave: 10 } },
-  { id: 'b-4', variant: 'red', x: 88, y: 32, scale: 0.4, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 45, rotation: -5, duration: 34, wave: 26 } },
-  { id: 'b-5', variant: 'balloon3', x: 8, y: 42, scale: 0.32, floatDelay: 1.5, pathConfig: { xOffset: 12, yOffset: 38, rotation: 3, duration: 60, wave: 16 } },
-  { id: 'b-6', variant: 'blue', x: 60, y: 52, scale: 0.42, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 42, rotation: 4, duration: 42, wave: 20 } },
-  { id: 'b-7', variant: 'balloon4', x: 25, y: 62, scale: 0.38, floatDelay: 2.5, pathConfig: { xOffset: -15, yOffset: 40, rotation: -3, duration: 50, wave: 14 } },
-  { id: 'b-8', variant: 'balloon5', x: 72, y: 72, scale: 0.48, floatDelay: 4, pathConfig: { xOffset: 25, yOffset: 48, rotation: 5, duration: 32, wave: 24 } },
-  { id: 'b-9', variant: 'balloon6', x: 18, y: 82, scale: 0.3, floatDelay: 3.5, pathConfig: { xOffset: -12, yOffset: 35, rotation: -4, duration: 58, wave: 18 } },
-  { id: 'b-10', variant: 'balloon7', x: 55, y: 92, scale: 0.44, floatDelay: 5, pathConfig: { xOffset: 20, yOffset: 45, rotation: 4, duration: 46, wave: 30 } },
+  { id: 'b-1', variant: 'balloon1', x: 12, y: 6, scale: 0.45, floatDelay: 0, pathConfig: { xOffset: -18, yOffset: 40, rotation: -4, duration: 110, wave: 12 } },
+  { id: 'b-2', variant: 'green', x: 78, y: 14, scale: 0.5, floatDelay: 2, pathConfig: { xOffset: 22, yOffset: 50, rotation: 5, duration: 180, wave: 22 } },
+  { id: 'b-3', variant: 'balloon2', x: 45, y: 22, scale: 0.35, floatDelay: 1, pathConfig: { xOffset: 15, yOffset: 35, rotation: 3, duration: 160, wave: 10 } },
+  { id: 'b-4', variant: 'red', x: 88, y: 32, scale: 0.4, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 45, rotation: -5, duration: 130, wave: 26 } },
+  { id: 'b-5', variant: 'balloon3', x: 8, y: 42, scale: 0.32, floatDelay: 1.5, pathConfig: { xOffset: 12, yOffset: 38, rotation: 3, duration: 200, wave: 16 } },
+  { id: 'b-6', variant: 'blue', x: 60, y: 52, scale: 0.42, floatDelay: 0.5, pathConfig: { xOffset: 18, yOffset: 42, rotation: 4, duration: 155, wave: 20 } },
+  { id: 'b-7', variant: 'balloon4', x: 25, y: 62, scale: 0.38, floatDelay: 2.5, pathConfig: { xOffset: -15, yOffset: 40, rotation: -3, duration: 175, wave: 14 } },
+  { id: 'b-8', variant: 'balloon5', x: 72, y: 72, scale: 0.48, floatDelay: 4, pathConfig: { xOffset: 25, yOffset: 48, rotation: 5, duration: 125, wave: 24 } },
+  { id: 'b-9', variant: 'balloon6', x: 18, y: 82, scale: 0.3, floatDelay: 3.5, pathConfig: { xOffset: -12, yOffset: 35, rotation: -4, duration: 190, wave: 18 } },
+  { id: 'b-10', variant: 'balloon7', x: 55, y: 92, scale: 0.44, floatDelay: 5, pathConfig: { xOffset: 20, yOffset: 45, rotation: 4, duration: 170, wave: 30 } },
 ];
 
 const FINAL_BALLOONS: Balloon[] = [
-  { id: 'f-b-1', variant: 'balloon1', x: 35, y: 68, scale: 0.38, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 38, rotation: 3, duration: 40, wave: 16 } },
-  { id: 'f-b-2', variant: 'balloon5', x: 82, y: 78, scale: 0.42, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 42, rotation: -4, duration: 30, wave: 26 } },
-  { id: 'f-b-3', variant: 'balloon3', x: 48, y: 88, scale: 0.35, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 36, rotation: 3, duration: 54, wave: 12 } },
+  { id: 'f-b-1', variant: 'balloon1', x: 35, y: 68, scale: 0.38, floatDelay: 1, pathConfig: { xOffset: 18, yOffset: 38, rotation: 3, duration: 150, wave: 16 } },
+  { id: 'f-b-2', variant: 'balloon5', x: 82, y: 78, scale: 0.42, floatDelay: 3, pathConfig: { xOffset: -20, yOffset: 42, rotation: -4, duration: 120, wave: 26 } },
+  { id: 'f-b-3', variant: 'balloon3', x: 48, y: 88, scale: 0.35, floatDelay: 2, pathConfig: { xOffset: 15, yOffset: 36, rotation: 3, duration: 185, wave: 12 } },
 ];
 
 // ============================================
