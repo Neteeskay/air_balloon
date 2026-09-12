@@ -5,6 +5,7 @@
 - Base: `integration/full-app` (`27fc1038e5b80930cb36667c4cbd75aafc4d7d27`)
 - Visual source: `origin/feature/bet-selection-page-pre-game` (`23a3ac6d7fe48b1271e5c1768d8db56a76c41d67`)
 - Target branch: `integration/full-app-frontend-complete`
+- Published target commit: `d2b0f12`
 
 The merge is semantic. Real transport, API DTOs, session/recovery hooks, gameplay hooks, and Admin were restored from the base branch after importing the visual source. The production entry is `frontend/src/main.tsx` → Admin hash router or `frontend/src/App.tsx` user router.
 
