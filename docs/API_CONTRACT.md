@@ -133,7 +133,10 @@ finished-retention, default 24h. Неверный формат header: 400 INVAL
 До crash: `status=COMMITTED`, `roundId`, `commitment`, `algorithm=SHA-256`,
 `format=air-balloon-fairness:v1`. После crash: `status=REVEALED` и дополнительно
 `serverSeed` (decimal string), `crashMultiplier`, `boosterLevel`, `verified`,
-`canonicalInput`. Seed/result до падения отсутствуют, даже после cashout.
+`canonicalInput`. Для аудита crash-модели также возвращаются `formulaVersion`,
+`uniformSample`, `calculatedCrashMultiplier`, `formulaVerified`,
+`minCrashMultiplier`, `maxCrashMultiplier`, `alpha`, `theme`,
+`boosterMultiplier`. Seed/result до падения отсутствуют, даже после cashout.
 Проверять по первоначальному commitment: [точный формат и verifier](fairness.md).
 
 ### Replay

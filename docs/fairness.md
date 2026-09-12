@@ -33,6 +33,11 @@
 `boosterLevel`, `verified`, `canonicalInput`. Для x1 boosterLevel отсутствует в
 JSON и трактуется как `null`. Пример готового proof находится в
 [`scripts/fixtures/fairness-proof.json`](../scripts/fixtures/fairness-proof.json).
+Для проверки crash по формуле reveal также содержит `formulaVersion`,
+`uniformSample`, `calculatedCrashMultiplier`, `formulaVerified` и параметры
+`minCrashMultiplier`, `maxCrashMultiplier`, `alpha`. Клиент пересчитывает
+`X_final` локально и отдельно показывает результат commitment-проверки и
+проверки формулы.
 `CRASH.data.fairnessReveal`, `ROUND_FINISHED.data.fairnessReveal` и финальный
 `RoundView.fairnessReveal` используют этот же формат. До окончания reveal отсутствует.
 
@@ -111,7 +116,8 @@ salted seed derivation не изменены. Одинаковые seed/config, 
 
 Это упрощённое доказательство неизменности заранее зафиксированных seed и
 результата. Verifier проверяет canonical commitment reveal-полей; он не пересчитывает
-`U` и crash только из seed, потому что v1 payload не включает config/theme/booster.
+`U` только из seed, потому что v1 payload не включает полный PRNG-контракт. UI
+дополнительно проверяет опубликованный `uniformSample` и формулу HOUSE_EDGE_V1.
 Он не доказывает беспристрастный выбор seed, распределение вероятностей или
 неизменность конфигурации. Client seed / multi-party entropy здесь нет.
 Существующий seed имеет 64 бита, генераторы остались прежними. FIXED_SEED с известным

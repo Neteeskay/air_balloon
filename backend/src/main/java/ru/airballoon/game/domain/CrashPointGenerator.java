@@ -19,6 +19,11 @@ public final class CrashPointGenerator {
                 seed ^ 0x43524153484CL ^ ((long) theme.levels() << 32) ^ booster).nextDouble());
     }
 
+    /** Deterministic uniform sample exposed for the public fairness proof. */
+    public static BigDecimal uniformSample(Theme theme, int booster, long seed) {
+        return uniform(theme, booster, seed);
+    }
+
     /** Visible to deterministic domain tests; production U is always generated server-side above. */
     BigDecimal generate(GameConfig config, BigDecimal u) {
         if (config == null || config.crashMathModel() != GameConfig.CrashMathModel.HOUSE_EDGE_V1)

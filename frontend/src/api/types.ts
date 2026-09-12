@@ -7,7 +7,7 @@ export type Catalog = {
   stakes: number[]; stakeRules: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: number[]; levels: Record<Theme, number>; pointsPerLevel?: number; cashoutPoints?: number
 }
-export type Fairness = { roundId: string; commitment: string; status: 'COMMITTED' | 'REVEALED'; serverSeed?: string; crashMultiplier?: number; boosterLevel?: number; verified?: boolean; canonicalInput?: string; algorithm?: string; format?: string; example?: boolean }
+export type Fairness = { roundId: string; commitment: string; status: 'COMMITTED' | 'REVEALED'; serverSeed?: string; crashMultiplier?: number; boosterLevel?: number; verified?: boolean; canonicalInput?: string; algorithm?: string; format?: string; formulaVersion?: string; uniformSample?: number; calculatedCrashMultiplier?: number; formulaVerified?: boolean; minCrashMultiplier?: number; maxCrashMultiplier?: number; alpha?: number; theme?: Theme; boosterMultiplier?: number; example?: boolean }
 export type Round = {
   id: string; roundId: string; theme: Theme; betAmount: number; boosterMultiplier: number
   boosterActivated: boolean; boosterLevel?: number; currentMultiplier: number; currentLevel: number

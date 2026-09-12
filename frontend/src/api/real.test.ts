@@ -51,4 +51,16 @@ describe('real backend adapter', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ roundId: '00000000-0000-0000-0000-000000000123', status: 'REVEALED', commitment: 'sha256:fb553c3b8fce90e8b7b024d5917254fb402b22b343ebf2cf96209cb8f6008456', serverSeed: '42', crashMultiplier: 8.42, boosterLevel: 3, canonicalInput })))
     await expect(createRealApi().game.getFairness('00000000-0000-0000-0000-000000000123')).resolves.toEqual(expect.objectContaining({ verified: true }))
   })
+
+  it('independently checks the published HOUSE_EDGE_V1 formula', async () => {
+    const canonicalInput = 'air-balloon-fairness:v1\nroundId=00000000-0000-0000-0000-000000000123\nserverSeed=42\ncrashMultiplier=8.42\nboosterLevel=3\n'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({
+      roundId: '00000000-0000-0000-0000-000000000123', status: 'REVEALED',
+      commitment: 'sha256:fb553c3b8fce90e8b7b024d5917254fb402b22b343ebf2cf96209cb8f6008456',
+      serverSeed: '42', crashMultiplier: 8.42, boosterLevel: 3, canonicalInput,
+      formulaVersion: 'HOUSE_EDGE_V1', uniformSample: 0.2, minCrashMultiplier: 8.42,
+      maxCrashMultiplier: 8.42, alpha: 0.1,
+    })))
+    await expect(createRealApi().game.getFairness('00000000-0000-0000-0000-000000000123')).resolves.toEqual(expect.objectContaining({ verified: true, formulaVerified: true }))
+  })
 })

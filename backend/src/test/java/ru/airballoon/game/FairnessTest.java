@@ -48,6 +48,17 @@ class FairnessTest {
             }
         }
     }
+    @Test void revealContainsIndependentFormulaAuditData() {
+        var finished = engine.advance(start(), START.plusSeconds(100)).round();
+        var proof = FairnessView.from(finished);
+        assertThat(proof.formulaVersion()).isEqualTo("HOUSE_EDGE_V1");
+        assertThat(proof.uniformSample()).isNotNull();
+        assertThat(proof.calculatedCrashMultiplier()).isEqualByComparingTo(finished.crashMultiplier());
+        assertThat(proof.formulaVerified()).isTrue();
+        assertThat(proof.minCrashMultiplier()).isEqualByComparingTo(finished.config().minCrashMultiplier());
+        assertThat(proof.maxCrashMultiplier()).isEqualByComparingTo(finished.config().maxCrashMultiplier());
+        assertThat(proof.alpha()).isEqualByComparingTo(finished.config().alpha());
+    }
     @Test void independentSha256MatchesOriginalCommitment() throws Exception {
         String canonical = "air-balloon-fairness:v1\nroundId=00000000-0000-0000-0000-000000000123\n"
                 + "serverSeed=42\ncrashMultiplier=8.42\nboosterLevel=3\n";
