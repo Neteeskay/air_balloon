@@ -29,7 +29,6 @@ import ru.airballoon.game.application.GameService;
 import ru.airballoon.game.domain.GameEvent;
 import ru.airballoon.integration.PostgresRoundEventStore;
 import ru.hackathon.airballoon.acceptance.BackendAcceptanceDriver;
-import ru.hackathon.airballoon.admin.AdminController;
 import ru.hackathon.airballoon.config.ConfigSnapshot;
 import ru.hackathon.airballoon.config.GameConfig;
 import ru.hackathon.airballoon.config.PostgresGameConfigProvider;
@@ -42,7 +41,6 @@ import ru.hackathon.airballoon.user.DemoBootstrap;
 public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDriver {
     private static final List<String> LOGINS = List.of("anna", "maks", "liza");
     private static final List<String> PASSWORDS = List.of("balloon1", "balloon2", "balloon3");
-    private static final String ADMIN_TOKEN = "acceptance-admin";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
@@ -59,6 +57,7 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
     private final Map<UUID, UUID> cashoutKeys = new ConcurrentHashMap<>();
     private final Map<String, String> retryPayloads = new ConcurrentHashMap<>();
     private final AtomicInteger nextLogin = new AtomicInteger();
+    private volatile String adminToken;
     public CoreBackendAcceptanceDriver(JdbcTemplate jdbc, ObjectMapper json, TestRestTemplate http,
                                 MutableClock clock, GameService games, TournamentService tournaments,
                                 PostgresGameConfigProvider configs, RewardService rewards,
@@ -218,22 +217,31 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
 
     @Override
     public Response<Config> getAdminConfig() {
-        ResponseEntity<JsonNode> response = http.exchange(url("/api/admin/config"), HttpMethod.GET,
+        ResponseEntity<JsonNode> response = http.exchange(url("/api/admin/config/current"), HttpMethod.GET,
                 new HttpEntity<>(adminHeaders()), JsonNode.class);
         return configResponse(response);
     }
 
     @Override
     public Response<Config> setPointsPerLevel(long points) {
-        ConfigSnapshot current = configs.getCurrentConfig();
-        GameConfig updated = copyConfig(current.config(), points, current.config().minCrashMultiplier(),
-                current.config().maxCrashMultiplier(), current.config().greenBoosterWeights(),
-                current.config().redBoosterWeights());
+        ResponseEntity<JsonNode> current = http.exchange(url("/api/admin/config/current"), HttpMethod.GET,
+                new HttpEntity<>(adminHeaders()), JsonNode.class);
+        requireSuccess(current);
+        JsonNode body = current.getBody().deepCopy();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) body).put("isActive", body.path("isActive").asBoolean());
+        ((com.fasterxml.jackson.databind.node.ObjectNode) body).put("revision",
+                body.path("revision").asLong() + 1);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) body.path("points")).put("pointsPerLine", points);
         HttpHeaders headers = adminHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<JsonNode> response = http.exchange(url("/api/admin/config"), HttpMethod.PUT,
-                new HttpEntity<>(new AdminController.Update(current.version(), updated), headers), JsonNode.class);
-        return configResponse(response);
+        ResponseEntity<JsonNode> created = http.exchange(url("/api/admin/config"), HttpMethod.POST,
+                new HttpEntity<>(body, headers), JsonNode.class);
+        requireSuccess(created);
+        UUID id = UUID.fromString(created.getBody().path("id").asText());
+        ResponseEntity<JsonNode> activated = http.exchange(url("/api/admin/config/" + id + "/activate"),
+                HttpMethod.POST, new HttpEntity<>(adminHeaders()), JsonNode.class);
+        requireSuccess(activated);
+        return configResponse(activated);
     }
 
     @Override
@@ -412,7 +420,7 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
     private Response<Config> configResponse(ResponseEntity<JsonNode> response) {
         if (!successful(response)) return new Response<>(status(response), errorCode(response), null);
         return new Response<>(status(response), null,
-                new Config(response.getBody().path("config").path("pointsPerLevel").asLong()));
+                new Config(response.getBody().path("points").path("pointsPerLine").asLong()));
     }
 
     private HttpHeaders playerHeaders(UUID userId) {
@@ -463,9 +471,19 @@ public final class CoreBackendAcceptanceDriver implements BackendAcceptanceDrive
         return response;
     }
 
-    private static HttpHeaders adminHeaders() {
+    private HttpHeaders adminHeaders() {
+        if (adminToken == null) {
+            String token = null;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<JsonNode> response = http.exchange(url("/api/admin/auth/login"), HttpMethod.POST,
+                    new HttpEntity<>(Map.of("username", "admin", "password", "admin"), headers), JsonNode.class);
+            requireSuccess(response);
+            token = response.getBody().path("accessToken").asText();
+            adminToken = token;
+        }
         HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Admin-Token", ADMIN_TOKEN);
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken);
         return headers;
     }
 

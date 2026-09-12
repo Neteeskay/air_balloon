@@ -11,6 +11,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -217,25 +218,68 @@ class EconomyIntegrationTest {
     }
     @Test void scenarioFiveAdminHttpToNewRoundAndOldSnapshot() throws Exception {
         var old=start(anna,100,1);
-        http.perform(get("/api/admin/config").header("X-Admin-Token","test-admin-token"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(100));
-        var body=Map.of("expectedVersion",configs.getCurrentConfig().version(),"config",changed(500));
-        http.perform(put("/api/admin/config").header("X-Admin-Token","test-admin-token").contentType("application/json").content(json.writeValueAsString(body)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(500));
-        http.perform(get("/api/admin/config").header("X-Admin-Token","test-admin-token"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.config.pointsPerLevel").value(500));
-        assertThat(configs.getCurrentConfig().config().pointsPerLevel()).isEqualTo(500);
+        String token=adminToken();
+        long revision=activeRevision(token);
+        var created=http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(draftBody(revision + 1,500))))
+            .andExpect(status().isCreated())
+            .andExpect(header().exists("ETag")).andReturn();
+        String location=created.getResponse().getHeader("Location");
+        assertThat(location).isNotNull();
+        String id=location.substring(location.lastIndexOf('/')+1);
+        http.perform(post("/api/admin/config/"+id+"/activate").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACTIVE"));
+        var liveNow = configs.getCurrentConfig().config();
+        assertThat(liveNow.pointsPerLevel()).isEqualTo(500);
         var next=start(anna,100,1);
         scores.awardLevelPoints(anna,next.id(),1,500);
         assertThat(rounds.findById(next.id()).orElseThrow().roundScore()).isEqualTo(500);
         scores.awardLevelPoints(anna,old.id(),1,100);
         assertThat(rounds.findById(old.id()).orElseThrow().roundScore()).isEqualTo(100);
     }
+
     @Test void adminRejectsAnonymousAndBadPayload() throws Exception {
-        http.perform(get("/api/admin/config")).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("ADMIN_ACCESS_DENIED"));
-        http.perform(put("/api/admin/config").header("X-Admin-Token","test-admin-token").contentType("application/json")
-            .content(json.writeValueAsString(Map.of("expectedVersion",configs.getCurrentConfig().version(),"config",changed(-1)))))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_GAME_CONFIG"));
+        http.perform(get("/api/admin/config/versions"))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        String token=adminToken();
+        long revision=activeRevision(token);
+        var bad=(Map<String,Object>)draftBody(revision + 1,500);
+        var boosters=(Map<String,Object>)bad.get("boosters");
+        boosters.put("multiplierTier3Value",5.0);
+        http.perform(post("/api/admin/config").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(bad)))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+    }
+
+    String adminToken() throws Exception {
+        var result=http.perform(post("/api/admin/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("username","admin","password","admin"))))
+            .andExpect(status().isOk()).andReturn();
+        return json.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
+    }
+    long activeRevision(String token) throws Exception {
+        var result=http.perform(get("/api/admin/config/current").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk()).andReturn();
+        return json.readTree(result.getResponse().getContentAsString()).get("revision").asLong();
+    }
+    Map<String,Object> draftBody(long revision,long points) {
+        Map<String,Object> green=new LinkedHashMap<>();
+        for(int i=1;i<=9;i++) green.put("line"+i+"LootProb",100.0/9);
+        Map<String,Object> red=new LinkedHashMap<>();
+        for(int i=1;i<=12;i++) red.put("line"+i+"LootProb",100.0/12);
+        return new LinkedHashMap<>(Map.of(
+            "gameId","air-balloon","gameName","Air Balloon","gameType","CRASH","isActive",true,"revision",revision,
+            "crash",Map.of("alpha",0.85,"maxMultiplier",100.0,"minCrashMultiplier",1.0,"multiplierGrowthRate",0.15,"fps",60.0,"delta",0.0166666667),
+            "boosters",new LinkedHashMap<>(Map.of(
+                "multiplierTier1Value",1.0,"multiplierTier2Value",2.0,"multiplierTier3Value",3.0,"multiplierTier4Value",4.0,
+                "green",green,"red",red)),
+            "points",Map.of("pointsPerLine",points,"pointsCashoutBonus",25,"pointsXNBonus",50)));
+    }
+
+    @Test void demoListingAndUndocumentedAdminPath() throws Exception {
+        http.perform(get("/api/demo/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3))
+            .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
+        http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isUnauthorized());
     }
     @Test void historyIncludesAllUsersSortedAndPaginated() throws Exception {
         for(String name:List.of("anna","maks","liza")) transactions.finishAndReward(finish(start(DemoBootstrap.id(name),100,1)));
@@ -377,12 +421,6 @@ class EconomyIntegrationTest {
             SELECT ?,round_id,user_id,type,rarity FROM round_rewards WHERE round_id=?
             """,UUID.randomUUID(),r.id())).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
-    @Test void demoListingAndEncodedAdminPath() throws Exception {
-        http.perform(get("/api/demo/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3))
-            .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
-        http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isForbidden());
-    }
-
     @Test void scenario8IsWinOnlyAndPurchaseIsIdempotent() {
         var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
         var offer = scenario8.offer(anna, win.id());

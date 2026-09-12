@@ -3,9 +3,21 @@ import { api as defaultApi } from '../api'
 import type { Api, User } from '../api/types'
 import { message } from '../game/session'
 import { gameAudio } from '../game/sound'
+import AdminApp from '../admin/AdminApp'
 import { GameHome } from './GameHome'
 
 export default function App({ api = defaultApi }: { api?: Api }) {
+  const [admin, setAdmin] = useState(() => hashIsAdmin())
+  useEffect(() => {
+    const onHash = () => setAdmin(hashIsAdmin())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  if (admin) return <AdminApp />
+  return <PlayerApp api={api} />
+}
+const hashIsAdmin = () => window.location.hash.startsWith('#/admin')
+function PlayerApp({ api }: { api: Api }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -27,6 +39,7 @@ function Login({ api, onLogin, initialError }: { api: Api; onLogin: (u: User) =>
     <div className="login-intro"><span className="eyebrow">БОНУСЫ СТАНОВЯТСЯ ПРИКЛЮЧЕНИЕМ</span><h1>Выше облаков.<br /><em>Ближе к победе.</em></h1><p>Выберите свой шар, поймайте момент<br />и заберите бонусы до падения.</p><div className="intro-balloon" aria-hidden="true"><Balloon /></div><span className="login-caption">ВОЗДУШНЫЙ ШАР / FLIGHT CLUB</span></div>
     <section className="login-card"><Brand /><div className="heading"><h2>Войти в игру</h2><p>Ваш следующий полёт начинается здесь.</p></div>
       <form onSubmit={signIn}><label>Логин<input value={login} onChange={e => setLogin(e.target.value)} placeholder="Например, anna" autoComplete="username" required /></label><label>Пароль<input value={password} onChange={e => setPassword(e.target.value)} placeholder="Введите пароль" type="password" autoComplete="current-password" required /></label>{error && <p className="error" role="alert">{error}</p>}<button className="primary" disabled={busy} type="submit">{busy ? 'Входим…' : 'Войти'} <span aria-hidden="true">↗</span></button></form>
+      <p className="admin-entry"><a href="#/admin">Администрирование игры →</a></p>
       {api.auth.demos.length > 0 && <><div className="demo-heading">Или выберите тестовый профиль</div><div className="profiles">{api.auth.demos.map(demo => <button className={`profile ${selectedId === demo.id ? 'chosen' : ''}`} key={demo.id} onClick={() => { setSelectedId(demo.id); setLogin(demo.login); setPassword(demo.password); setError('') }}><span className="avatar" style={{ backgroundColor: demo.color }}>{demo.initials}</span><span><strong>{demo.name}</strong><small>{demo.login} · {demo.password}</small></span><b>↗</b></button>)}</div><p className="hint">Стартовый баланс каждого профиля — 5 000 бонусов.<br />Прогресс демо сохраняется в этом браузере.</p></>}
     </section>
   </main>
