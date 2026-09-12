@@ -11,7 +11,7 @@ public class UserService {
     public UserService(JdbcTemplate jdbc) { this.jdbc=jdbc; }
     public UserState getState(UUID id) {
         return jdbc.query("SELECT * FROM users WHERE id=?", (rs,n)->new UserState(rs.getObject("id",UUID.class),
-            rs.getString("username"),rs.getString("display_name"),rs.getLong("bonus_balance"),rs.getLong("game_score"),
+            rs.getString("username"),rs.getString("display_name"),rs.getLong("bonus_balance"),rs.getLong("game_score"),rs.getLong("lottery_ticket_count"),
             rs.getTimestamp("created_at").toInstant(),rs.getTimestamp("updated_at").toInstant()), id)
             .stream().findFirst().orElseThrow(()->BusinessException.missing("USER_NOT_FOUND"));
     }

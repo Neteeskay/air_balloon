@@ -1,7 +1,7 @@
-import type { Api, Fairness, GameEvent, TournamentUpdate, User } from './types'
+import type { Api, Fairness, GameEvent, Scenario8Offer, Scenario8Purchase, TournamentUpdate, User } from './types'
 
 type ErrorBody = { code?: string; message?: string }
-type UserState = { userId: string; username: string; displayName: string; bonusBalance: number; gameScore: number }
+type UserState = { userId: string; username: string; displayName: string; bonusBalance: number; gameScore: number; lotteryTicketCount: number }
 type CatalogDto = {
   active: boolean
   themes: { theme: 'GREEN' | 'RED'; levels: number; active: boolean }[]
@@ -88,8 +88,17 @@ export function createRealApi(base = ''): Api {
         request<{ bonusBalance: number }>('/api/current-user/balance'),
         request<UserState>('/api/current-user/state'),
       ])
-      return { bonusBalance: balance.bonusBalance, gameScore: state.gameScore }
+      return { bonusBalance: balance.bonusBalance, gameScore: state.gameScore, ...(state.lotteryTicketCount === undefined ? {} : { lotteryTicketCount: state.lotteryTicketCount }) }
     } },
+    upsell: {
+      getOffer: async roundId => {
+        const response = await fetch(`${base}/api/current-user/upsell/lottery-tickets/offer?roundId=${encodeURIComponent(roundId)}`, { credentials: 'include', signal: AbortSignal.timeout(10000) })
+        if (response.status === 204) return null
+        if (!response.ok) { const body = await response.json().catch(() => ({})) as ErrorBody; throw new ApiError(response.status, body.code ?? 'HTTP_ERROR', errorMessage(response.status, body)) }
+        return response.json() as Promise<Scenario8Offer>
+      },
+      purchase: (offerId, key) => request<Scenario8Purchase>('/api/current-user/upsell/lottery-tickets/purchase', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key }, body: JSON.stringify({ offerId }) }),
+    },
     history: {
       getGlobalHistory: async page => {
         const value = await request<GlobalHistoryPageDto>(`/api/history?page=${page ?? 0}&size=20`)

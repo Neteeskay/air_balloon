@@ -11,7 +11,8 @@ public record GameConfig(
     int updateIntervalMs, BigDecimal minBet, BigDecimal maxBet, List<Integer> boosterValues,
     List<Integer> greenBoosterWeights, List<Integer> redBoosterWeights,
     long pointsPerLevel, long pointsCashoutBonus, long pointsX2Bonus, long pointsX3Bonus, long pointsX4Bonus,
-    boolean fixedSeedEnabled, Long fixedSeed
+    boolean fixedSeedEnabled, Long fixedSeed,
+    boolean scenario8Enabled, long scenario8MinWinAmount, long scenario8Price, int scenario8TicketCount
 ) {
     public GameConfig {
         boosterValues = boosterValues == null ? null : List.copyOf(boosterValues);

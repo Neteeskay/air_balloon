@@ -2,7 +2,9 @@ export type Theme = 'GREEN' | 'RED'
 export type Preset = 'WIN' | 'LOSE' | 'BOOSTER' | 'RECONNECT'
 export type Connection = 'connecting' | 'connected' | 'disconnected' | 'recovering'
 export type User = { id: string; name: string; login: string; initials: string; color: string }
-export type Wallet = { bonusBalance: number; gameScore: number }
+export type Wallet = { bonusBalance: number; gameScore: number; lotteryTicketCount?: number }
+export type Scenario8Offer = { offerId: string; roundId: string; price: number; ticketCount: number; minWinAmount: number; expiresAt: string; status: 'AVAILABLE' | 'EXPIRED' | 'CONSUMED' }
+export type Scenario8Purchase = { offerId: string; roundId: string; price: number; ticketCount: number; bonusBalance: number; lotteryTicketCount: number; replayed: boolean }
 export type Catalog = {
   stakes: number[]; stakeRules: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: number[]; levels: Record<Theme, number>; pointsPerLevel?: number; cashoutPoints?: number
@@ -40,6 +42,7 @@ export interface Api {
   mode: 'mock' | 'real'
   auth: { demos: (User & { password: string })[]; currentUser(): Promise<User | null>; login(login: string, password: string): Promise<User>; logout(): Promise<void>; onRequired?(listener: () => void): () => void }
   economy: { getBalance(id?: string): Promise<Wallet> }
+  upsell: { getOffer(roundId: string): Promise<Scenario8Offer | null>; purchase(offerId: string, key: string): Promise<Scenario8Purchase> }
   catalog: { get(): Promise<Catalog> }
   history: { getGlobalHistory(page?: number): Promise<HistoryPage>; getPersonalHistory(page?: number): Promise<HistoryPage> }
   game: GameApi

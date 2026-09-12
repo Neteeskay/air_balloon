@@ -24,6 +24,7 @@ import ru.hackathon.airballoon.history.*;
 import ru.hackathon.airballoon.reward.*;
 import ru.hackathon.airballoon.score.*;
 import ru.hackathon.airballoon.user.*;
+import ru.hackathon.airballoon.upsell.Scenario8OfferService;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -43,6 +44,7 @@ class EconomyIntegrationTest {
     @Autowired PostgresGameConfigProvider configs;
     @Autowired UserService users;
     @Autowired HistoryService history;
+    @Autowired Scenario8OfferService scenario8;
     @Autowired PlatformTransactionManager manager;
     @Autowired MockMvc http;
     @Autowired ObjectMapper json;
@@ -379,6 +381,30 @@ class EconomyIntegrationTest {
         http.perform(get("/api/demo/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3))
             .andExpect(jsonPath("$[0].username").value("anna")).andExpect(jsonPath("$[0].bonusBalance").value(5000));
         http.perform(get(java.net.URI.create("/api/%61dmin/config"))).andExpect(status().isForbidden());
+    }
+
+    @Test void scenario8IsWinOnlyAndPurchaseIsIdempotent() {
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var offer = scenario8.offer(anna, win.id());
+        assertThat(offer).isNotNull().extracting(Scenario8OfferService.OfferView::price,
+                Scenario8OfferService.OfferView::ticketCount).containsExactly(150L, 3);
+        var purchased = scenario8.purchase(anna, offer.offerId(), "scenario8-test-key");
+        var replay = scenario8.purchase(anna, offer.offerId(), "scenario8-test-key");
+        assertThat(replay.replayed()).isTrue();
+        assertThat(purchased.bonusBalance()).isEqualTo(5000L - 100L + 600L - 150L);
+        assertThat(users.getState(anna).lotteryTicketCount()).isEqualTo(3);
+        var loss = transactions.finishAndReward(finish(start(anna,100,1)));
+        assertThat(scenario8.offer(anna, loss.id())).isNull();
+    }
+
+    @Test void scenario8InsufficientBalanceDoesNotCreditTickets() {
+        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+        var offer = scenario8.offer(anna, win.id());
+        setBalance(100);
+        assertThatThrownBy(() -> scenario8.purchase(anna, offer.offerId(), "insufficient-key"))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("Недостаточно");
+        assertThat(users.getState(anna).lotteryTicketCount()).isZero();
+        assertThat(users.getState(anna).bonusBalance()).isEqualTo(100);
     }
 
 }
