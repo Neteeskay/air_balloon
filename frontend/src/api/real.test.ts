@@ -15,10 +15,14 @@ describe('real backend adapter', () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ username: 'anna', password: 'balloon1' })
   })
 
-  it('maps the authoritative catalog without exposing hidden thresholds', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ active: true, themes: [{ theme: 'GREEN', levels: 9, active: true }, { theme: 'RED', levels: 12, active: true }], stakes: { minimum: 1, maximum: 1000, decimalPlaces: 0 }, boosters: [1, 2, 3, 4].map(multiplier => ({ multiplier, active: true })) })))
+  it('maps the authoritative catalog thresholds from the backend', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ active: true, themes: [
+      { theme: 'GREEN', levels: 9, levelThresholds: [1.6681, 2.7826, 4.6416, 7.7426, 12.9155, 21.5443, 35.9381, 59.9484, 100], active: true },
+      { theme: 'RED', levels: 12, levelThresholds: [1.4678, 2.1544, 3.1623, 4.6416, 6.8129, 10, 14.678, 21.5443, 31.6228, 46.4159, 68.1292, 100], active: true },
+    ], stakes: { minimum: 1, maximum: 1000, decimalPlaces: 0 }, boosters: [1, 2, 3, 4].map(multiplier => ({ multiplier, active: true })) })))
     const catalog = await createRealApi().catalog.get()
-    expect(catalog.levels).toEqual({ GREEN: 9, RED: 12 }); expect(catalog.stakeRules).toEqual({ minimum: 1, maximum: 1000, decimalPlaces: 0 }); expect(catalog.boosters).toEqual([1, 2, 3, 4])
+    expect(catalog.levels).toEqual({ GREEN: 9, RED: 12 }); expect(catalog.levelThresholds?.GREEN).toHaveLength(9); expect(catalog.levelThresholds?.RED?.at(-1)).toBe(100)
+    expect(catalog.stakeRules).toEqual({ minimum: 1, maximum: 1000, decimalPlaces: 0 }); expect(catalog.boosters).toEqual([1, 2, 3, 4])
   })
 
   it('reads principal-scoped balance, score and personal history', async () => {

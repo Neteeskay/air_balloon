@@ -4,7 +4,7 @@ type ErrorBody = { code?: string; message?: string }
 type UserState = { userId: string; username: string; displayName: string; bonusBalance: number; gameScore: number; lotteryTicketCount: number }
 type CatalogDto = {
   active: boolean
-  themes: { theme: 'GREEN' | 'RED'; levels: number; active: boolean }[]
+  themes: { theme: 'GREEN' | 'RED'; levels: number; levelThresholds?: number[]; active: boolean }[]
   stakes: { minimum: number; maximum: number; decimalPlaces: number }
   boosters: { multiplier: number; active: boolean }[]
   stakeOptions: { amount: number; boosterMultiplier: number; active: boolean }[]
@@ -73,12 +73,13 @@ export function createRealApi(base = ''): Api {
     catalog: { get: async () => {
       const dto = await request<CatalogDto>('/api/game/catalog')
       const levels = { GREEN: 0, RED: 0 }
-      dto.themes.filter(item => item.active).forEach(item => { levels[item.theme] = item.levels })
+      const levelThresholds: Partial<Record<'GREEN' | 'RED', number[]>> = {}
+      dto.themes.filter(item => item.active).forEach(item => { levels[item.theme] = item.levels; if (item.levelThresholds) levelThresholds[item.theme] = item.levelThresholds.map(Number) })
       if (!dto.active || !levels.GREEN || !levels.RED) throw new Error('Активный игровой каталог недоступен.')
       const paired = (dto.stakeOptions ?? []).filter(item => item.active)
       // Compatibility for older test fixtures; production final backend always sends stakeOptions.
       const resolved = paired.length ? paired : [0.1, 0.25, 0.5, 1].map((ratio, i) => ({ amount: Number(dto.stakes.maximum) * ratio, boosterMultiplier: i + 1, active: true }))
-      return { stakes: resolved.map(item => Number(item.amount)), stakeOptions: resolved.map(item => ({ ...item, amount: Number(item.amount) })), stakeRules: dto.stakes, boosters: dto.boosters.filter(item => item.active).map(item => item.multiplier), levels }
+      return { stakes: resolved.map(item => Number(item.amount)), stakeOptions: resolved.map(item => ({ ...item, amount: Number(item.amount) })), stakeRules: dto.stakes, boosters: dto.boosters.filter(item => item.active).map(item => item.multiplier), levels, levelThresholds }
     } },
     economy: { getBalance: async () => {
       const [balance, state] = await Promise.all([

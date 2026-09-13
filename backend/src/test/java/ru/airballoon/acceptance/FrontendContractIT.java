@@ -11,12 +11,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import ru.hackathon.airballoon.acceptance.GameAcceptanceSupport;
+import ru.hackathon.airballoon.config.ConfigSnapshot;
+import ru.hackathon.airballoon.config.GameConfig;
+import ru.hackathon.airballoon.config.PostgresGameConfigProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static ru.hackathon.airballoon.acceptance.BackendAcceptanceDriver.*;
 
 class FrontendContractIT extends GameAcceptanceSupport {
     @Autowired CoreBackendAcceptanceDriver core;
     @Autowired JdbcTemplate jdbc;
+    @Autowired PostgresGameConfigProvider configs;
 
     @Test
     void missingInvalidAndExpiredSessionsHaveStable401Contract() {
@@ -79,6 +83,11 @@ class FrontendContractIT extends GameAcceptanceSupport {
         assertThat(catalog.path("themes").findValue("levels").isInt()).isTrue();
         assertThat(levels(catalog,"GREEN")).isEqualTo(9);
         assertThat(levels(catalog,"RED")).isEqualTo(12);
+        assertThat(thresholds(catalog,"GREEN")).hasSize(9);
+        assertThat(thresholds(catalog,"RED")).hasSize(12);
+        BigDecimal configuredMax = configs.getCurrentConfig().config().maxCrashMultiplier();
+        assertThat(thresholds(catalog,"GREEN").getLast()).isEqualByComparingTo(configuredMax);
+        assertThat(thresholds(catalog,"RED").getLast()).isEqualByComparingTo(configuredMax);
         BigDecimal minimum=catalog.path("stakes").path("minimum").decimalValue();
         BigDecimal maximum=catalog.path("stakes").path("maximum").decimalValue();
         assertThat(minimum).isEqualByComparingTo("1");
@@ -208,6 +217,60 @@ class FrontendContractIT extends GameAcceptanceSupport {
         for (JsonNode item : catalog.path("themes"))
             if (item.path("theme").asText().equals(theme)) return item.path("levels").asInt();
         return -1;
+    }
+
+    @Test
+    void activeMaxCrashMultiplierChangesNewCatalogAndRoundsButNotExistingSnapshot() {
+        ConfigSnapshot initial = configs.getCurrentConfig();
+        try {
+            Player player = user("DynamicLevels", 5000);
+            for (String max : new String[]{"20.0000", "50.0000", "100.0000"}) {
+                ConfigSnapshot current = configs.getCurrentConfig();
+                configs.update(current.version(), withMax(current.config(), new BigDecimal(max)));
+                JsonNode catalog = body(core.getAnonymous("/api/game/catalog"));
+                var green = thresholds(catalog, "GREEN");
+                var red = thresholds(catalog, "RED");
+                assertThat(green).hasSize(9);
+                assertThat(red).hasSize(12);
+                assertThat(green.getLast()).isEqualByComparingTo(max);
+                assertThat(red.getLast()).isEqualByComparingTo(max);
+            }
+
+            configs.update(configs.getCurrentConfig().version(), withMax(configs.getCurrentConfig().config(), new BigDecimal("20.0000")));
+            Round round = ok(driver.start(player.id(), Theme.GREEN, new BigDecimal("100"), 1,
+                    SeedProfile.LATE_CRASH_AFTER_LEVEL_3, Map.of()));
+            JsonNode snapshot20 = body(core.get(player.id(), "/api/rounds/" + round.id()));
+            assertThat(snapshot20.path("levelThresholds").get(8).decimalValue()).isEqualByComparingTo("20");
+
+            configs.update(configs.getCurrentConfig().version(), withMax(configs.getCurrentConfig().config(), new BigDecimal("50.0000")));
+            JsonNode snapshotAfterChange = body(core.get(player.id(), "/api/rounds/" + round.id()));
+            assertThat(snapshotAfterChange.path("levelThresholds")).isEqualTo(snapshot20.path("levelThresholds"));
+            JsonNode newRound = body(core.post(player.id(), "/api/rounds", Map.of(
+                    "theme", "GREEN", "betAmount", 100, "boosterMultiplier", 1)));
+            assertThat(newRound.path("levelThresholds").get(8).decimalValue()).isEqualByComparingTo("50");
+        } finally {
+            ConfigSnapshot current = configs.getCurrentConfig();
+            configs.update(current.version(), initial.config());
+        }
+    }
+
+    private static GameConfig withMax(GameConfig c, BigDecimal max) {
+        return new GameConfig(c.gameId(), c.gameName(), c.gameType(), c.active(), c.greenLevelCount(), c.redLevelCount(),
+                c.minCrashMultiplier().min(max).min(new BigDecimal("1.0000")), max, c.growthRate(), c.alpha(), c.updateIntervalMs(), c.minBet(), c.maxBet(),
+                c.boosterValues(), c.greenBoosterWeights(), c.redBoosterWeights(), c.pointsPerLevel(), c.pointsCashoutBonus(),
+                c.pointsX2Bonus(), c.pointsX3Bonus(), c.pointsX4Bonus(), c.fixedSeedEnabled(), c.fixedSeed(), c.scenario8Enabled(),
+                c.scenario8MinWinAmount(), c.scenario8Price(), c.scenario8TicketCount());
+    }
+
+    private static java.util.List<BigDecimal> thresholds(JsonNode catalog, String theme) {
+        for (JsonNode item : catalog.path("themes")) {
+            if (item.path("theme").asText().equals(theme)) {
+                java.util.List<BigDecimal> values = new java.util.ArrayList<>();
+                item.path("levelThresholds").forEach(node -> values.add(node.decimalValue()));
+                return values;
+            }
+        }
+        return java.util.List.of();
     }
 
     private static java.util.List<UUID> roundIds(JsonNode page) {

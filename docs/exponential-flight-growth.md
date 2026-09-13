@@ -33,11 +33,20 @@ t(X) = ln(X) / growthRate
 Значения новой модели округлены вверх до первой серверной миллисекунды, на
 которой scale-4 `flightMultiplier` действительно пересекает границу.
 
+Уровни не имеют фиксированных X. Для активного `maxCrashMultiplier = maxX`
+backend строит `N` thresholds логарифмически: `T_i = maxX^(i/N)` (GREEN N=9,
+RED N=12), с canonical scale 4 и прямым присваиванием `T_N = maxX`. Поэтому
+последний уровень всегда совпадает с потолком текущей конфигурации, а времена
+достижения уровней равномерны на идеальной exponential-кривой. Эти thresholds
+попадают в catalog и round snapshot; изменение Admin-конфигурации влияет только
+на новые раунды.
+
 Crash point по-прежнему генерируется и фиксируется до старта раунда. Экспонента
 не участвует в RNG, truncated-Pareto, alpha/house edge или commitment/reveal —
 она меняет только time-to-X. При пересечении между тиками engine публикует crash
-ровно на precommitted X, а все level/booster thresholds ниже crash обрабатывает
-по порядку; события на границе crash и выше не испускаются.
+ровно на precommitted X, а все level thresholds ниже либо равные crash обрабатывает
+по порядку; если crash совпадает с последним threshold, сначала публикуется этот
+`LEVEL_REACHED`, затем `CRASH`. Booster на самой crash-границе не активируется.
 
 Booster применяется только к `effectiveMultiplier/currentMultiplier`, то есть к
 отображению, cashout и payout. Balloon, level track, thresholds и crash comparison

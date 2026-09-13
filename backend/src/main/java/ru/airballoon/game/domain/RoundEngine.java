@@ -49,8 +49,10 @@ public final class RoundEngine {
         while (true) {
             BigDecimal next = levels.next(round.config(), round.theme(), f.level);
             BigDecimal atTarget = multipliers.at(round.startedAt(), target, round.config());
-            // At a tie the crash wins; no level or booster can rescue a crashed round.
-            if (next == null || next.compareTo(round.crashMultiplier()) >= 0 || next.compareTo(atTarget) > 0) break;
+            // A level exactly at the precommitted crash point is reached at that
+            // same physical position; the crash is emitted immediately after it.
+            // Thresholds above crash are never visited.
+            if (next == null || next.compareTo(round.crashMultiplier()) > 0 || next.compareTo(atTarget) > 0) break;
             f.updated = later(f.updated, multipliers.crossing(round.startedAt(), next, round.config()));
             f.flightMultiplier = f.flightMultiplier.max(next);
             f.multiplier = f.effectiveMultiplier();
@@ -60,7 +62,7 @@ public final class RoundEngine {
             f.emit(GameEvent.Type.LEVEL_REACHED, Map.of("level", f.level, "points", points,
                     "pointsToAward", points, "multiplier", f.multiplier,
                     "flightMultiplier", f.flightMultiplier, "effectiveMultiplier", f.multiplier));
-            if (f.status == RoundStatus.RUNNING && !f.boosted && round.boosterLevel() != null
+            if (next.compareTo(round.crashMultiplier()) < 0 && f.status == RoundStatus.RUNNING && !f.boosted && round.boosterLevel() != null
                     && f.level == round.boosterLevel()) {
                 BigDecimal before = f.multiplier;
                 f.boosted = true;

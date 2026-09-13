@@ -36,8 +36,8 @@ public class GameCatalogController {
         var stored=snapshot.config();
         var engine=engineConfigs.getCurrentConfig();
         var themes=List.of(
-                new ThemeOption(Theme.GREEN,engine.green().thresholds().size(),stored.active()),
-                new ThemeOption(Theme.RED,engine.red().thresholds().size(),stored.active()));
+                new ThemeOption(Theme.GREEN,engine.green().thresholds().size(),engine.green().thresholds(),stored.active()),
+                new ThemeOption(Theme.RED,engine.red().thresholds().size(),engine.red().thresholds(),stored.active()));
         var boosters=stored.boosterValues().stream()
                 .map(value->new BoosterOption(value,BigDecimal.ZERO.setScale(engine.effectiveEconomyScale()),stored.active()))
                 .toList();
@@ -52,7 +52,7 @@ public class GameCatalogController {
     public record Catalog(long configVersion,String gameId,String gameName,boolean active,
                           List<ThemeOption> themes,StakeRules stakes,List<StakeOption> stakeOptions,
                           List<BoosterOption> boosters,Instant serverTime) {}
-    public record ThemeOption(Theme theme,int levels,boolean active) {}
+    public record ThemeOption(Theme theme,int levels,List<BigDecimal> levelThresholds,boolean active) {}
     public record StakeRules(BigDecimal minimum,BigDecimal maximum,int decimalPlaces) {}
     public record StakeOption(BigDecimal amount,int boosterMultiplier,boolean active) {}
     public record BoosterOption(int multiplier,BigDecimal extraCost,boolean active) {}

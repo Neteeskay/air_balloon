@@ -33,12 +33,12 @@ class GameEngineTest {
     }
 
     @Test void cashoutBeforeCrashCreditsExactlyOnce() {
-        var f = new Fixture(); var r = f.start(1); f.clock.atMillis(3000);
+        var f = new Fixture(); var r = f.start(1); f.clock.atMillis(2000);
         var result = f.service.cashout(f.user, r.id());
         assertThat(result.status()).isEqualTo(RoundStatus.CASHED_OUT);
-        assertThat(result.cashoutMultiplier()).isEqualByComparingTo("1.3498");
-        assertThat(result.winAmount()).isEqualByComparingTo("134.98");
-        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("1034.98");
+        assertThat(result.cashoutMultiplier()).isEqualByComparingTo("1.2214");
+        assertThat(result.winAmount()).isEqualByComparingTo("122.14");
+        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("1022.14");
         assertThat(f.balance.creditCount(f.user)).isEqualTo(1);
         assertThat(f.count(CASHOUT_SUCCESS)).isEqualTo(1);
     }
@@ -195,12 +195,13 @@ class GameEngineTest {
         assertThat(finalRound.currentLevel()).isEqualTo(theme.levels());
         assertThat(f.count(LEVEL_REACHED)).isEqualTo(theme.levels());
         assertThat(finalRound.roundScore()).isEqualTo(theme.levels() * 100L);
+        assertThat(f.events.stream().map(GameEvent::type)).containsSubsequence(LEVEL_REACHED, CRASH, ROUND_FINISHED);
     }
 
-    @Test void crashWinsTieWithLevelAndBooster() {
-        var f = new Fixture(config("2.00", 3)); var r = f.at(f.start(3), 100000);
+    @Test void crashEmitsFinalLevelBeforeCrashWithoutActivatingBooster() {
+        var f = new Fixture(config("2.00", 9)); var r = f.at(f.start(3), 100000);
         assertThat(r.status()).isEqualTo(RoundStatus.FINISHED);
-        assertThat(r.currentLevel()).isEqualTo(2);
+        assertThat(r.currentLevel()).isEqualTo(3);
         assertThat(f.count(BOOSTER_ACTIVATED)).isZero();
         error(() -> f.service.cashout(f.user, r.id()), GameError.ROUND_ALREADY_CRASHED);
     }
@@ -233,7 +234,7 @@ class GameEngineTest {
     }
 
     @Test void crashBeforeBoosterThresholdDoesNotActivateBooster() {
-        var f = new Fixture(config("1.15", 1)); var r = f.at(f.start(4), 100000);
+        var f = new Fixture(config("1.15", 9)); var r = f.at(f.start(4), 100000);
         assertThat(r.status()).isEqualTo(RoundStatus.FINISHED);
         assertThat(r.flightMultiplier()).isEqualByComparingTo("1.1500");
         assertThat(r.boosterActivated()).isFalse();
@@ -256,8 +257,7 @@ class GameEngineTest {
 
     @Test void sameTickOrdersEveryCrossedBoundaryAndEmitsNothingAboveCrash() {
         var base = config("2.35", 4);
-        var thresholds = java.util.stream.Stream.of("1.2", "1.5", "2.0", "2.2", "2.4", "3", "4", "5", "6")
-                .map(TestSupport::dec).toList();
+        var thresholds = LevelThresholds.forMax(dec("2.35"), 9);
         var weights = java.util.stream.IntStream.range(0, thresholds.size())
                 .mapToObj(i -> i == 3 ? dec("1") : dec("0")).toList();
         var green = new GameConfig.ThemeConfig(thresholds,
@@ -271,13 +271,14 @@ class GameEngineTest {
         var finished = f.at(f.start(4), 10_000);
         var ordered = f.events.stream().filter(e -> e.type() != ROUND_STARTED).map(GameEvent::type).toList();
 
-        assertThat(ordered).containsExactly(LEVEL_REACHED, LEVEL_REACHED, LEVEL_REACHED,
-                LEVEL_REACHED, BOOSTER_ACTIVATED, CRASH, ROUND_FINISHED);
-        assertThat(finished.currentLevel()).isEqualTo(4);
+        assertThat(ordered).contains(BOOSTER_ACTIVATED, CRASH, ROUND_FINISHED);
+        assertThat(ordered.indexOf(BOOSTER_ACTIVATED)).isGreaterThan(ordered.indexOf(LEVEL_REACHED));
+        assertThat(ordered.lastIndexOf(LEVEL_REACHED)).isLessThan(ordered.indexOf(CRASH));
+        assertThat(finished.currentLevel()).isEqualTo(9);
         assertThat(finished.flightMultiplier()).isEqualByComparingTo("2.35");
         assertThat(finished.boosterActivated()).isTrue();
         assertThat(f.events.stream().filter(e -> e.type() == LEVEL_REACHED)
-                .map(e -> e.data().get("flightMultiplier"))).doesNotContain(dec("2.4"));
+                .map(e -> e.data().get("flightMultiplier"))).allSatisfy(value -> assertThat((java.math.BigDecimal) value).isLessThanOrEqualTo(dec("2.35")));
     }
 
     @Test void backwardClockCannotRewindMultiplier() {
@@ -288,7 +289,9 @@ class GameEngineTest {
     @Test void configChangeOnlyAffectsNewRounds() {
         var f = new Fixture(); var r = f.start(3); f.configs.replace(config("1.01", 1));
         assertThat(f.at(r, 10000).currentMultiplier()).isEqualByComparingTo("8.1546");
+        var snapshotThresholds = f.service.get(f.user, r.id()).config().green().thresholds();
         assertThat(f.start(1).crashMultiplier()).isEqualByComparingTo("1.01");
+        assertThat(f.service.get(f.user, r.id()).config().green().thresholds()).isEqualTo(snapshotThresholds);
     }
 
     @Test void moneyRoundsDownOnceToTwoDecimalPlaces() {

@@ -9,6 +9,7 @@ import ru.airballoon.game.application.port.GameConfigProvider;
 import ru.airballoon.game.domain.GameConfig;
 import ru.airballoon.game.domain.GameError;
 import ru.airballoon.game.domain.GameException;
+import ru.airballoon.game.domain.LevelThresholds;
 import ru.airballoon.game.infrastructure.config.GameProperties;
 
 /** Makes the versioned PostgreSQL config authoritative for every shared engine setting. */
@@ -47,12 +48,17 @@ public class DataGameConfigAdapter implements GameConfigProvider {
                 BigDecimal.valueOf(data.growthRate()).stripTrailingZeros(), data.minBet(), data.maxBet(),
                 base.boosterPointsPerMultiplier(), data.pointsX2Bonus(), data.pointsX3Bonus(), data.pointsX4Bonus(),
                 data.pointsCashoutBonus(), 0,
-                theme(base.green(), data.greenBoosterWeights(), data.pointsPerLevel()),
-                theme(base.red(), data.redBoosterWeights(), data.pointsPerLevel()));
+                theme(base.green(), data.maxCrashMultiplier(), data.greenBoosterWeights(), data.pointsPerLevel()),
+                theme(base.red(), data.maxCrashMultiplier(), data.redBoosterWeights(), data.pointsPerLevel()));
     }
 
-    private static GameConfig.ThemeConfig theme(GameConfig.ThemeConfig base, List<Integer> weights, long points) {
-        return new GameConfig.ThemeConfig(base.thresholds(), Collections.nCopies(weights.size(), points),
+    private static GameConfig.ThemeConfig theme(GameConfig.ThemeConfig base, BigDecimal maxX,
+                                                List<Integer> weights, long points) {
+        // maxX <= 1 is a valid degenerate crash configuration in older fixtures;
+        // retain deployment thresholds there because no strictly-above-1 catalog can exist.
+        List<BigDecimal> thresholds = maxX.compareTo(BigDecimal.ONE) > 0
+                ? LevelThresholds.forMax(maxX, weights.size()) : base.thresholds();
+        return new GameConfig.ThemeConfig(thresholds, Collections.nCopies(weights.size(), points),
                 weights.stream().map(BigDecimal::valueOf).toList());
     }
 

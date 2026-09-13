@@ -22,7 +22,7 @@ export type Scenario8Offer = { offerId: string; roundId: string; price: number; 
 export type Scenario8Purchase = { offerId: string; roundId: string; price: number; ticketCount: number; bonusBalance: number; lotteryTicketCount: number; replayed: boolean }
 export type Catalog = {
   stakes: number[]; stakeRules: { minimum: number; maximum: number; decimalPlaces: number }
-  boosters: number[]; levels: Record<Theme, number>; pointsPerLevel?: number; cashoutPoints?: number
+  boosters: number[]; levels: Record<Theme, number>; levelThresholds?: Partial<Record<Theme, number[]>>; pointsPerLevel?: number; cashoutPoints?: number
   stakeOptions: Array<{ amount: number; boosterMultiplier: number; active: boolean }>
 }
 export type Fairness = { roundId: string; commitment: string; status: 'COMMITTED' | 'REVEALED'; serverSeed?: string; crashMultiplier?: number; boosterLevel?: number; verified?: boolean; canonicalInput?: string; algorithm?: string; format?: string; example?: boolean }
