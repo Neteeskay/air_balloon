@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampFlightProgress,
+  getFlightBottomPercent,
   getLevelFlightProgress,
   getLevelMarkerProgress,
+  getTrackLevelPosition,
+  getVisualFlightCoefficient,
+  getVisualReachedLevels,
 } from './flightProgress'
 
 describe('flight progress coordinates', () => {
@@ -31,5 +35,29 @@ describe('flight progress coordinates', () => {
     expect(getLevelMarkerProgress(0, 9)).toBeCloseTo(1 / 9)
     expect(getLevelMarkerProgress(4, 9)).toBeCloseTo(5 / 9)
     expect(getLevelMarkerProgress(8, 9)).toBe(1)
+  })
+
+  it('keeps the booster jump out of visual flight progress', () => {
+    expect(getVisualFlightCoefficient(2, false, 3)).toBe(2)
+    expect(getVisualFlightCoefficient(6, true, 3)).toBe(2)
+  })
+
+  it('keeps the balloon route inside the safe flight area', () => {
+    expect(getFlightBottomPercent(0)).toBe(8)
+    expect(getFlightBottomPercent(1)).toBe(92)
+  })
+
+  it('aligns the scrolling world with every level marker', () => {
+    expect(getTrackLevelPosition(0, 12)).toBeCloseTo(-0.6)
+    expect(getTrackLevelPosition(getLevelMarkerProgress(0, 12), 12)).toBeCloseTo(0)
+    expect(getTrackLevelPosition(getLevelMarkerProgress(5, 12), 12)).toBeCloseTo(5)
+    expect(getTrackLevelPosition(1, 12)).toBeCloseTo(11)
+  })
+
+  it('lights a level only when the interpolated marker reaches it', () => {
+    expect(getVisualReachedLevels(0.1, 9)).toBe(0)
+    expect(getVisualReachedLevels(1 / 9, 9)).toBe(1)
+    expect(getVisualReachedLevels(2 / 9 - 0.001, 9)).toBe(1)
+    expect(getVisualReachedLevels(1, 9)).toBe(9)
   })
 })
