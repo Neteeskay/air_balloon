@@ -19,6 +19,7 @@ import {
   getVisualReachedLevels,
 } from '../lib/flightProgress'
 import type { CrashGameFinish } from '../types'
+import type { Api } from '../../../api/types'
 
 type CrashGamePageProps = {
   balance: number
@@ -34,6 +35,7 @@ type CrashGamePageProps = {
   theme: Theme
   onBack?: () => void
   onProfile?: () => void
+  api?: Api
 }
 
 export function CrashGamePage({
@@ -50,6 +52,7 @@ export function CrashGamePage({
   theme,
   onBack,
   onProfile,
+  api,
 }: CrashGamePageProps) {
   const [modal, setModal] = useState<BetSelectionModal>(null)
   const round = useCrashRound({ bet, boosterMultiplier, onFinish, roundId, soundOn, theme })
@@ -168,7 +171,7 @@ export function CrashGamePage({
 
       <Toast message={round.cashoutPayout > 0 && round.status !== 'crashed' ? 'Могли бы забрать больше' : ''} />
       {modal === 'rules' && <RulesModal onClose={() => setModal(null)} />}
-      {modal === 'tournament' && <TournamentModal onClose={() => setModal(null)} />}
+      {modal === 'tournament' && <TournamentModal api={api} onClose={() => setModal(null)} />}
     </main>
   )
 }

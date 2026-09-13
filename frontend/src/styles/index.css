@@ -493,6 +493,8 @@ button:focus-visible {
 .tournament-trophy-icon { width: 22px; height: 22px; flex: 0 0 22px; object-fit: contain; }
 .tournament-table-heading .tournament-points-icon { width: 22px; height: 22px; flex-basis: 22px; }
 .tournament-scroll { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #c4bdb3 transparent; scrollbar-width: thin; }
+.tournament-data-state { display: grid; place-items: center; gap: 10px; min-height: 190px; margin: 0; color: #76685e; text-align: center; }
+.tournament-data-state p { margin: 0; }
 .tournament-row { min-height: 54px; padding: 5px 22px; color: #493934; }
 .tournament-scroll .tournament-row:nth-child(even) { background: rgba(238,233,224,.55); }
 .tournament-row.is-current-player { background: linear-gradient(90deg, rgba(255,245,200,.96), rgba(255,238,170,.72)); box-shadow: inset 4px 0 0 #efb52c; }

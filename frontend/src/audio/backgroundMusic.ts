@@ -8,6 +8,10 @@
 export const BACKGROUND_MUSIC_VOLUME = 0.2
 export const BACKGROUND_MUSIC_SRC = '/assets/audio/upward-loop.mp3'
 
+// The app applies a slightly softer level on mount while keeping the public
+// default for backwards-compatible consumers/tests of this small audio class.
+export const APP_BACKGROUND_MUSIC_VOLUME = 0.17
+
 type AudioFactory = (src: string) => HTMLAudioElement
 
 const defaultAudioFactory: AudioFactory = (src) => new Audio(src)

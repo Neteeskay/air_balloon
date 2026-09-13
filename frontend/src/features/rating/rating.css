@@ -1,0 +1,26 @@
+.rating-page { min-height: 100svh; overflow: auto; padding: clamp(18px, 4vw, 54px) 16px 38px; background: linear-gradient(180deg, rgba(83,190,239,.9), rgba(17,122,183,.96)); }
+.rating-page__card { width: min(1180px, 100%); min-height: min(820px, calc(100svh - 72px)); margin: 0 auto; padding: clamp(18px, 3vw, 32px); border: 1px solid rgba(255,255,255,.72); border-radius: 30px; color: #493934; background: #fffaf0 url('/assets/backgrounds/tournament-modal-background.png') center top / cover no-repeat; box-shadow: 0 24px 55px rgba(7,69,108,.24); }
+.rating-page__header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; }
+.rating-page__back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 15px; border: 1px solid #d8cbbd; border-radius: 999px; color: #5b4d44; background: rgba(255,255,255,.72); font-weight: 800; cursor: pointer; }
+.rating-page__title { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.rating-page__title img { width: 58px; height: 58px; object-fit: contain; }
+.rating-page__title h1 { margin: 0; color: #35251f; font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.rating-page__title p { margin: 3px 0 0; color: #76685e; }
+.rating-page__meta { color: #76685e; font-weight: 800; white-space: nowrap; }
+.rating-page__description { max-width: 700px; margin: 22px auto 0; color: #717171; text-align: center; line-height: 1.45; }
+.rating-page__table { height: clamp(250px, 40vh, 430px); margin-top: 2px; }
+.rating-page__state { display: grid; place-items: center; min-height: 300px; color: #76685e; text-align: center; }
+.rating-page__state p { margin: 0 0 14px; }
+.rating-page__revision { margin: 12px 0 0; color: #897a6e; font-size: .8rem; text-align: right; }
+.rating-page__floating-back { display: flex; align-items: center; gap: 4px; margin: 18px auto 0; border: 0; color: #fff; background: transparent; font-weight: 800; cursor: pointer; }
+@media (max-width: 700px) {
+  .rating-page { padding: 10px 8px 24px; }
+  .rating-page__card { min-height: calc(100svh - 34px); padding: 16px 10px 18px; border-radius: 22px; }
+  .rating-page__header { grid-template-columns: auto 1fr; gap: 10px; }
+  .rating-page__title { justify-content: flex-start; gap: 8px; }
+  .rating-page__title img { width: 42px; height: 42px; }
+  .rating-page__title h1 { font-size: 1.35rem; }
+  .rating-page__title p { font-size: .75rem; }
+  .rating-page__meta { grid-column: 2; font-size: .75rem; }
+  .rating-page__table { height: 46vh; }
+}

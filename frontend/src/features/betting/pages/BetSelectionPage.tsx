@@ -13,6 +13,7 @@ import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { TournamentModal } from '../components/TournamentModal'
 import { TournamentMobileBadge } from '../components/TournamentMobileBadge'
 import type { BetOption, Theme } from '../types'
+import type { Api } from '../../../api/types'
 
 type BetSelectionPageProps = {
   balance: number
@@ -26,6 +27,7 @@ type BetSelectionPageProps = {
   options: BetOption[]
   onBack?: () => void
   onProfile?: () => void
+  api?: Api
 }
 
 export function BetSelectionPage({
@@ -40,6 +42,7 @@ export function BetSelectionPage({
   options,
   onBack,
   onProfile,
+  api,
 }: BetSelectionPageProps) {
   const {
     activatingId,
@@ -105,7 +108,7 @@ export function BetSelectionPage({
 
       <Toast message={notice} />
       {modal === 'rules' && <RulesModal onClose={closeModal} />}
-      {modal === 'tournament' && <TournamentModal onClose={closeModal} />}
+      {modal === 'tournament' && <TournamentModal api={api} onClose={closeModal} />}
     </main>
   )
 }
