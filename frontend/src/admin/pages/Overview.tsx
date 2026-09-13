@@ -38,7 +38,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
           <div className="admin-kpis">
             <div className="admin-kpi"><span>Наклон кривой (α)</span><strong>{number(current.crash.alpha)}</strong><small>чем выше, тем реже крупные выигрыши</small></div>
             <div className="admin-kpi"><span>Максимальный множитель</span><strong>×{number(current.crash.maxMultiplier)}</strong><small>потолок выигрыша</small></div>
-            <div className="admin-kpi"><span>Скорость роста</span><strong>+{number(current.crash.multiplierGrowthRate)}/сек</strong><small>рост множителя за секунду</small></div>
+            <div className="admin-kpi"><span>Экспоненциальный рост</span><strong>{number(current.crash.multiplierGrowthRate)}/сек</strong><small>константа роста flight X</small></div>
             <div className="admin-kpi"><span>Очки за линию</span><strong>{number(current.points.pointsPerLine)}</strong><small>базовая награда игрока</small></div>
           </div>
           <div className="admin-fields admin-fields-3 admin-mt-14">
@@ -53,7 +53,7 @@ export function Overview({ client, onNavigate }: { client: AdminClient; onNaviga
             <li><b>Шар летит вверх</b> — множитель растёт. Пока он летит, игрок может вывести выигрыш.</li>
             <li><b>Крах.</b> Если не вывел вовремя — шар лопается, выигрыш сгорает.</li>
             <li><b>Наклон кривой (α)</b> — параметр формы распределения крашей. Чем α выше, тем сильнее кривая смещена к низким множителям и реже крупные выигрыши.</li>
-            <li><b>Бустеры ×2 / ×3 / ×4</b> ускоряют шар на своих линиях.</li>
+            <li><b>Бустеры ×2 / ×3 / ×4</b> повышают отображаемый X и выплату, но не физическую скорость шара и не crash point.</li>
             <li><b>Очки</b> даются за пройденные линии, вывод выигрыша и бустеры.</li>
           </ul>
         </section>

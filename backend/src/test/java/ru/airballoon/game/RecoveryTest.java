@@ -39,7 +39,7 @@ class RecoveryTest {
         assertThat(f.balances.creditCount(f.user)).isZero();
         assertThat(f.published.stream().filter(e -> e.type() == CASHOUT_SUCCESS)).isEmpty();
         f.clock.atMillis(4000);
-        assertThat(service.cashout(f.user, r.id(), key).winAmount()).isEqualByComparingTo("130");
+        assertThat(service.cashout(f.user, r.id(), key).winAmount()).isEqualByComparingTo("134.98");
         assertThat(f.balances.creditCount(f.user)).isEqualTo(1);
     }
 
@@ -103,7 +103,7 @@ class RecoveryTest {
         assertThat(cp.pendingEvents()).extracting(GameEvent::type).contains(CASHOUT_SUCCESS);
         f.clock.atMillis(100000); var recovered = f.restart();
         var finished = recovered.recover(f.user, r.id());
-        assertThat(finished.winAmount()).isEqualByComparingTo("130.00");
+        assertThat(finished.winAmount()).isEqualByComparingTo("134.98");
         assertThat(f.balances.creditCount(f.user)).isEqualTo(1);
         assertThat(recovered.cashout(f.user, r.id(), key).winAmount()).isEqualTo(finished.winAmount());
         assertThat(f.replay.findAfter(r.id(), 0).events().stream().map(GameEvent::eventId)).doesNotHaveDuplicates();
@@ -136,9 +136,9 @@ class RecoveryTest {
         };
         var service = f.service(f.balances, f.published::add, counted);
         var r = service.start(f.user, Theme.GREEN, dec("100"), 1); int atStart = writes.get();
-        for (int i = 1; i < 20; i++) { f.clock.atMillis(i * 100); service.tick(r.id()); }
+        for (int i = 1; i < 18; i++) { f.clock.atMillis(i * 100); service.tick(r.id()); }
         assertThat(writes).hasValue(atStart);
-        f.clock.atMillis(2000); service.tick(r.id());
+        f.clock.atMillis(1824); service.tick(r.id());
         assertThat(writes.get()).isGreaterThan(atStart);
     }
 

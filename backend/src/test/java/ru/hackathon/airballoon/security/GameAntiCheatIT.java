@@ -30,7 +30,7 @@ class GameAntiCheatIT extends GameAcceptanceSupport {
         } else cashed = ok(forged);
         // Deterministic clock is paused at level 1: client fields cannot influence the server coefficient.
         assertThat(cashed.cashoutMultiplier()).isEqualByComparingTo(before.multiplier());
-        assertThat(cashed.winAmount()).isEqualByComparingTo(bet.multiply(before.multiplier()));
+        assertThat(cashed.winAmount()).isEqualByComparingTo(bet.multiply(before.multiplier()).setScale(0, java.math.RoundingMode.DOWN));
         assertThat(driver.player(user.id()).gameScore()).isEqualTo(before.levelPoints() + before.boosterPoints()
                 + cashed.cashoutPoints());
         driver.reachCrash(round.id()); persistedFinal(round.id(), "WIN");

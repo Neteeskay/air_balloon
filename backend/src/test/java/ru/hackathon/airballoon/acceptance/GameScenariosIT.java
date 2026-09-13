@@ -33,7 +33,7 @@ class GameScenariosIT extends GameAcceptanceSupport {
         assertThat(driver.round(round.id()).cashoutAvailable()).isTrue();
         Round cashed = ok(driver.cashout(user.id(), round.id(), Map.of()));
         assertThat(cashed.cashoutMultiplier()).isPositive();
-        assertThat(cashed.winAmount()).isEqualByComparingTo(bet.multiply(cashed.cashoutMultiplier()));
+        assertThat(cashed.winAmount()).isEqualByComparingTo(bet.multiply(cashed.cashoutMultiplier()).setScale(0, java.math.RoundingMode.DOWN));
         assertThat(driver.player(user.id()).balance()).isEqualByComparingTo(new BigDecimal("900").add(cashed.winAmount()));
         assertThat(cashed.state()).isEqualTo("RUNNING");
         assertThat(driver.ledgerCount(round.id(), "WIN_CREDIT")).isEqualTo(1);
@@ -75,7 +75,7 @@ class GameScenariosIT extends GameAcceptanceSupport {
         assertThat(cashed.boosterActivated()).isTrue();
         assertThat(cashed.boosterPoints()).isEqualTo(boosters.getFirst().points());
         assertThat(cashed.cashoutMultiplier()).isGreaterThanOrEqualTo(boosters.getFirst().multiplierAfter());
-        assertThat(cashed.winAmount()).isEqualByComparingTo(boosterBet.multiply(cashed.cashoutMultiplier()));
+        assertThat(cashed.winAmount()).isEqualByComparingTo(boosterBet.multiply(cashed.cashoutMultiplier()).setScale(0, java.math.RoundingMode.DOWN));
         driver.reachCrash(round.id()); persistedFinal(round.id(), "WIN");
         assertThat(driver.events(round.id()).stream().filter(e -> e.type().equals("BOOSTER_ACTIVATED"))).hasSize(1);
         Player early = user("CashoutBeforeBooster", 1000);

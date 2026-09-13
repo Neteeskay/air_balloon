@@ -433,7 +433,10 @@ components:
         alpha: { type: number, minimum: 0, exclusiveMinimum: false, maximum: 1 }
         maxMultiplier: { type: number, format: double }
         minCrashMultiplier: { type: number, format: double }
-        multiplierGrowthRate: { type: number, format: double }
+        multiplierGrowthRate:
+          type: number
+          format: double
+          description: Exponential flight growth constant per second; changes time-to-X, not crash distribution
         fps: { type: number, format: double }
         delta: { type: number, format: double }
     BoosterSettings:

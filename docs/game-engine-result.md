@@ -112,7 +112,10 @@ cashout win/cashoutMultiplier не меняются, новый booster не а�
 
 ## 7. Математическая модель
 
-Рост: `floor4((1 + growthPerSecond × elapsedSeconds) × activeBoosterFactor)`.
+Рост: `flightMultiplier=floor4(exp(growthPerSecond × elapsedSeconds))` от
+авторитетного серверного времени. Отображаемый/cashout коэффициент после активации
+бустера: `floor4(flightMultiplier × activeBoosterFactor)`; бустер не меняет
+физический flightMultiplier и момент достижения precommitted crash point.
 Время — серверные миллисекунды; defaults growth=0.10. Cashout:
 `floor2(betAmount × authoritativeMultiplier)` через BigDecimal/RoundingMode.DOWN.
 

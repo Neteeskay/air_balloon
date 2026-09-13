@@ -44,19 +44,19 @@ class ResilienceApiIT extends IntegrationSupport {
         var r = start(); clock.atMillis(10000);
         mvc.perform(get("/api/rounds/{id}", r.id()).principal(() -> user.toString()))
                 .andExpect(jsonPath("roundId").value(r.id().toString())).andExpect(jsonPath("currentLevel").value(3))
-                .andExpect(jsonPath("currentMultiplier").value(6)).andExpect(jsonPath("boosterActivated").value(true))
-                .andExpect(jsonPath("flightMultiplier").value(2)).andExpect(jsonPath("effectiveMultiplier").value(6))
+                .andExpect(jsonPath("currentMultiplier").value(8.1546)).andExpect(jsonPath("boosterActivated").value(true))
+                .andExpect(jsonPath("flightMultiplier").value(2.7182)).andExpect(jsonPath("effectiveMultiplier").value(8.1546))
                 .andExpect(jsonPath("boosterLevel").value(3)).andExpect(jsonPath("cashoutPerformed").value(false))
                 .andExpect(jsonPath("serverTime").value(START.plusSeconds(10).toString()))
                 .andExpect(jsonPath("fairnessCommitment").value(r.fairnessCommitment())).andExpect(jsonPath("fairnessReveal").doesNotExist());
         service.cashout(user, r.id()); clock.atMillis(11000);
         mvc.perform(get("/api/rounds/{id}", r.id()).principal(() -> user.toString()))
-                .andExpect(jsonPath("cashoutPerformed").value(true)).andExpect(jsonPath("cashoutMultiplier").value(6))
-                .andExpect(jsonPath("winAmount").value(600)).andExpect(jsonPath("status").value("CASHED_OUT"));
+                .andExpect(jsonPath("cashoutPerformed").value(true)).andExpect(jsonPath("cashoutMultiplier").value(8.1546))
+                .andExpect(jsonPath("winAmount").value(815.46)).andExpect(jsonPath("status").value("CASHED_OUT"));
         clock.atMillis(100000);
         mvc.perform(get("/api/rounds/{id}", r.id()).principal(() -> user.toString()))
                 .andExpect(jsonPath("status").value("FINISHED")).andExpect(jsonPath("fairnessReveal.verified").value(true))
-                .andExpect(jsonPath("winAmount").value(600)).andExpect(jsonPath("crashMultiplier").value(8.42))
+                .andExpect(jsonPath("winAmount").value(815.46)).andExpect(jsonPath("crashMultiplier").value(8.42))
                 .andExpect(jsonPath("serverTime").value(START.plusSeconds(100).toString()));
     }
 
@@ -82,8 +82,8 @@ class ResilienceApiIT extends IntegrationSupport {
             clock.atMillis(millis);
             if (millis == 100000) service.tick(r.id());
             mvc.perform(post("/api/rounds/{id}/cashout", r.id()).principal(() -> user.toString()).header("Idempotency-Key", key))
-                    .andExpect(status().isOk()).andExpect(jsonPath("winAmount").value(130))
-                    .andExpect(jsonPath("cashoutMultiplier").value(1.3)).andExpect(jsonPath("cashoutPerformed").value(true));
+                    .andExpect(status().isOk()).andExpect(jsonPath("winAmount").value(134.98))
+                    .andExpect(jsonPath("cashoutMultiplier").value(1.3498)).andExpect(jsonPath("cashoutPerformed").value(true));
         }
         assertThat(balances.creditCount(user)).isEqualTo(1);
         mvc.perform(post("/api/rounds/{id}/cashout", r.id()).principal(() -> user.toString()).header("Idempotency-Key", "invalid"))

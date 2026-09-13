@@ -37,10 +37,10 @@ class ConcurrencyTest {
     }
 
     @Test void cashoutOneMillisecondBeforeCrashWinsEvenWithConcurrentTick() throws Exception {
-        var f = new Fixture(config("2", 3)); var r = f.start(1); f.clock.atMillis(9999);
+        var f = new Fixture(config("2", 3)); var r = f.start(1); f.clock.atMillis(6931);
         concurrent(() -> attempt(() -> f.service.cashout(f.user, r.id())), () -> attempt(() -> f.service.tick(r.id())));
         assertThat(f.service.get(f.user, r.id()).cashoutMultiplier()).isEqualByComparingTo("1.9999");
-        f.clock.atMillis(10000); f.service.tick(r.id());
+        f.clock.atMillis(6932); f.service.tick(r.id());
         assertThat(f.service.get(f.user, r.id()).winAmount()).isEqualByComparingTo("199.99");
         assertThat(f.balance.creditCount(f.user)).isEqualTo(1);
     }
@@ -55,7 +55,7 @@ class ConcurrencyTest {
     }
 
     @RepeatedTest(15) void tickAndCashoutAtCrashBoundaryAlwaysLose() throws Exception {
-        var f = new Fixture(config("2", 3)); var r = f.start(1); f.clock.atMillis(10000);
+        var f = new Fixture(config("2", 3)); var r = f.start(1); f.clock.atMillis(6932);
         var results = concurrent(() -> attempt(() -> f.service.cashout(f.user, r.id())),
                 () -> attempt(() -> f.service.tick(r.id())));
         assertThat(results).contains("ROUND_ALREADY_CRASHED");
@@ -64,10 +64,10 @@ class ConcurrencyTest {
     }
 
     @RepeatedTest(10) void tickAndCashoutAtBoosterBoundaryAlwaysApplyBoosterFirst() throws Exception {
-        var f = new Fixture(); var r = f.start(3); f.clock.atMillis(10000);
+        var f = new Fixture(); var r = f.start(3); f.clock.atMillis(6932);
         concurrent(() -> attempt(() -> f.service.cashout(f.user, r.id())), () -> attempt(() -> f.service.tick(r.id())));
         var result = f.service.get(f.user, r.id());
-        assertThat(result.cashoutMultiplier()).isEqualByComparingTo("6");
+        assertThat(result.cashoutMultiplier()).isEqualByComparingTo("6.0003");
         assertThat(f.count(BOOSTER_ACTIVATED)).isEqualTo(1);
         assertThat(f.balance.creditCount(f.user)).isEqualTo(1);
         assertThat(f.events.stream().map(GameEvent::type)).containsSubsequence(BOOSTER_ACTIVATED, CASHOUT_SUCCESS);
@@ -129,9 +129,9 @@ class ConcurrencyTest {
         assertThat(attempt(() -> service.cashout(f.user, r.id()))).isEqualTo("ALREADY_CASHED_OUT");
         f.clock.atMillis(100000); service.tick(r.id());
         assertThat(f.balance.creditCount(f.user)).isEqualTo(1);
-        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("1503.00");
+        assertThat(f.balance.balance(f.user)).isEqualByComparingTo("1723.68");
         assertThat(f.count(CASHOUT_SUCCESS)).isEqualTo(1);
-        assertThat(service.get(f.user, r.id()).winAmount()).isEqualByComparingTo("603.00");
+        assertThat(service.get(f.user, r.id()).winAmount()).isEqualByComparingTo("823.68");
     }
 
     @Test void failedSnapshotSaveKeepsFixedCashoutAndRetriesPersistenceBeforeCredit() {
@@ -148,7 +148,7 @@ class ConcurrencyTest {
         assertThat(attempt(() -> service.cashout(f.user, r.id()))).isEqualTo("INTEGRATION_UNAVAILABLE");
         assertThat(f.balance.creditCount(f.user)).isZero();
         f.clock.atMillis(4000); service.tick(r.id());
-        assertThat(service.get(f.user, r.id()).winAmount()).isEqualByComparingTo("130.00");
+        assertThat(service.get(f.user, r.id()).winAmount()).isEqualByComparingTo("134.98");
         assertThat(f.balance.creditCount(f.user)).isEqualTo(1);
     }
 
@@ -162,7 +162,7 @@ class ConcurrencyTest {
         var b = service.start(other, Theme.GREEN, dec("100"), 1); f.clock.atMillis(3000);
         List<UUID> failures = new ArrayList<>(); service.tickAll((id, e) -> failures.add(id));
         assertThat(failures).hasSize(1);
-        assertThat(service.get(other, b.id()).currentMultiplier()).isEqualByComparingTo("1.3");
+        assertThat(service.get(other, b.id()).currentMultiplier()).isEqualByComparingTo("1.3498");
     }
 
     private static GameService service(Fixture f, BalanceService balances, RoundRepository rounds, GameEventPublisher events) {

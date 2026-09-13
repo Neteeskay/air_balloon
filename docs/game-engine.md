@@ -110,12 +110,15 @@ Cashout фиксирует выплату, коэффициент и timestamp, 
 
 ```text
 elapsedSeconds = max(0, floor((t - t0) / 1 millisecond)) / 1000
-flight(t) = 1 + growthPerSecond × elapsedSeconds
+flight(t) = exp(growthPerSecond × elapsedSeconds)
 factor(t) = boosterMultiplier, если бустер уже активирован; иначе 1
 effective(t) = floorTo4Decimals(flight(t) × factor(t))
 ```
 
-По умолчанию `growthPerSecond=0.10`. Деньги представлены `BigDecimal`:
+`growthPerSecond` — экспоненциальная константа в `1/с`. Формула зависит только
+от прошедшего серверного времени, а не от FPS или количества тиков. Она меняет
+только длительность полёта до заранее зафиксированного crash point; RNG,
+распределение crash point и commitment/reveal не меняются. Деньги представлены `BigDecimal`:
 
 ```text
 cashoutMultiplier = effective(commandHandledAt)
@@ -131,7 +134,7 @@ Engine посещает все математические границы ме�
 последнего тика. Timestamp границы — первый миллисекундный момент её достижения:
 
 ```text
-crossingMillis = ceil(1000 × max(0, boundary - 1) / growthPerSecond)
+crossingMillis = ceil(1000 × ln(boundary) / growthPerSecond)
 ```
 
 При событии границы фиксируется её flight-коэффициент; на момент обработки команды

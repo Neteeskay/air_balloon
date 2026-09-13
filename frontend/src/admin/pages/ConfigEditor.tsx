@@ -8,6 +8,7 @@ import { survival, theoreticalCurve } from '../math'
 import { assemble, EditorModel, flatten, formParameters, themeSum } from '../model'
 import type { ConfigMetadata, FieldViolation, GameConfiguration, GameConfigurationWrite, ParameterMetadata, ValidationResult } from '../types'
 import { formatValue } from '../format'
+import { GROWTH_PREVIEW_MULTIPLIERS, secondsToFlightMultiplier } from '../growth'
 
 type Flash = { type: 'info' | 'error' | 'warning'; message: string }
 
@@ -163,6 +164,10 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
   }, [current, model])
   const modelCurve = useMemo(() => liveCrash ? theoreticalCurve(liveCrash) : [], [liveCrash])
   const previewP = liveCrash ? [2, 5, 10].map(x => ({ x, p: survival(x, liveCrash) })) : []
+  const growthRate = toNumber(model, 'crash.multiplierGrowthRate', current?.crash.multiplierGrowthRate ?? 0)
+  const growthPreview = GROWTH_PREVIEW_MULTIPLIERS
+    .filter(x => liveCrash !== null && x <= liveCrash.maxMultiplier)
+    .map(x => ({ x, seconds: secondsToFlightMultiplier(x, growthRate) }))
   const themeLevelCount = (theme: 'green' | 'red') => theme === 'green' ? metadata.greenLevelCount : metadata.redLevelCount
   if (loadError) return <div className="admin-error">{loadError} <button className="admin-link-button" onClick={() => void reload()}>Повторить</button></div>
   if (!current) return <div className="admin-loading">Загружаем конфигурацию…</div>
@@ -230,6 +235,12 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
             <span>P(X ≥ 2) ≈ <b>{previewP[0] ? (previewP[0].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 5) ≈ <b>{previewP[1] ? (previewP[1].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 10) ≈ <b>{previewP[2] ? (previewP[2].p * 100).toFixed(2) : '—'}%</b></span>
+          </div>}
+          {growthRate > 0 && <div className="admin-mt-14" data-testid="growth-preview">
+            <p className="admin-section-label admin-plain">Время полёта до X<small>flightX(t) = exp(rate × t), без влияния бустера</small></p>
+            <div className="admin-chart-chips">
+              {growthPreview.map(point => <span key={point.x}>X{point.x} ≈ <b>{point.seconds.toFixed(2)} с</b></span>)}
+            </div>
           </div>}
         </div>
         <div className="admin-chart-block">

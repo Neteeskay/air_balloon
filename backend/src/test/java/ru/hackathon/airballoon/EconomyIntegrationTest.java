@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = ru.airballoon.AirBalloonApplication.class,
-        properties="app.admin-token=test-admin-token")
+        properties={"app.admin-token=test-admin-token", "game.scheduler-enabled=false"})
 @AutoConfigureMockMvc
 @ActiveProfiles("demo")
 class EconomyIntegrationTest extends PostgresSupport {

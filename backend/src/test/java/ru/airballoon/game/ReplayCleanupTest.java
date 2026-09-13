@@ -36,7 +36,7 @@ class ReplayCleanupTest {
         var replay = f.service.replay(f.user, r.id(), 0).events();
         assertThat(replay.stream().map(RoundEventView::from)).containsExactlyElementsOf(f.published.stream().map(RoundEventView::from).toList());
         var level = replay.stream().filter(e -> e.type() == GameEvent.Type.LEVEL_REACHED).findFirst().orElseThrow();
-        assertThat(level.timestamp()).isEqualTo(START.plusSeconds(2));
+        assertThat(level.timestamp()).isEqualTo(START.plusMillis(1824));
         assertThat(level.serverTime()).isEqualTo(START.plusSeconds(10));
         assertThat(level.eventId()).isEqualTo(r.id() + ":" + level.sequence());
     }

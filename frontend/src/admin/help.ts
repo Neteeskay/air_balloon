@@ -23,8 +23,8 @@ export const CRASH_PARAM_HELP: Record<string, ParamHelp> = {
     example: 'maxMultiplier = 100 → исходы из самой верхней полосы дают ровно ×100.0000; вероятность такой полосы пренебрежимо мала (например, при α = 0.03 меньше 0.000001%, ~1 раунд на 100 млн).',
   },
   'crash.multiplierGrowthRate': {
-    formula: 'X(t) = 1 + multiplierGrowthRate × t — линейный рост множителя во времени (до бустера). С бустером ×f: X(t) = (1 + multiplierGrowthRate × t) × f',
-    example: 'multiplierGrowthRate = 0.15/с → через 5 с X = 1.75, через 10 с X = 2.50.',
+    formula: 'flightX(t) = exp(multiplierGrowthRate × t). После бустера отображаемый и cashout X = flightX × f; физический flightX и момент краша от бустера не меняются.',
+    example: 'multiplierGrowthRate = 0.15/с → через 5 с flightX ≈ 2.12, через 10 с flightX ≈ 4.48. X2 достигается примерно за 4.62 с.',
   },
   'crash.fps': {
     formula: 'delta = 1 / fps',

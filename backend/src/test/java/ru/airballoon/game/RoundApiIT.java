@@ -56,26 +56,26 @@ class RoundApiIT extends IntegrationSupport {
         assertThat(balances.balance(user)).isEqualByComparingTo("500.00");
         clock.atMillis(1000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("currentMultiplier").value(1.1))
+                .andExpect(status().isOk()).andExpect(jsonPath("currentMultiplier").value(1.1051))
                 .andExpect(jsonPath("cashoutAvailable").value(false))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(550.0));
+                .andExpect(jsonPath("cashoutPreviewAmount").value(552.55));
         clock.atMillis(2000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(jsonPath("currentLevel").value(1)).andExpect(jsonPath("cashoutAvailable").value(true))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(600.0));
+                .andExpect(jsonPath("cashoutPreviewAmount").value(610.70));
         clock.atMillis(10000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
-                .andExpect(jsonPath("currentMultiplier").value(6.0)).andExpect(jsonPath("boosterActivated").value(true))
-                .andExpect(jsonPath("cashoutPreviewAmount").value(3000.0));
+                .andExpect(jsonPath("currentMultiplier").value(8.1546)).andExpect(jsonPath("boosterActivated").value(true))
+                .andExpect(jsonPath("cashoutPreviewAmount").value(4077.30));
         clock.atMillis(10100);
         JsonNode cashout = json(mvc.perform(post("/api/rounds/" + id + "/cashout").principal(() -> user.toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("cashoutMultiplier").value(6.03))
-                .andExpect(jsonPath("winAmount").value(3015.0)).andExpect(jsonPath("status").value("CASHED_OUT"))
+                .andExpect(status().isOk()).andExpect(jsonPath("cashoutMultiplier").value(8.2368))
+                .andExpect(jsonPath("winAmount").value(4118.40)).andExpect(jsonPath("status").value("CASHED_OUT"))
                 .andExpect(jsonPath("cashoutPreviewAmount").doesNotExist()).andReturn());
-        assertThat(balances.balance(user)).isEqualByComparingTo("3515.00");
+        assertThat(balances.balance(user)).isEqualByComparingTo("4618.40");
         clock.atMillis(11000);
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
-                .andExpect(jsonPath("currentMultiplier").value(6.3)).andExpect(jsonPath("finishedAt").doesNotExist());
+                .andExpect(jsonPath("currentMultiplier").value(9.0123)).andExpect(jsonPath("finishedAt").doesNotExist());
         mvc.perform(post("/api/rounds/" + id + "/cashout").principal(() -> user.toString()))
                 .andExpect(status().isConflict()).andExpect(jsonPath("code").value("ALREADY_CASHED_OUT"));
         clock.atMillis(100000);

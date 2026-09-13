@@ -28,7 +28,7 @@ export const RU_DESCRIPTION: Record<string, string> = {
   'crash.alpha': 'Наклон кривой: чем больше α, тем сильнее кривая смещена к низким множителям и тем ниже выплаты игрокам. В модели нет «мгновенных крахов» — α задаёт форму распределения.',
   'crash.minCrashMultiplier': 'Гарантированный минимум множителя, с которым лопается шар.',
   'crash.maxMultiplier': 'Потолок множителя: больше этого значения выигрыш не растёт.',
-  'crash.multiplierGrowthRate': 'На сколько множитель растёт за каждую секунду полёта.',
+  'crash.multiplierGrowthRate': 'Экспоненциальная скорость физического коэффициента flightMultiplier в секунду.',
   'crash.fps': 'Как часто сервер пересчитывает полёт шара.',
   'crash.delta': 'Длительность одного кадра симуляции (обычно 1 / FPS).',
   'boosters.multiplierTier1Value': 'Обычная игра без бустера.',
@@ -44,7 +44,7 @@ export const RU_DESCRIPTION: Record<string, string> = {
 export const RU_EFFECT: Record<string, string> = {
   'crash.alpha': 'Чем ниже α, тем чаще игра доживает до крупных множителей.',
   'crash.maxMultiplier': 'Слишком низкий потолок режет самые редкие и крупные выигрыши.',
-  'crash.multiplierGrowthRate': 'Выше скорость — раунды короче и динамичнее.',
+  'crash.multiplierGrowthRate': 'Выше скорость — high-X достигаются быстрее; распределение crash point не меняется.',
   'points.pointsPerLine': 'Влияет на скорость накопления очков игроком.',
 }
 
