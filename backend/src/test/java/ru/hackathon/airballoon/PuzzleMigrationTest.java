@@ -48,7 +48,7 @@ class PuzzleMigrationTest {
             }
 
             var result = Flyway.configure().dataSource(testUrl, user, password).load().migrate();
-            assertThat(result.targetSchemaVersion).isEqualTo("307");
+            assertThat(result.targetSchemaVersion).isEqualTo("308");
             try (var connection = DriverManager.getConnection(testUrl, user, password);
                  var statement = connection.createStatement()) {
                 try (var rs = statement.executeQuery("SELECT bonus_balance,game_score,lottery_ticket_count FROM users WHERE id='" + userId + "'")) {
@@ -62,6 +62,11 @@ class PuzzleMigrationTest {
                 assertThat(count(statement, "SELECT count(*) FROM puzzle_reward_grants")).isZero();
                 assertThat(count(statement, "SELECT count(*) FROM user_clothing_items WHERE user_id='" + userId + "' AND source_type='DEFAULT'"))
                         .isEqualTo(3);
+                assertThat(count(statement, "SELECT count(*) FROM user_avatar_equipped_items WHERE user_id='" + userId + "'"))
+                        .isEqualTo(2);
+                assertThat(count(statement, "SELECT count(*) FROM outfit_reward_definitions WHERE code='SKY_TRAVELER' AND reward_amount=500"))
+                        .isEqualTo(1);
+                assertThat(count(statement, "SELECT count(*) FROM user_outfit_reward_claims")).isZero();
             }
         } finally {
             try (var admin = DriverManager.getConnection(adminUrl, user, password);

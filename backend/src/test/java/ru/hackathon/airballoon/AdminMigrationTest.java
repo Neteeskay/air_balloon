@@ -66,7 +66,7 @@ class AdminMigrationTest {
                         """.formatted(tournamentId, userId));
             }
 
-            Flyway flyway = Flyway.configure().dataSource(testUrl, user, password).load();
+            Flyway flyway = Flyway.configure().dataSource(testUrl, user, password).target("307").load();
             var result = flyway.migrate();
             flyway.validate();
             assertThat(result.targetSchemaVersion).isEqualTo("307");

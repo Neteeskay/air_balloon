@@ -722,7 +722,8 @@ class EconomyIntegrationTest extends PostgresSupport {
         profiles.equip(anna, "SUNHAT", null);
         var recreatedRewards = new PuzzleRewardService(jdbc, true);
         var replay = recreatedRewards.grantForWinningRound(win).orElseThrow();
-        var recreatedProfiles = new ProfileService(jdbc, users, java.time.Clock.systemUTC());
+        var recreatedProfiles = new ProfileService(jdbc, users, java.time.Clock.systemUTC(),
+                new OutfitRewardService(jdbc, balances), balances);
         assertThat(replay.fragments()).isEqualTo(1);
         assertThat(recreatedProfiles.get(anna).puzzles().getFirst().collectedFragments()).isEqualTo(1);
         assertThat(recreatedProfiles.get(anna).avatar().equipped()).isEqualTo(new ProfileService.Equipped("SUNHAT", null));
