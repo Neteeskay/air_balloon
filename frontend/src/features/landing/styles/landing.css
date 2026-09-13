@@ -348,8 +348,8 @@ html.landing-lock-scroll body {
   font-size: clamp(1.06rem, 1.8vw, 1.25rem);
   font-weight: 700;
   font-family: inherit;
-  color: var(--text-light);
-  background: linear-gradient(135deg, var(--accent-blue), #357abd);
+  color:#08285f;
+  background: linear-gradient(#fff970 0%, #ffe13c 44%, #ffc627 76%, #f2ad10 100%);
   box-shadow: var(--shadow-md);
   cursor: pointer;
   transition:
@@ -361,7 +361,7 @@ html.landing-lock-scroll body {
 .landing-page .hero__cta:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  background: linear-gradient(135deg, #357abd, var(--accent-blue));
+  background: linear-gradient(#fff970 0%, #ffe13c 44%, #ffc627 76%, #f2ad10 100%);
 }
 
 .landing-page .hero__cta:active {

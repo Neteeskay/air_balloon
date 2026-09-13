@@ -224,7 +224,7 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
           >
             <img src={resultAssets.puzzle} alt="" />
             <div>
-              <span>{data.reward.label ?? 'Новый фрагмент'}</span>
+              <span>{data.reward.label ?? 'Фрагмент не получен'}</span>
               <strong>
                 {fragmentAwarded
                   ? `${data.reward.collectedFragments ?? data.reward.count} / ${data.reward.totalFragments ?? '—'}`
