@@ -255,6 +255,7 @@ export default function FlightModePage({
           )}
           {tutorialStep === 2 && (
             <div className="tutorial-step tutorial-step--two" key="tutorial-step-2">
+              <img className="chinchillot chinchillot--red" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
               <div className="tutorial-tip tutorial-tip--red">
                 <strong>Красный шар — для тех, кто любит риск!</strong>
                 <span>Здесь тебя ждут <b>12 уровней</b> и более сложный маршрут.<br />Выбирай его, если хочешь больше испытаний.</span>
@@ -263,6 +264,7 @@ export default function FlightModePage({
           )}
           {tutorialStep === 3 && (
             <div className="tutorial-step tutorial-step--three" key="tutorial-step-3">
+              <img className="chinchillot chinchillot--green" src="/assets/flight-mode/chinchillot.png" alt="Шиншилот" draggable="false" />
               <div className="tutorial-tip tutorial-tip--green">
                 <strong>Зелёный шар — для спокойного полёта</strong>
                 <span>Здесь <b>9 уровней</b> и более простой маршрут.<br />Отличный вариант, если хочешь сначала освоиться.</span>

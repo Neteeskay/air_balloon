@@ -64,4 +64,17 @@ describe('FlightModePage onboarding and mode selection', () => {
     const rating = screen.getByRole('button', { name: /Открыть глобальный рейтинг/ })
     expect(rating).toHaveClass('surface-card')
   })
+
+  it('keeps the chinchilla in the RED and GREEN tutorial steps', () => {
+    renderPage()
+    const page = screen.getByRole('main')
+
+    fireEvent.click(page)
+    expect(screen.getByText('Красный шар — для тех, кто любит риск!')).toBeVisible()
+    expect(screen.getByAltText('Шиншилот')).toBeVisible()
+
+    fireEvent.click(page)
+    expect(screen.getByText('Зелёный шар — для спокойного полёта')).toBeVisible()
+    expect(screen.getByAltText('Шиншилот')).toBeVisible()
+  })
 })
