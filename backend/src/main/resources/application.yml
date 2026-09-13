@@ -36,7 +36,7 @@ game:
     min-crash-multiplier: 1.00
     max-crash-multiplier: 30.00
     alpha: 0.03
-    crash-math-model: HOUSE_EDGE_V1
+    crash-math-model: HOUSE_EDGE_V2
     growth-per-second: 0.10
     min-bet: 1.00
     max-bet: 1000.00

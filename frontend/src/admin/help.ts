@@ -11,16 +11,16 @@ export interface ParamHelp {
 
 export const CRASH_PARAM_HELP: Record<string, ParamHelp> = {
   'crash.alpha': {
-    formula: 'if U < α: X = minCrashMultiplier; else X = (1 − α) / (1 − U); P(X ≥ x) = (1 − α) / x',
-    example: 'α = 0.85 → в 85% игр шар лопается сразу (X = 1); P(X ≥ 2) = (1 − 0.85) / 2 ≈ 7.5%; P(X ≥ 10) ≈ 1.5%. Для ставки B ожидаемая выплата = B × (1 − α) — это и есть преимущество игры.',
+    formula: 'p = 1 / (1 − α); X = [U·max⁻ᵖ + (1−U)·min⁻ᵖ]^(−1/p); P(X ≥ x) = (x⁻ᵖ − max⁻ᵖ) / (min⁻ᵖ − max⁻ᵖ)',
+    example: 'α = 0.85 → кривая сильно смещена к минимуму: P(X ≥ 2) ≈ 1%, P(X ≥ 10) ≈ 0.00002%. α = 0.03 → почти честная игра: P(X ≥ 2) ≈ 48%. Атомов на ×min и ×max у модели нет.',
   },
   'crash.minCrashMultiplier': {
-    formula: 'X = minCrashMultiplier при событии U < α',
-    example: 'minCrashMultiplier = 1.0 → при α = 0.85 в 85% игр шар лопнет сразу на 1.0000.',
+    formula: 'X = minCrashMultiplier при U = 0 — нижняя граница непрерывного распределения',
+    example: 'minCrashMultiplier = 1.0 → минимальный крах равен 1.0000, но доля таких исходов непрерывная, а не атомарная.',
   },
   'crash.maxMultiplier': {
-    formula: 'X_final = min(raw, maxMultiplier)',
-    example: 'сырой результат 500.0 при maxMultiplier = 100 ограничивается до X = 100.0000.',
+    formula: 'X → maxCrashMultiplier при U → 1; верхняя полоса [max − 0.0001, max) округляется вверх до max',
+    example: 'maxMultiplier = 100 → исходы из самой верхней полосы дают ровно ×100.0000; вероятность такой полосы пренебрежимо мала (например, при α = 0.03 меньше 0.000001%, ~1 раунд на 100 млн).',
   },
   'crash.multiplierGrowthRate': {
     formula: 'X(t) = 1 + multiplierGrowthRate × t — линейный рост множителя во времени (до бустера). С бустером ×f: X(t) = (1 + multiplierGrowthRate × t) × f',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LineChart } from '../chart'
+import { LineChart, HistogramChart } from '../chart'
 import { AdminClient } from '../client'
 import { number } from '../format'
 import { seedFromString, simulateGames, survival, theoreticalCurve } from '../math'
@@ -79,14 +79,14 @@ export function Simulation({ client }: { client: AdminClient }) {
   }, [effectiveParams, paramsValid, gamesN, betN, targetN, seed, invalidGames, invalidBet, invalidTarget])
 
   const theoreticalSeries = useMemo(() => effectiveParams
-    ? [{ name: `Теория: P(X ≥ x) = (1 − α) / x`, color: THEORY_COLOR, dashed: true, points: theoreticalCurve(effectiveParams) }]
+    ? [{ name: `Теория: P(X ≥ x)`, color: THEORY_COLOR, dashed: true, points: theoreticalCurve(effectiveParams) }]
     : [], [effectiveParams])
 
   const empiricalSeries = useMemo(() => result
     ? [{ name: `Симуляция (${result.games.toLocaleString('ru-RU')} игр)`, color: EMPIRIC_COLOR, points: result.empirical }]
     : [], [result])
 
-  const theoreticalWinRate = effectiveParams && Number.isFinite(targetN) ? survival(targetN, effectiveParams.alpha) : null
+  const theoreticalWinRate = effectiveParams && Number.isFinite(targetN) ? survival(targetN, effectiveParams) : null
 
   if (loadError) return <div className="admin-error">{loadError} <button className="admin-link-button" onClick={reload}>Повторить</button></div>
   if (!config) return <div className="admin-loading">Загружаем активную конфигурацию…</div>
@@ -124,13 +124,13 @@ export function Simulation({ client }: { client: AdminClient }) {
       <section className="admin-card">
         <div className="admin-card-head"><h2 className="admin-card-title">Модель</h2><span className="admin-pill">ревизия #{config.revision}</span></div>
         <div className="admin-fields admin-fields-3">
-          <div className="admin-field-row"><dt>Преимущество игры (α)</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
+          <div className="admin-field-row"><dt>Наклон кривой (α)</dt><dd>{number(effectiveParams?.alpha ?? config.crash.alpha)}</dd></div>
           <div className="admin-field-row"><dt>Мин. множитель</dt><dd>{effectiveParams?.minCrashMultiplier ?? config.crash.minCrashMultiplier}</dd></div>
           <div className="admin-field-row"><dt>Макс. множитель</dt><dd>×{effectiveParams?.maxMultiplier ?? config.crash.maxMultiplier}</dd></div>
         </div>
         <h3 className="admin-section-label">Попробовать другой вариант модели<small>без сохранения — поля можно оставить пустыми</small></h3>
         <div className="admin-sim-form admin-sim-form-3">
-          <label className="admin-form-label"><span>Преимущество игры (α)</span>
+          <label className="admin-form-label"><span>Наклон кривой (α)</span>
             <input type="number" min={0} max={1} step="0.01" value={overrideAlpha} onChange={e => setOverrideAlpha(e.target.value)} placeholder={String(config.crash.alpha)} />
           </label>
           <label className="admin-form-label"><span>Мин. множитель</span>
@@ -144,7 +144,7 @@ export function Simulation({ client }: { client: AdminClient }) {
       </section>
     </div>
     {result ? <>
-      <div className="admin-kpis">
+      <div className="admin-kpis admin-mb-16">
         <div className="admin-kpi">
           <span>Итоговый результат</span>
           <strong className={result.netResult > 0 ? 'admin-pos' : result.netResult < 0 ? 'admin-neg' : 'admin-neu'}>{result.netResult > 0 ? '+' : ''}{number(result.netResult)} {MONEY}</strong>
@@ -166,10 +166,15 @@ export function Simulation({ client }: { client: AdminClient }) {
           <small>P(X ≥ {result.cashoutTarget}) по формуле модели</small>
         </div>
       </div>
-      <section className="admin-card admin-mb-0">
+      <section className="admin-card">
         <div className="admin-card-head"><h2 className="admin-card-title">Симуляция против теории</h2></div>
-        <LineChart height={320} xLabel="X — множитель" yLabel="P(X ≥ x)" series={[...theoreticalSeries, ...empiricalSeries]} />
-        <p className="admin-hint admin-mt-12">Пунктир — теоретическая вероятность P(X ≥ x) = (1 − α) / x. Сплошная линия — доля игр симуляции, где шар добрался до x. Чем больше игр, тем ближе симуляция к теории.</p>
+        <LineChart height={320} xLabel="X — множитель" yLabel="P(X ≥ x)" total={result.games} series={[...theoreticalSeries, ...empiricalSeries]} />
+        <p className="admin-hint admin-mt-12">Пунктир — теоретическая вероятность P(X ≥ x) модели (непрерывный усечённый хвост на [1, max], без атомов). Сплошная линия — доля игр симуляции, где шар добрался до x. Чем больше игр, тем ближе симуляция к теории. Наведите курсор на график — покажет долю игр и их число, добравшихся до этого множителя и выше.</p>
+      </section>
+      <section className="admin-card admin-mb-0">
+        <div className="admin-card-head"><h2 className="admin-card-title">Распределение коэффициентов</h2></div>
+        <HistogramChart data={result.histogram} total={result.games} params={result.params} />
+        <p className="admin-hint admin-mt-12">Первый столбец — низкий хвост распределения; у модели нет «мгновенных крахов» (α задаёт наклон кривой, а не вероятность сразу ×1). Пунктир — теоретическая доля игр в каждом диапазоне. Наведите курсор на столбец, чтобы увидеть точное число игр.</p>
       </section>
     </> : <section className="admin-card">
       <div className="admin-loading">Запустите симуляцию — здесь появятся итоговый результат и график.</div>

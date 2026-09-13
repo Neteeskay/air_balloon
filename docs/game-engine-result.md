@@ -116,10 +116,11 @@ cashout win/cashoutMultiplier не меняются, новый booster не а�
 Время — серверные миллисекунды; defaults growth=0.10. Cashout:
 `floor2(betAmount × authoritativeMultiplier)` через BigDecimal/RoundingMode.DOWN.
 
-Crash: при server-only `U ~ Uniform[0,1)` используется piecewise-модель:
-`X=minCrashMultiplier` при `U<alpha`, иначе `X=(1-alpha)/(1-U)`;
-`X_final=min(X,maxCrashMultiplier)`, затем `floor4(X_final)`. `alpha` — house edge,
-default 0.03. Параметры валидируются; default диапазон 1.00–30.00.
+Crash: при server-only `U ~ Uniform[0,1)` используется непрерывная модель
+усечённого Парето: `p = 1/(1-alpha)`,
+`X = [U·max^(-p) + (1-U)·min^(-p)]^(-1/p)`, затем `floor4(X)`. `alpha` —
+параметр наклона и house edge, default 0.03. Атомов на `min`/`max` нет.
+Параметры валидируются; default диапазон 1.00–30.00.
 Все математические границы между тиками обрабатываются, даже если tick редкий.
 
 ## 8. Booster

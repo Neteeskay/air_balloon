@@ -25,7 +25,7 @@ public class ConfigValidator {
         check(c.minCrashMultiplier().scale() <= 4 && c.maxCrashMultiplier().scale() <= 4, "multiplier: максимум 4 знака после запятой");
         check(c.minCrashMultiplier().compareTo(BigDecimal.ONE) <= 0
                 || c.minCrashMultiplier().compareTo(c.maxCrashMultiplier()) == 0,
-            "piecewise crash formula требует minCrashMultiplier <= 1, кроме фиксированного диапазона min=max");
+            "crash-модель требует minCrashMultiplier <= 1, кроме фиксированного диапазона min=max");
         check(Double.isFinite(c.growthRate()) && c.growthRate() >= 0.0001 && c.growthRate() <= 10
             && BigDecimal.valueOf(c.growthRate()).stripTrailingZeros().scale() <= 4,
             "growthRate: [0.0001,10], максимум 4 знака после запятой");

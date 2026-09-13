@@ -1,9 +1,8 @@
 game:
-  random-mode: FIXED_SEED
-  fixed-seed: 42
+  random-mode: NORMAL
   config:
-    min-crash-multiplier: 8.42
-    max-crash-multiplier: 8.42
+    min-crash-multiplier: 1.00
+    max-crash-multiplier: 30.00
     alpha: 0.03
     green:
       booster-weights: [0, 0, 1, 0, 0, 0, 0, 0, 0]

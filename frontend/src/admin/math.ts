@@ -2,13 +2,16 @@
  * Client-side crash math mirror of the authoritative backend model
  * (docs/crash-math-model.md) and an N-game simulation used by the admin UI.
  *
- *   U ~ Uniform[0,1)
- *   if U < alpha:           X = minCrashMultiplier
- *   else:                   X = (1 - alpha) / (1 - U)
- *   X_final = round4(min(X, maxMultiplier))
+ * Continuous truncated Pareto on [minCrashMultiplier, maxMultiplier] — no
+ * probability atoms at either bound:
  *
- *   Survival probability for x in [1, maxMultiplier]:
- *   P(X >= x) = (1 - alpha) / x
+ *   p = 1 / (1 - alpha)                 // shape/skew parameter, alpha in [0,1)
+ *   X = [U * max^-p + (1-U) * min^-p]^(-1/p),   U ~ Uniform[0,1)
+ *   X_final = round4(X)                 // floor to 4 decimals; the top band
+ *                                       // [max - 0.0001, max) flips up to max
+ *
+ *   Survival probability for x in [min, max]:
+ *   P(X >= x) = (x^-p - max^-p) / (min^-p - max^-p)
  */
 
 export interface CrashParams {
@@ -38,9 +41,17 @@ export interface SimulationResult {
   verdict: 'plus' | 'minus' | 'zero'
   theoretical: Point[]
   empirical: Point[]
+  histogram: HistogramData
 }
 
 export interface Point { x: number; y: number }
+
+export interface HistogramBin { lo: number; hi: number; count: number }
+
+export interface HistogramData {
+  minValue: number
+  bins: HistogramBin[]
+}
 
 export const RESULT_SCALE = 1e4
 
@@ -52,16 +63,32 @@ export function round4(value: number): number {
 
 /** Deterministic crash point for a uniform sample u in [0, 1). */
 export function crashPoint(params: CrashParams, u: number): number {
-  const { alpha, minCrashMultiplier, maxMultiplier } = params
+  const { alpha, minCrashMultiplier: min, maxMultiplier: max } = params
   // Fixed range keeps the deterministic demo/test facility: no distribution to sample.
-  if (minCrashMultiplier === maxMultiplier) return round4(minCrashMultiplier)
-  const raw = u < alpha ? minCrashMultiplier : (1 - alpha) / (1 - u)
-  return round4(Math.min(raw, maxMultiplier))
+  if (min === max) return round4(min)
+  if (!(u >= 0 && u < 1) || !Number.isFinite(u)) return Number.NaN
+  const p = 1 / (1 - alpha)
+  const x = Math.pow(u * Math.pow(max, -p) + (1 - u) * Math.pow(min, -p), -1 / p)
+  const scaled = Math.floor(x * RESULT_SCALE + 1e-9)
+  // The top floor band [max - 0.0001, max) flips up to the inclusive ceiling.
+  if (scaled === Math.round(max * RESULT_SCALE) - 1) return max
+  return scaled / RESULT_SCALE
 }
 
-/** Survival probability P(X >= x) = (1 - alpha) / x for x >= 1 (brief formula). */
-export function survival(x: number, alpha: number): number {
-  return (1 - alpha) / x
+/** Survival probability P(X >= x) of the truncated Pareto on [min, max]. */
+export function survival(x: number, params: CrashParams): number {
+  const { alpha, minCrashMultiplier, maxMultiplier } = params
+  if (!Number.isFinite(x)) return Number.NaN
+  if (x <= minCrashMultiplier) return 1
+  if (x >= maxMultiplier) return 0
+  const minP = minCrashMultiplier
+  const maxP = maxMultiplier
+  if (Number.isFinite(minP) && Number.isFinite(maxP) && maxP > minP) {
+    const p = 1 / (1 - alpha)
+    const cdf = (Math.pow(x, -p) - Math.pow(maxP, -p)) / (Math.pow(minP, -p) - Math.pow(maxP, -p))
+    return Math.min(1, Math.max(0, cdf))
+  }
+  return minCrashMultiplier === maxMultiplier ? (x <= minCrashMultiplier ? 1 : 0) : Number.NaN
 }
 
 /** Deterministic PRNG (mulberry32) to reproduce a simulation run via seed. */
@@ -115,10 +142,10 @@ export function sampleXs(maxMultiplier: number, count = 60): number[] {
   return xs
 }
 
-/** Theoretical survival curve P(X >= x) = (1 - alpha) / x. */
+/** Theoretical survival curve P(X >= x) of the truncated Pareto model. */
 export function theoreticalCurve(params: CrashParams, count = 60): Point[] {
   const xs = sampleXs(params.maxMultiplier, count)
-  return xs.map(x => ({ x, y: Math.min(1, Math.max(0, survival(x, params.alpha))) }))
+  return xs.map(x => ({ x, y: survival(x, params) }))
 }
 
 /**
@@ -133,6 +160,36 @@ export function empiricalCurve(points: number[], xs: number[]): Point[] {
     while (cursor < n && sorted[cursor] < x) cursor++
     return { x, y: n === 0 ? 0 : (n - cursor) / n }
   })
+}
+
+/**
+ * Frequency histogram of crash multipliers over log-spaced bins from
+ * minCrashMultiplier to maxMultiplier. Every simulated game is accounted for;
+ * the low tail (mass concentrated near the minimum when alpha is high) falls
+ * naturally into the first bin — there is no probability atom at the bounds.
+ */
+export function buildHistogram(points: number[], params: CrashParams, binCount = 40): HistogramData {
+  const { minCrashMultiplier, maxMultiplier } = params
+  const minValue = minCrashMultiplier
+  if (!(maxMultiplier > minValue)) return { minValue, bins: [] }
+  const binsN = Math.max(2, Math.min(Math.round(binCount), 200))
+  const lo = Math.log10(minValue)
+  const hi = Math.log10(maxMultiplier)
+  const edges: number[] = []
+  for (let i = 0; i <= binsN; i++) edges.push(Math.pow(10, lo + (hi - lo) * (i / binsN)))
+  edges[0] = minValue
+  edges[edges.length - 1] = maxMultiplier
+  const sorted = (points as number[]).slice().sort((a, b) => a - b)
+  const bins: HistogramBin[] = []
+  let cursor = 0
+  for (let i = 0; i < edges.length - 1; i++) {
+    const start = cursor
+    const edge = edges[i + 1]
+    const isLast = i === edges.length - 2
+    while (cursor < sorted.length && (isLast ? sorted[cursor] <= edge : sorted[cursor] < edge)) cursor++
+    bins.push({ lo: edges[i], hi: edge, count: cursor - start })
+  }
+  return { minValue, bins }
 }
 
 /** Run an N-game simulation and aggregate the financial result. */
@@ -168,5 +225,6 @@ export function simulateGames(request: SimulationRequest): SimulationResult {
     verdict: netResult > 0 ? 'plus' : netResult < 0 ? 'minus' : 'zero',
     theoretical: theoreticalCurve(request),
     empirical: empiricalCurve(points, xs),
+    histogram: buildHistogram(points, request),
   }
 }

@@ -15,7 +15,8 @@ public record GameConfig(
         long cashoutPoints, Integer economyScale,
         ThemeConfig green, ThemeConfig red, CrashMathModel crashMathModel) {
 
-    public enum CrashMathModel { HOUSE_EDGE_V1, LEGACY_POWER_SNAPSHOT }
+    /** V1 is kept only for reading historical round snapshots; new rounds use V2. */
+    public enum CrashMathModel { HOUSE_EDGE_V1, HOUSE_EDGE_V2, LEGACY_POWER_SNAPSHOT }
 
     /** Backward-compatible form used by the standalone engine configuration. */
     public GameConfig(BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
@@ -24,7 +25,7 @@ public record GameConfig(
                       ThemeConfig green, ThemeConfig red) {
         this(minCrashMultiplier, maxCrashMultiplier, decimalAlpha(alpha), growthPerSecond,
                 minBet, maxBet, boosterPointsPerMultiplier, null, null, null, 0, null, green, red,
-                CrashMathModel.HOUSE_EDGE_V1);
+                CrashMathModel.HOUSE_EDGE_V2);
     }
 
     public GameConfig(BigDecimal minCrashMultiplier, BigDecimal maxCrashMultiplier,
@@ -35,7 +36,7 @@ public record GameConfig(
                       ThemeConfig green, ThemeConfig red) {
         this(minCrashMultiplier, maxCrashMultiplier, alpha, growthPerSecond, minBet, maxBet,
                 boosterPointsPerMultiplier, boosterPointsX2, boosterPointsX3, boosterPointsX4,
-                cashoutPoints, economyScale, green, red, CrashMathModel.HOUSE_EDGE_V1);
+                cashoutPoints, economyScale, green, red, CrashMathModel.HOUSE_EDGE_V2);
     }
 
     @ConstructorBinding
@@ -58,7 +59,7 @@ public record GameConfig(
                         : "Alpha must satisfy 0 <= alpha < 1");
         require(minCrashMultiplier.compareTo(BigDecimal.ONE) <= 0
                         || minCrashMultiplier.compareTo(maxCrashMultiplier) == 0,
-                "Piecewise crash math requires min <= 1 unless min equals max");
+                "Crash math requires min <= 1 for the variable range (fixed range min=max allowed)");
         require(growthPerSecond != null && growthPerSecond.compareTo(new BigDecimal("0.0001")) >= 0
                 && growthPerSecond.compareTo(BigDecimal.TEN) <= 0 && growthPerSecond.scale() <= 4,
                 "Growth per second must be in [0.0001,10], up to four decimals");

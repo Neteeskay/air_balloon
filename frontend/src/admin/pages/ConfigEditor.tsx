@@ -130,7 +130,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     }
   }, [current, model])
   const modelCurve = useMemo(() => liveCrash ? theoreticalCurve(liveCrash) : [], [liveCrash])
-  const previewP = liveCrash ? [2, 5, 10].map(x => ({ x, p: survival(x, liveCrash.alpha) })) : []
+  const previewP = liveCrash ? [2, 5, 10].map(x => ({ x, p: survival(x, liveCrash) })) : []
   const themeLevelCount = (theme: 'green' | 'red') => theme === 'green' ? metadata.greenLevelCount : metadata.redLevelCount
   if (loadError) return <div className="admin-error">{loadError} <button className="admin-link-button" onClick={() => void reload()}>Повторить</button></div>
   if (!current) return <div className="admin-loading">Загружаем конфигурацию…</div>
@@ -190,7 +190,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
         <div className="admin-chart-block">
           {liveCrash && <>
             <div className="admin-chart-head">
-              <h3 className="admin-section-label admin-plain">Вероятность, что множитель будет не ниже x<small>P(X ≥ x) = (1 − α) / x</small></h3>
+              <h3 className="admin-section-label admin-plain">Вероятность, что множитель будет не ниже x<small>P(X ≥ x) по модели усечённого Парето</small></h3>
             </div>
             <LineChart height={250} series={[{ name: 'Теория', color: '#246b50', points: modelCurve }]} />
           </>}

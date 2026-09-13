@@ -1,54 +1,68 @@
 # Authoritative crash math model
 
-Эта модель является единственной crash distribution для новых раундов.
-Предыдущая степенная формула deprecated и допустима только как описание
-исторических snapshot, где crash уже был вычислен и сохранён.
+Эта модель является единственной crash distribution для новых раундов
+(`HOUSE_EDGE_V2`). Предыдущая piecewise-модель (`HOUSE_EDGE_V1`) deprecated и
+допустима только для чтения исторических snapshot, где crash уже вычислен и
+сохранён (маркер `LEGACY_POWER_SNAPSHOT` для ещё более старых данных).
 
 ## Формула
 
 Сервер получает `U ~ Uniform[0,1)` из существующего salted deterministic stream:
 
 ```text
-if U < alpha:
-    X = minCrashMultiplier
-else:
-    X = (1 - alpha) / (1 - U)
+p = 1 / (1 - alpha)
 
-X_final = min(X, maxCrashMultiplier)
+X = [ U * maxCrashMultiplier^(-p) + (1 - U) * minCrashMultiplier^(-p) ] ^ (-1 / p)
+X_final = setScale(4, RoundingMode.DOWN)
 ```
 
-Равенство `U == alpha` относится ко второй ветке. `alpha` — house edge и должно
-удовлетворять `0 <= alpha < 1`. `minCrashMultiplier > 0`,
-`maxCrashMultiplier >= minCrashMultiplier`. Для переменного диапазона текущий
-product contract ограничивает min значением не выше x1: без этого строгая
-piecewise-формула могла бы вернуть результат ниже configured min. `min=max`
-сохраняет существующий deterministic fixed-range режим demo/test.
+Это непрерывное усечённое распределение Парето на отрезке
+`[minCrashMultiplier, maxCrashMultiplier]`. Отображение `[0,1) -> [min, max]`
+монотонно и **не содержит вероятностных атомов на нижней границе**: `U=0` даёт
+ровно `min`, жёсткой массы на `minMultiplier` нет. Верхняя граница достижима:
+самая верхняя полоса floor4 `[max - 0.0001, max)` округляется вверх до
+`maxCrashMultiplier` (например, `99.9999... -> 100.0000`). Масса этой полосы
+мала (доли процента и меньше), поэтому гистограмма сохраняет непрерывный вид
+без «клэмп-пика» на максимуме.
 
-Внутренние decimal-операции используют `BigDecimal` и `MathContext.DECIMAL128`.
-После `maxMultiplier` clamp сервер применяет `setScale(4, RoundingMode.DOWN)`.
-Именно это значение сохраняется, входит в fairness commitment/reveal и становится
-authoritative crash result. После рестарта оно не генерируется повторно.
+`alpha` — параметр наклона (form/shape) и house edge, `0 <= alpha < 1`:
+чем ближе к 1, тем сильнее кривая смещена к низким множителям и тем ниже
+выплаты. При `alpha=0` (`p=1`) модель сводится к гармоническому хвосту
+`X = 1 / (U/max + (1-U)/min)`. `minCrashMultiplier > 0`,
+`maxCrashMultiplier >= minCrashMultiplier`; product contract по-прежнему
+ограничивает переменный диапазон `min <= 1`. `min=max` сохраняет существующий
+deterministic fixed-range режим demo/test.
+
+Для дробного `p` Java-`BigDecimal` не умеет возводить в степень, поэтому
+вычисление ведётся в `double` (IEEE-754, >= 15 значащих цифр) и один раз
+округляется вниз `floor4`. Именно это значение сохраняется, входит в
+fairness commitment/reveal и становится authoritative crash result. После
+рестарта оно не генерируется повторно.
 
 ## Вероятности
 
-Для применимой области `1 <= x <= maxCrashMultiplier`, до эффекта верхнего clamp:
+Для применимой области `min <= x <= maxCrashMultiplier`:
 
 ```text
-P(X >= x) = (1 - alpha) / x
+P(X >= x) = (x^-p - maxCrashMultiplier^-p)
+            / (minCrashMultiplier^-p - maxCrashMultiplier^-p)
 ```
 
-При `minCrashMultiplier=1` непосредственная атомарная масса на x1 равна `alpha`
-до эффекта output precision. Для ставки `B` и фиксированного допустимого target x
-теоретическое ожидание выплаты равно `B × (1-alpha)`, прибыли — `-B × alpha`.
+Границы: `P(X >= min) = 1`, `P(X >= max) = 0` в непрерывной модели; из-за
+перевода верхней floor4-полосы в `max` у точки `max` появляется крошечная
+дискретная масса `P(X = max) = P(X >= max - 0.0001)`, которая при практических
+значениях параметров пренебрежимо мала.
+Для ставки `B` и фиксированного допустимого target `t` теоретическое ожидание
+выплаты равно `B × t × P(X >= t)`, прибыли — `B × (t × P(X >= t) - 1)`.
 
 ## Determinism и fairness
 
 Production seed создаётся серверным cryptographic source, FIXED_SEED разрешён
 только в demo/test. Смешивание seed и независимые salts crash/booster не менялись.
-Одинаковые seed, theme, selected booster и config дают одинаковые `U` и `X_final`.
+Одинаковые seed, theme, selected booster и config дают одинаковые `U`, `X_final`.
 Commitment фиксирует уже округлённый crash и booster level до `ROUND_STARTED`;
 reveal появляется только после crash.
 
 Исторические активные раунды продолжают использовать сохранённые crash/config
-snapshot. Legacy-маркер snapshot существует только для чтения таких данных;
-`CrashPointGenerator` не позволяет создать с ним новый результат.
+snapshot. Legacy-маркеры snapshot существуют только для чтения таких данных;
+`CrashPointGenerator` не позволяет создать с ними новый результат.

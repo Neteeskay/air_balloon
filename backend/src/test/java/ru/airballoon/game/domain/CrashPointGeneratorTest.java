@@ -29,23 +29,22 @@ class CrashPointGeneratorTest {
     }
 
     @Test
-    void exactPiecewiseFormulaAndBoundariesUseFloorFourPrecision() {
-        GameConfig c = model("0.03", "1", "100");
+    void exactContinuousFormulaAndBoundsUseFloorFourPrecision() {
+        GameConfig c = model("0", "1", "100");
         assertThat(generator.generate(c, dec("0"))).isEqualByComparingTo("1.0000");
-        assertThat(generator.generate(c, dec("0.029999999"))).isEqualByComparingTo("1.0000");
-        assertThat(generator.generate(c, dec("0.03"))).isEqualByComparingTo("1.0000");
-        assertThat(generator.generate(c, dec("0.030000001"))).isEqualByComparingTo("1.0000");
-        assertThat(generator.generate(c, dec("0.04"))).isEqualByComparingTo("1.0104");
-        assertThat(generator.generate(c, dec("0.5"))).isEqualByComparingTo("1.9400");
-        assertThat(generator.generate(c, dec("0.9999"))).isEqualByComparingTo("100.0000");
+        assertThat(generator.generate(c, dec("0.25"))).isEqualByComparingTo("1.3289");
+        assertThat(generator.generate(c, dec("0.5"))).isEqualByComparingTo("1.9801");
+        assertThat(generator.generate(c, dec("0.9999"))).isEqualByComparingTo("99.0197");
+        // The highest floor band [99.9999, 100) flips up to the inclusive ceiling.
+        assertThat(generator.generate(c, dec("0.99999999"))).isEqualByComparingTo("100.0000");
     }
 
     @Test
     void alphaAndRangeEdgesRemainWellDefined() {
-        assertThat(generator.generate(model("0", "1", "100"), dec("0")))
+        assertThat(generator.generate(model("0.03", "1", "100"), dec("0")))
                 .isEqualByComparingTo("1.0000");
         assertThat(generator.generate(model("0.9999", "1", "100"), dec("0.9999")))
-                .isEqualByComparingTo("1.0000");
+                .isEqualByComparingTo("1.0009");
         assertThat(generator.generate(model("0.03", "1", "1"), dec("0.5")))
                 .isEqualByComparingTo("1.0000");
         assertThat(generator.generate(model("0.03", "8.42", "8.42"), dec("0.5")))
@@ -89,7 +88,7 @@ class CrashPointGeneratorTest {
     }
 
     @Test
-    void deterministicDistributionMatchesSurvivalImmediateCrashAndFixedTargetEv() {
+    void deterministicDistributionMatchesSurvivalAndFixedTargetEv() {
         GameConfig c = model("0.03", "1", "100");
         int samples = 200_000;
         int minimum = 0, atLeast2 = 0, atLeast5 = 0, atLeast10 = 0;
@@ -104,10 +103,10 @@ class CrashPointGeneratorTest {
         double p2 = atLeast2 / (double) samples;
         double p5 = atLeast5 / (double) samples;
         double p10 = atLeast10 / (double) samples;
-        assertThat(pMinimum).isCloseTo(0.03, within(0.002));
-        assertThat(p2).isCloseTo(0.97 / 2, within(0.003));
-        assertThat(p5).isCloseTo(0.97 / 5, within(0.003));
-        assertThat(p10).isCloseTo(0.97 / 10, within(0.003));
+        assertThat(pMinimum).isCloseTo(0.0001, within(0.0002));
+        assertThat(p2).isCloseTo(0.485, within(0.003));
+        assertThat(p5).isCloseTo(0.183, within(0.003));
+        assertThat(p10).isCloseTo(0.0852, within(0.003));
         assertThat(2 * p2).isCloseTo(0.97, within(0.006));
         System.out.printf("CRASH_STATS samples=%d min=%.6f p2=%.6f p5=%.6f p10=%.6f evAt2=%.6f%n",
                 samples, pMinimum, p2, p5, p10, 2 * p2);

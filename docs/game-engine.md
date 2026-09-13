@@ -146,30 +146,27 @@ crossingMillis = ceil(1000 × max(0, boundary - factor) / (growthPerSecond × fa
 
 ```text
 U = SplittableRandom(mixedSeed).nextDouble()  // [0, 1)
-if U < alpha:
-    X = minCrashMultiplier
-else:
-    X = (1 - alpha) / (1 - U)
-X_final = min(X, maxCrashMultiplier)
-crash = floorTo4Decimals(X_final)
+p = 1 / (1 - alpha)
+X = [U * maxCrashMultiplier^(-p) + (1 - U) * minCrashMultiplier^(-p)] ^ (-1 / p)
+crash = floorTo4Decimals(X)
 ```
 
-`alpha` — house edge, `0 <= alpha < 1`. Вычисление ветки и деление выполняются
-через `BigDecimal` с `DECIMAL128`; после технического max-clamp результат один раз
-округляется вниз до scale 4. Граничное равенство `U == alpha` использует вторую
-ветку. При `min=max` существующий deterministic demo/test range остаётся
-фиксированным. Для обычного переменного диапазона product minimum равен x1;
-validator не допускает `min > 1`, поскольку указанная piecewise-формула иначе
-может вернуть значение ниже min.
+`alpha` — параметр наклона и house edge, `0 <= alpha < 1`. Это непрерывное
+усечённое Парето на `[min, max]`: `U=0` даёт ровно min, при `U -> 1` исход
+стремится к max снизу — атомов на границах нет (нет ни маccы «мгновенных
+крахов», ни clamp-пика на max). Для дробного `p` вычисление ведётся в `double`,
+затем результат один раз округляется вниз до scale 4. При `min=max`
+существующий deterministic demo/test range остаётся фиксированным. Для обычного
+переменного диапазона product minimum равен x1; validator не допускает
+`min > 1`.
 
-Для `1 <= x <= maxCrashMultiplier` до влияния верхнего clamp:
+Для `min <= x <= maxCrashMultiplier`:
 
 ```text
-P(X >= x) = (1 - alpha) / x
+P(X >= x) = (x^-p - maxCrashMultiplier^-p) / (minCrashMultiplier^-p - maxCrashMultiplier^-p)
 ```
 
-При `minCrashMultiplier=1` вероятность немедленного crash на минимуме равна
-`alpha` до влияния дискретной output precision. Seed остаётся серверным.
+`P(X >= min) = 1`, `P(X >= max) = 0`. Seed остаётся серверным.
 
 Crash и бустер используют независимые salted потоки `SplittableRandom`,
 зависящие от seed, темы и выбранного множителя. Повторение этих входов и config
@@ -239,7 +236,7 @@ publisher; потребитель дедуплицирует `(roundId, sequence
 | --- | --- |
 | `min-crash-multiplier` | 1.00; >0, до 4 знаков; для переменного диапазона <=1 |
 | `max-crash-multiplier` | 30.00; >=min, <=1,000,000 |
-| `alpha` | 0.03; house edge, `0 <= alpha < 1` |
+| `alpha` | 0.03; параметр наклона кривой (house edge), `0 <= alpha < 1` |
 | `growth-per-second` | 0.10; [0.0001,10], до 4 знаков |
 | `min-bet`, `max-bet` | 1.00 / 1000.00; >0, до 2 знаков; max<=1,000,000,000 |
 | `booster-points-per-multiplier` | 150; целое [0,1,000,000,000] |
