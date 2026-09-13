@@ -12,9 +12,13 @@ class FakeAudio {
 }
 
 describe('BackgroundMusic', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    window.localStorage.removeItem('air-balloon:background-music-muted')
+    vi.restoreAllMocks()
+  })
 
   function setup() {
+    window.localStorage.removeItem('air-balloon:background-music-muted')
     const element = new FakeAudio()
     const manager = new BackgroundMusic(() => element as unknown as HTMLAudioElement)
     manager.mount()
@@ -68,5 +72,48 @@ describe('BackgroundMusic', () => {
     await expect(manager.play()).resolves.toBeUndefined()
     expect(BACKGROUND_MUSIC_SRC).toBe('/assets/audio/upward-loop.mp3')
   })
-})
 
+  it('pauses on mute, resumes on unmute, and persists the manual preference', async () => {
+    const { element, manager } = setup()
+    await manager.play()
+
+    manager.setMuted(true)
+    expect(element.muted).toBe(true)
+    expect(element.pause).toHaveBeenCalled()
+    expect(manager.isMuted()).toBe(true)
+    expect(window.localStorage.getItem('air-balloon:background-music-muted')).toBe('true')
+
+    manager.setMuted(false)
+    await Promise.resolve()
+    expect(element.muted).toBe(false)
+    expect(element.play).toHaveBeenCalledTimes(2)
+    expect(manager.isMuted()).toBe(false)
+  })
+
+  it('does not auto-resume a manual mute after an Admin pause', async () => {
+    const { element, manager } = setup()
+    manager.setMuted(true)
+    manager.setUserAppActive(false)
+    manager.setUserAppActive(true)
+    window.dispatchEvent(new Event('pointerdown'))
+    await Promise.resolve()
+
+    expect(element.play).not.toHaveBeenCalled()
+    expect(manager.isMuted()).toBe(true)
+  })
+
+  it('keeps a rapid mute click safe while play is pending', async () => {
+    const { element, manager } = setup()
+    let resolvePlay!: () => void
+    element.play = vi.fn(() => new Promise<void>(resolve => { resolvePlay = () => { element.paused = false; resolve() } }))
+
+    void manager.play()
+    manager.setMuted(true)
+    resolvePlay()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(element.pause).toHaveBeenCalled()
+    expect(manager.isMuted()).toBe(true)
+  })
+})

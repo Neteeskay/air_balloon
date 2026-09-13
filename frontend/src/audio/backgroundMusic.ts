@@ -21,12 +21,23 @@ export class BackgroundMusic {
   private listenersAttached = false
   private playPromise: Promise<void> | null = null
 
+  constructor(audioFactory: AudioFactory = defaultAudioFactory) {
+    this.audioFactory = audioFactory
+    this.muted = this.readMutedPreference()
+  }
+
   private readonly onUserGesture = () => {
     if (this.active && !this.muted) void this.play()
   }
 
-  constructor(audioFactory: AudioFactory = defaultAudioFactory) {
-    this.audioFactory = audioFactory
+  private readMutedPreference() {
+    if (typeof window === 'undefined') return false
+    try { return window.localStorage.getItem('air-balloon:background-music-muted') === 'true' } catch { return false }
+  }
+
+  private persistMutedPreference() {
+    if (typeof window === 'undefined') return
+    try { window.localStorage.setItem('air-balloon:background-music-muted', String(this.muted)) } catch { /* storage is optional */ }
   }
 
   private ensureAudio() {
@@ -71,6 +82,9 @@ export class BackgroundMusic {
   unmount() {
     this.active = false
     this.pause()
+    // The user app is no longer allowed to start playback while Admin owns
+    // the document. A fresh gesture after remount may create the next request.
+    this.playPromise = null
     this.detachGestureListeners()
   }
 
@@ -96,7 +110,12 @@ export class BackgroundMusic {
     }
     this.playPromise = Promise.resolve(result)
       .catch(() => undefined)
-      .finally(() => { this.playPromise = null })
+      .finally(() => {
+        this.playPromise = null
+        // A pending play() can settle after a rapid mute/pause click. Apply
+        // the final preference once more so playback cannot leak through.
+        if (this.muted) this.audio?.pause()
+      })
     return this.playPromise
   }
 
@@ -104,17 +123,18 @@ export class BackgroundMusic {
   unlock = () => { void this.play() }
 
   pause = () => {
-    this.playPromise = null
     this.audio?.pause()
   }
 
   setMuted = (muted: boolean) => {
     this.muted = muted
+    this.persistMutedPreference()
     const audio = this.ensureAudio()
     if (!audio) return
     audio.muted = muted
     audio.volume = muted ? 0 : this.volume
     if (muted) this.pause()
+    else if (this.active) void this.play()
   }
 
   setVolume = (volume: number) => {
@@ -124,6 +144,7 @@ export class BackgroundMusic {
 
   /** Exposed for diagnostics/tests; callers must not replace the element. */
   getAudioElement = () => this.audio
+  isMuted = () => this.muted
 }
 
 export const backgroundMusic = new BackgroundMusic()
