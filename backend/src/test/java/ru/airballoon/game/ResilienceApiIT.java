@@ -43,7 +43,7 @@ class ResilienceApiIT extends IntegrationSupport {
     @Test void snapshotIsAuthoritativeForRefreshCashoutAndFinishedReconnect() throws Exception {
         var r = start(); clock.atMillis(10000);
         mvc.perform(get("/api/rounds/{id}", r.id()).principal(() -> user.toString()))
-                .andExpect(jsonPath("roundId").value(r.id().toString())).andExpect(jsonPath("currentLevel").value(6))
+                .andExpect(jsonPath("roundId").value(r.id().toString())).andExpect(jsonPath("currentLevel").value(3))
                 .andExpect(jsonPath("currentMultiplier").value(6)).andExpect(jsonPath("boosterActivated").value(true))
                 .andExpect(jsonPath("boosterLevel").value(3)).andExpect(jsonPath("cashoutPerformed").value(false))
                 .andExpect(jsonPath("serverTime").value(START.plusSeconds(10).toString()))

@@ -33,7 +33,7 @@ public final class RoundEngine {
         BigDecimal crashMultiplier = crash.generate(config, theme, booster, seed);
         String commitment = RoundFairness.commitment(id, seed, crashMultiplier, boosterLevel);
         Frame f = new Frame(new GameRound(id, userId, theme, bet.setScale(2), booster,
-                boosterLevel, false, crashMultiplier, new BigDecimal("1.0000"), 0, null,
+                boosterLevel, false, crashMultiplier, new BigDecimal("1.0000"), new BigDecimal("1.0000"), 0, null,
                 new BigDecimal("0.00"), 0, start, null, null, null, seed,
                 RoundStatus.CREATED, start, 0, config, commitment));
         f.status = states.transition(f.status, RoundStatus.RUNNING);
@@ -48,42 +48,49 @@ public final class RoundEngine {
         // Visit boundaries, rather than sampling the latest tick: no skipped levels or boosters.
         while (true) {
             BigDecimal next = levels.next(round.config(), round.theme(), f.level);
-            BigDecimal atTarget = multipliers.at(round.startedAt(), target, round.config(), f.factor());
+            BigDecimal atTarget = multipliers.at(round.startedAt(), target, round.config());
             // At a tie the crash wins; no level or booster can rescue a crashed round.
             if (next == null || next.compareTo(round.crashMultiplier()) >= 0 || next.compareTo(atTarget) > 0) break;
-            f.updated = later(f.updated, multipliers.crossing(round.startedAt(), next, round.config(), f.factor()));
-            f.multiplier = f.multiplier.max(next);
+            f.updated = later(f.updated, multipliers.crossing(round.startedAt(), next, round.config()));
+            f.flightMultiplier = f.flightMultiplier.max(next);
+            f.multiplier = f.effectiveMultiplier();
             f.level++;
             long points = f.status == RoundStatus.RUNNING ? levels.points(round.config(), round.theme(), f.level) : 0;
             f.score += points;
             f.emit(GameEvent.Type.LEVEL_REACHED, Map.of("level", f.level, "points", points,
-                    "pointsToAward", points, "multiplier", f.multiplier));
+                    "pointsToAward", points, "multiplier", f.multiplier,
+                    "flightMultiplier", f.flightMultiplier, "effectiveMultiplier", f.multiplier));
             if (f.status == RoundStatus.RUNNING && !f.boosted && round.boosterLevel() != null
                     && f.level == round.boosterLevel()) {
                 BigDecimal before = f.multiplier;
-                f.multiplier = before.multiply(BigDecimal.valueOf(round.boosterMultiplier()));
                 f.boosted = true;
+                f.multiplier = f.effectiveMultiplier();
                 long extra = round.config().boosterPoints(round.boosterMultiplier());
                 f.score += extra;
                 f.emit(GameEvent.Type.BOOSTER_ACTIVATED, Map.of("booster", round.boosterMultiplier(),
                         "level", f.level, "beforeMultiplier", before, "afterMultiplier", f.multiplier,
+                        "flightMultiplier", f.flightMultiplier, "effectiveMultiplier", f.multiplier,
                         "points", extra, "pointsToAward", extra));
             }
         }
-        BigDecimal current = multipliers.at(round.startedAt(), target, round.config(), f.factor());
-        if (current.compareTo(round.crashMultiplier()) >= 0) {
-            f.updated = later(f.updated, multipliers.crossing(round.startedAt(), round.crashMultiplier(), round.config(), f.factor()));
-            f.multiplier = round.crashMultiplier();
+        BigDecimal currentFlight = multipliers.at(round.startedAt(), target, round.config());
+        if (currentFlight.compareTo(round.crashMultiplier()) >= 0) {
+            f.updated = later(f.updated, multipliers.crossing(round.startedAt(), round.crashMultiplier(), round.config()));
+            f.flightMultiplier = round.crashMultiplier();
+            f.multiplier = f.effectiveMultiplier();
             f.crashedAt = f.updated;
             f.status = states.transition(f.status, RoundStatus.CRASHED);
-            f.emit(GameEvent.Type.CRASH, Map.of("crashMultiplier", round.crashMultiplier()));
+            f.emit(GameEvent.Type.CRASH, Map.of("crashMultiplier", round.crashMultiplier(),
+                    "flightMultiplier", f.flightMultiplier, "effectiveMultiplier", f.multiplier));
             f.finishedAt = f.updated;
             f.status = states.transition(f.status, RoundStatus.FINISHED);
             f.emit(GameEvent.Type.ROUND_FINISHED, Map.of());
-        } else if (current.compareTo(round.currentMultiplier()) != 0 || !f.events.isEmpty()) {
-            f.multiplier = current;
+        } else if (currentFlight.compareTo(round.flightMultiplier()) != 0 || !f.events.isEmpty()) {
+            f.flightMultiplier = currentFlight;
+            f.multiplier = f.effectiveMultiplier();
             f.updated = target;
-            f.emit(GameEvent.Type.MULTIPLIER_UPDATE, Map.of("multiplier", current, "level", f.level));
+            f.emit(GameEvent.Type.MULTIPLIER_UPDATE, Map.of("multiplier", f.multiplier, "level", f.level,
+                    "flightMultiplier", f.flightMultiplier, "effectiveMultiplier", f.multiplier));
         }
         return f.events.isEmpty() ? new RoundTransition(round, List.of()) : f.result();
     }
@@ -116,7 +123,7 @@ public final class RoundEngine {
     private static final class Frame {
         final GameRound original;
         final List<GameEvent> events = new ArrayList<>();
-        BigDecimal multiplier, cashoutMultiplier, win;
+        BigDecimal multiplier, flightMultiplier, cashoutMultiplier, win;
         int level;
         boolean boosted;
         long score, sequence;
@@ -125,18 +132,21 @@ public final class RoundEngine {
 
         Frame(GameRound r) {
             original = r;
-            multiplier = r.currentMultiplier(); cashoutMultiplier = r.cashoutMultiplier(); win = r.winAmount();
+            multiplier = r.currentMultiplier(); flightMultiplier = r.flightMultiplier(); cashoutMultiplier = r.cashoutMultiplier(); win = r.winAmount();
             level = r.currentLevel(); boosted = r.boosterActivated(); score = r.roundScore(); sequence = r.sequence();
             status = r.status(); updated = r.updatedAt(); cashoutAt = r.cashoutAt();
             crashedAt = r.crashedAt(); finishedAt = r.finishedAt();
         }
 
-        int factor() { return boosted ? original.boosterMultiplier() : 1; }
+        BigDecimal effectiveMultiplier() {
+            return flightMultiplier.multiply(BigDecimal.valueOf(boosted ? original.boosterMultiplier() : 1))
+                    .setScale(4, java.math.RoundingMode.DOWN);
+        }
 
         GameRound snapshot() {
             return new GameRound(original.id(), original.userId(), original.theme(), original.betAmount(),
                     original.boosterMultiplier(), original.boosterLevel(), boosted, original.crashMultiplier(),
-                    multiplier, level, cashoutMultiplier, win, score, original.startedAt(), cashoutAt,
+                    multiplier, flightMultiplier, level, cashoutMultiplier, win, score, original.startedAt(), cashoutAt,
                     crashedAt, finishedAt, original.seed(), status, updated, sequence, original.config(),
                     original.fairnessCommitment());
         }

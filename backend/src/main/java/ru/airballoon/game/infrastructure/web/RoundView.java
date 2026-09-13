@@ -13,6 +13,7 @@ import java.util.UUID;
  */
 public record RoundView(UUID id, Theme theme, BigDecimal betAmount, int boosterMultiplier,
                         Integer boosterLevel, boolean boosterActivated, BigDecimal currentMultiplier,
+                        BigDecimal flightMultiplier, BigDecimal effectiveMultiplier,
                         int currentLevel, int totalLevels, List<BigDecimal> levelThresholds,
                         boolean cashoutAvailable, BigDecimal cashoutPreviewAmount,
                         BigDecimal cashoutMultiplier, BigDecimal winAmount,
@@ -30,7 +31,7 @@ public record RoundView(UUID id, Theme theme, BigDecimal betAmount, int boosterM
                 ? PayoutCalculator.calculate(r) : null;
         return new RoundView(r.id(), r.theme(), r.betAmount(), r.boosterMultiplier(),
                 r.boosterLevel(),
-                r.boosterActivated(), r.currentMultiplier(), r.currentLevel(), r.theme().levels(),
+                r.boosterActivated(), r.currentMultiplier(), r.flightMultiplier(), r.currentMultiplier(), r.currentLevel(), r.theme().levels(),
                 r.config().forTheme(r.theme()).thresholds(), r.status() == RoundStatus.RUNNING && r.currentLevel() > 0,
                 cashoutPreviewAmount, r.cashoutMultiplier(), r.winAmount(), r.roundScore(), r.status(),
                 finished ? (r.cashoutAt() == null ? "LOSS" : "CASHED_OUT") : null,

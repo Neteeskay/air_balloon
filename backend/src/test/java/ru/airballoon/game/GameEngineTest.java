@@ -15,8 +15,9 @@ import static ru.airballoon.game.domain.GameEvent.Type.*;
 class GameEngineTest {
     @ParameterizedTest @ValueSource(ints = {2, 4})
     void otherBoosterMultipliersAreAppliedOnce(int booster) {
-        var f = new Fixture(); var r = f.at(f.start(booster), 10000);
-        assertThat(r.currentMultiplier()).isEqualByComparingTo(java.math.BigDecimal.valueOf(2L * booster));
+        var f = new Fixture(); var r = f.at(f.start(booster), 40000);
+        assertThat(r.flightMultiplier()).isEqualByComparingTo("5.0000");
+        assertThat(r.currentMultiplier()).isEqualByComparingTo(java.math.BigDecimal.valueOf(5L * booster));
         assertThat(f.count(BOOSTER_ACTIVATED)).isEqualTo(1);
     }
 
@@ -94,23 +95,23 @@ class GameEngineTest {
     }
 
     @Test void boosterTriplesTwoIntoSixAndAwardsExtraPoints() {
-        var f = new Fixture(); var r = f.at(f.start(3), 10000);
+        var f = new Fixture(); var r = f.at(f.start(3), 40000);
         var event = f.events.stream().filter(e -> e.type() == BOOSTER_ACTIVATED).findFirst().orElseThrow();
         assertThat((java.math.BigDecimal) event.data().get("beforeMultiplier")).isEqualByComparingTo("2.00");
         assertThat((java.math.BigDecimal) event.data().get("afterMultiplier")).isEqualByComparingTo("6.00");
         assertThat(event.data().get("points")).isEqualTo(300L);
-        assertThat(r.currentMultiplier()).isEqualByComparingTo("6.00");
+        assertThat(r.currentMultiplier()).isEqualByComparingTo("15.0000");
         assertThat(r.boosterActivated()).isTrue();
-        assertThat(r.currentLevel()).isEqualTo(6);
+        assertThat(r.currentLevel()).isEqualTo(5);
     }
 
     @Test void cashoutUsesBoosterAndCurrentCommandTimeBetweenTicks() {
-        var f = new Fixture(); var r = f.start(3); f.clock.atMillis(10123);
+        var f = new Fixture(); var r = f.start(3); f.clock.atMillis(40123);
         var cashout = f.service.cashout(f.user, r.id());
         assertThat(cashout.boosterActivated()).isTrue();
-        assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("6.0369");
-        assertThat(cashout.winAmount()).isEqualByComparingTo("603.69");
-        assertThat(cashout.cashoutAt()).isEqualTo(START.plusMillis(10123));
+        assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("6.6111");
+        assertThat(cashout.winAmount()).isEqualByComparingTo("661.11");
+        assertThat(cashout.cashoutAt()).isEqualTo(START.plusMillis(40123));
     }
 
     @Test void previewAndCashoutShareTheExactKnownPayoutVector() {
@@ -128,12 +129,12 @@ class GameEngineTest {
     @Test void previewExcludesFutureBoosterAndIncludesItImmediatelyAfterActivation() {
         var f = new Fixture(); var started = f.start(3);
         var before = f.at(started, 3000);
-        var after = f.at(started, 10000);
+        var after = f.at(started, 40000);
 
         assertThat(before.boosterActivated()).isFalse();
         assertThat(RoundView.from(before).cashoutPreviewAmount()).isEqualByComparingTo("130.00");
         assertThat(after.boosterActivated()).isTrue();
-        assertThat(RoundView.from(after).cashoutPreviewAmount()).isEqualByComparingTo("600.00");
+        assertThat(RoundView.from(after).cashoutPreviewAmount()).isEqualByComparingTo("660.00");
     }
 
     @Test void laterServerReceiptCanPayMoreButNeverLessThanLastMonotonicPreview() {
@@ -158,7 +159,7 @@ class GameEngineTest {
         var f = new Fixture(); var r = f.start(3); f.clock.atMillis(3000);
         var cashout = f.service.cashout(f.user, r.id()); var later = f.at(r, 20000);
         assertThat(later.boosterActivated()).isFalse();
-        assertThat(later.currentMultiplier()).isEqualByComparingTo("3.0");
+        assertThat(later.currentMultiplier()).isEqualByComparingTo("2.0");
         assertThat(later.roundScore()).isEqualTo(cashout.roundScore());
         assertThat(f.count(BOOSTER_ACTIVATED)).isZero();
         assertThat(f.events.stream().filter(e -> e.type() == LEVEL_REACHED && e.timestamp().isAfter(cashout.cashoutAt())))
@@ -167,7 +168,7 @@ class GameEngineTest {
 
     @Test void boosterActivatesOnceAcrossRepeatedTicks() {
         var f = new Fixture(); var r = f.start(3);
-        for (long t : new long[]{10000, 10000, 10100, 11000, 18000, 100000}) f.at(r, t);
+        for (long t : new long[]{10000, 10000, 10100, 11000, 18000, 100000, 400000}) f.at(r, t);
         assertThat(f.count(BOOSTER_ACTIVATED)).isEqualTo(1);
         assertThat(f.count(CRASH)).isEqualTo(1);
         assertThat(f.count(ROUND_FINISHED)).isEqualTo(1);
@@ -197,20 +198,46 @@ class GameEngineTest {
     }
 
     @Test void crashWinsTieWithLevelAndBooster() {
-        var f = new Fixture(config("2.00", 3)); var r = f.at(f.start(3), 10000);
+        var f = new Fixture(config("2.00", 3)); var r = f.at(f.start(3), 100000);
         assertThat(r.status()).isEqualTo(RoundStatus.FINISHED);
         assertThat(r.currentLevel()).isEqualTo(2);
         assertThat(f.count(BOOSTER_ACTIVATED)).isZero();
         error(() -> f.service.cashout(f.user, r.id()), GameError.ROUND_ALREADY_CRASHED);
     }
 
-    @Test void boosterJumpCanCrashImmediatelyWithoutPassingTheCrashLevel() {
-        var f = new Fixture(config("4.00", 3)); var r = f.at(f.start(3), 10000);
-        assertThat(r.currentMultiplier()).isEqualByComparingTo("4");
-        assertThat(r.crashedAt()).isEqualTo(START.plusSeconds(10));
-        assertThat(r.currentLevel()).isEqualTo(4); // 3.0 reached, 4.0 is the crash tie.
-        assertThat(f.events.stream().map(GameEvent::type)).containsSubsequence(BOOSTER_ACTIVATED, LEVEL_REACHED, CRASH, ROUND_FINISHED);
-        assertThat(r.winAmount()).isZero();
+    @Test void boosterDoesNotCauseImmediateCrash() {
+        var f = new Fixture(config("2.00", 1)); var r = f.at(f.start(4), 2000);
+        assertThat(r.flightMultiplier()).isEqualByComparingTo("1.2000");
+        assertThat(r.currentMultiplier()).isEqualByComparingTo("4.8000");
+        assertThat(r.status()).isEqualTo(RoundStatus.RUNNING);
+        assertThat(r.boosterActivated()).isTrue();
+        assertThat(f.count(CRASH)).isZero();
+    }
+
+    @Test void crashUsesBaseFlightAfterBoosterAndCashoutUsesEffectiveMultiplier() {
+        var f = new Fixture(config("2.00", 1)); var started = f.start(4);
+        var boosted = f.at(started, 3000);
+        assertThat(boosted.flightMultiplier()).isEqualByComparingTo("1.3000");
+        assertThat(boosted.currentMultiplier()).isEqualByComparingTo("5.2000");
+        var cashout = f.service.cashout(f.user, started.id());
+        assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("5.2000");
+        assertThat(cashout.winAmount()).isEqualByComparingTo("520.00");
+
+        var lossFixture = new Fixture(config("2.00", 1));
+        var loss = lossFixture.at(lossFixture.start(4), 100000);
+        assertThat(loss.status()).isEqualTo(RoundStatus.FINISHED);
+        assertThat(loss.flightMultiplier()).isEqualByComparingTo("2.0000");
+        assertThat(loss.currentMultiplier()).isEqualByComparingTo("8.0000");
+        assertThat(lossFixture.events.stream().map(GameEvent::type))
+                .containsSubsequence(BOOSTER_ACTIVATED, CRASH, ROUND_FINISHED);
+    }
+
+    @Test void crashBeforeBoosterThresholdDoesNotActivateBooster() {
+        var f = new Fixture(config("1.15", 1)); var r = f.at(f.start(4), 100000);
+        assertThat(r.status()).isEqualTo(RoundStatus.FINISHED);
+        assertThat(r.flightMultiplier()).isEqualByComparingTo("1.1500");
+        assertThat(r.boosterActivated()).isFalse();
+        assertThat(f.count(BOOSTER_ACTIVATED)).isZero();
     }
 
     @Test void tickCadenceDoesNotChangeMathScoresOrBoundaryTimes() {

@@ -40,12 +40,12 @@ class ReconnectIT extends IntegrationSupport {
             assertThat(startEvent.path("data").path("round").path("boosterLevel").asInt()).isEqualTo(3);
             close(old, oldEvents);
             clock.atMillis(10000);
-            awaitLevel(id, 6); // No GET or explicit tick drives this progress: the real scheduler does.
+            awaitLevel(id, 3); // No GET or explicit tick drives this progress: the real scheduler does.
             var newEvents = new Listener(); var socket = connect(user, newEvents);
             try {
                 newEvents.next();
                 var snapshot = request(user, "GET", "/api/rounds/" + id, null);
-                assertThat(snapshot.path("currentLevel").asInt()).isEqualTo(6);
+                assertThat(snapshot.path("currentLevel").asInt()).isEqualTo(3);
                 assertThat(snapshot.path("boosterActivated").asBoolean()).isTrue();
                 assertThat(snapshot.path("currentMultiplier").decimalValue()).isEqualByComparingTo("6");
                 assertThat(snapshot.path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("3000");
