@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Api, User } from '../../api/types'
 import type { MockEquippedClothing, MockPuzzle, MockTheme } from '../../mocks/mockGame'
 import { AvatarProfile } from '../avatar/AvatarProfile'
+import type { OutfitRewardsState } from './OutfitRewardsPanel'
 
 type ProfileDto = {
   user?: { displayName?: string; username?: string; gameScore?: number; bonusBalance?: number }
@@ -155,7 +156,19 @@ export function RealProfilePage({
 }: RealProfilePageProps) {
   const [view, setView] = useState<ProfileViewModel | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentBalance, setCurrentBalance] = useState(balance)
+  const [outfitRewards, setOutfitRewards] = useState<OutfitRewardsState>({ status: 'loading', items: [] })
   const fallback = useMemo(() => fallbackView(user), [user])
+
+  const refreshOutfitRewards = useCallback(async () => {
+    setOutfitRewards((current) => ({ status: 'loading', items: current.items }))
+    try {
+      const items = await api.profile.getOutfitRewards()
+      setOutfitRewards({ status: 'ready', items: Array.isArray(items) ? items : [] })
+    } catch {
+      setOutfitRewards((current) => ({ status: 'error', items: current.items }))
+    }
+  }, [api])
 
   useEffect(() => {
     let live = true
@@ -172,13 +185,21 @@ export function RealProfilePage({
     }).finally(() => {
       if (live) setLoading(false)
     })
+    void refreshOutfitRewards()
     return () => { live = false }
-  }, [api, fallback, user])
+  }, [api, fallback, refreshOutfitRewards, user])
 
   const save = useCallback(async (_petName: string, equipped: MockEquippedClothing) => {
-    await api.profile.equip(serverId(equipped.headId), serverId(equipped.neckId))
+    const result = await api.profile.equip(serverId(equipped.headId), serverId(equipped.neckId))
     setView((current) => current ? { ...current, equippedClothing: equipped } : current)
-  }, [api])
+    await refreshOutfitRewards()
+    const wallet = await api.economy.getBalance().catch(() => null)
+    if (wallet) setCurrentBalance(wallet.bonusBalance)
+    else {
+      const balanceAfter = record(result).balanceAfter
+      if (typeof balanceAfter === 'number' && Number.isFinite(balanceAfter)) setCurrentBalance(balanceAfter)
+    }
+  }, [api, refreshOutfitRewards])
 
   if (loading || !view) {
     return <main className="av-world av-profile-loading" role="status"><p>Загружаем профиль…</p></main>
@@ -186,7 +207,7 @@ export function RealProfilePage({
 
   return <AvatarProfile
     api={api}
-    balance={balance}
+    balance={currentBalance}
     equippedClothing={view.equippedClothing}
     favoriteTheme={view.favoriteTheme}
     gamesPlayed={view.gamesPlayed}
@@ -195,6 +216,8 @@ export function RealProfilePage({
     onLogout={onLogout}
     onSave={save}
     onToggleSound={onToggleSound}
+    outfitRewards={outfitRewards}
+    onRetryOutfitRewards={() => { void refreshOutfitRewards() }}
     petName="Пушок"
     puzzle={view.puzzle}
     score={view.score}

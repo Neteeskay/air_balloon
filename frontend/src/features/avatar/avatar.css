@@ -143,6 +143,17 @@
 .av-fortune-button { width: min(270px, 100%); min-height: 48px; margin-inline: auto; padding: 9px 17px; font-size: 17px; }
 .av-fortune-button:disabled { border-color: #f4ead8; color: #7c756c; background: linear-gradient(#eee7dc, #d8cebf); box-shadow: inset 0 2px 4px #fff, 0 3px 0 #a89c8b; }
 .av-collections { margin-top: 24px; padding: 15px 20px 18px; }
+.av-outfit-rewards { margin-top: 24px; padding: 15px 20px 18px; border: 1px solid #fff8e7; border-radius: 27px; background: linear-gradient(135deg, #fffcf2, #f8eddd); box-shadow: 0 7px 20px #34492b2b; }
+.av-outfit-rewards-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.av-outfit-reward { padding: 15px; border: 1px solid #eadfc9; border-radius: 17px; background: #fffaf1; }
+.av-outfit-reward-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.av-outfit-reward h3 { margin: 0; color: #3e5260; font-size: 17px; }
+.av-outfit-reward-status { flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; color: #776e60; background: #eee8df; font-size: 11px; font-weight: 800; }
+.av-outfit-reward-status.is-completed, .av-outfit-reward-status.is-claimed { color: #236047; background: #dff2e2; }
+.av-outfit-reward-condition, .av-outfit-reward-amount { margin: 9px 0 0; color: #777b7a; font-size: 13px; }
+.av-outfit-reward-amount strong { color: #a86b19; }
+.av-outfit-rewards-state { margin: 6px 0 0; color: #777b7a; font-size: 14px; }
+.av-outfit-rewards-state button { margin-top: 8px; padding: 8px 14px; border: 1px solid #efd293; border-radius: 999px; color: #563b17; background: #fff1c7; font: inherit; font-weight: 800; cursor: pointer; }
 .av-collections-heading { display: flex; align-items: center; gap: 15px; margin-bottom: 12px; }
 .av-collections-heading h2 { display: flex; align-items: center; gap: 8px; font-size: 23px; margin: 0; }
 .av-collections-heading h2 > span { font-size: 31px; }

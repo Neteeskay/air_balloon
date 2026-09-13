@@ -1,4 +1,4 @@
-import type { Api, Fairness, GameEvent, Scenario8Offer, Scenario8Purchase, TournamentUpdate, User } from './types'
+import type { Api, Fairness, GameEvent, OutfitRewardStatus, Scenario8Offer, Scenario8Purchase, TournamentUpdate, User } from './types'
 
 type ErrorBody = { code?: string; message?: string }
 type UserState = { userId: string; username: string; displayName: string; bonusBalance: number; gameScore: number; lotteryTicketCount: number }
@@ -179,6 +179,7 @@ export function createRealApi(base = ''): Api {
     profile: {
       get: () => request('/api/current-user/profile'),
       wardrobe: () => request('/api/current-user/wardrobe'),
+      getOutfitRewards: () => request<OutfitRewardStatus[]>('/api/current-user/outfit-rewards'),
       equip: (headId, neckId) => request('/api/current-user/avatar/equipment', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ headId, neckId }) }),
     },
   }

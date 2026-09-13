@@ -188,7 +188,7 @@ export class MockBackend {
         return { entries: entries.slice(page * size, (page + 1) * size), currentPlayer, totalParticipants: entries.length, page, size, revision: entries.reduce((sum, entry) => sum + entry.score, 0) }
       },
     },
-    profile: { get: async () => ({}), wardrobe: async () => [], equip: async () => ({}) },
+    profile: { get: async () => ({}), wardrobe: async () => [], getOutfitRewards: async () => [], equip: async () => ({}) },
     dev: {
       setPreset: p => { this.preset = p },
       setBalance: (id, balance) => { this.db.wallets[id].bonusBalance = balance; this.save() },

@@ -10,6 +10,8 @@ import { TopMenuActions } from '../betting/components/TopMenuActions'
 import { TournamentModal } from '../betting/components/TournamentModal'
 import { api as defaultApi } from '../../api'
 import type { Api } from '../../api/types'
+import type { OutfitRewardsState } from '../profile/OutfitRewardsPanel'
+import { OutfitRewardsPanel } from '../profile/OutfitRewardsPanel'
 import { ProfileHistoryModal } from '../history/ProfileHistoryModal'
 import { asset, categories, findItem, items, normalizeOutfit, outfitImage, renderAssets, type Category, type Item, type Outfit } from './catalog'
 import { ItemArt } from './ItemArt'
@@ -53,6 +55,8 @@ type Props = {
   api?: Api
   onLogout?: () => void | Promise<void>
   onClose: () => void
+  outfitRewards?: OutfitRewardsState
+  onRetryOutfitRewards?: () => void
 }
 
 export function AvatarProfile({
@@ -75,6 +79,8 @@ export function AvatarProfile({
   api,
   onLogout,
   onClose,
+  outfitRewards,
+  onRetryOutfitRewards,
 }: Props) {
   const initial: Outfit = normalizeOutfit({ name: petName, head: equippedClothing.headId, neck: equippedClothing.neckId })
   const [saved, setSaved] = useState<Outfit>(initial)
@@ -230,6 +236,7 @@ export function AvatarProfile({
             </article>
           </div>
         </section>
+        <OutfitRewardsPanel state={outfitRewards} onRetry={onRetryOutfitRewards} />
       </>}
       </div>
       {confirmLeave && <div className="av-confirm-shade"><section ref={confirmPanel} className="av-confirm" role="alertdialog" aria-modal="true" aria-labelledby="av-confirm-title"><h2 id="av-confirm-title">Оставить изменения?</h2><p>Ты ещё не сохранил новый образ.</p><button className="av-gold" onClick={() => { setConfirmLeave(false); save() }}>Сохранить и вернуться</button><button onClick={() => { setDraft(saved); setConfirmLeave(false); setEditing(false); setError(''); setInfo(''); setRenaming(false) }}>Выйти без сохранения</button><button onClick={() => setConfirmLeave(false)}>Продолжить примерку</button></section></div>}

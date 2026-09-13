@@ -32,6 +32,13 @@ describe('real backend adapter', () => {
     expect(fetch.mock.calls.map(call => call[0])).toEqual(['/api/current-user/balance', '/api/current-user/state', '/api/current-user/history?page=0&size=20'])
   })
 
+  it('reads outfit rewards from the current-user endpoint without remapping server fields', async () => {
+    const payload = [{ code: 'SKY_TRAVELER', title: 'Небесный путешественник', rewardAmount: 777, completed: true, claimed: true, claimedAt: '2026-09-13T10:00:00Z' }]
+    const fetch = vi.fn().mockResolvedValue(json(payload)); vi.stubGlobal('fetch', fetch)
+    await expect(createRealApi().profile.getOutfitRewards()).resolves.toEqual(payload)
+    expect(fetch).toHaveBeenCalledWith('/api/current-user/outfit-rewards', expect.objectContaining({ credentials: 'include' }))
+  })
+
   it('uses the dedicated global rating endpoint instead of Tournament', async () => {
     const payload = { entries: [], currentPlayer: { rank: 153, displayName: 'Анна Ветрова', score: 700, currentPlayer: true }, totalParticipants: 200, page: 0, size: 3, revision: 9 }
     const fetch = vi.fn().mockResolvedValue(json(payload)); vi.stubGlobal('fetch', fetch)
