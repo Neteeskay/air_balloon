@@ -8,7 +8,10 @@
 
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
-body { min-height: 100vh; overflow: hidden; }
+/* The auth screen owns its own viewport, but the document must remain scrollable
+   for long-lived screens such as Admin.  A global overflow lock here also
+   blocked wheel, trackpad and touch scrolling after leaving the login route. */
+body { min-height: 100vh; overflow-x: hidden; }
 .auth-page button, .auth-page input { font: inherit; }
 .auth-page button { border: 0; }
 
