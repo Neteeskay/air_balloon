@@ -13,7 +13,7 @@ export type Catalog = {
 export type Fairness = { roundId: string; commitment: string; status: 'COMMITTED' | 'REVEALED'; serverSeed?: string; crashMultiplier?: number; boosterLevel?: number; verified?: boolean; canonicalInput?: string; algorithm?: string; format?: string; example?: boolean }
 export type Round = {
   id: string; roundId: string; theme: Theme; betAmount: number; boosterMultiplier: number
-  boosterActivated: boolean; boosterLevel?: number; currentMultiplier: number; currentLevel: number
+  boosterActivated: boolean; boosterLevel?: number; currentMultiplier: number; flightMultiplier?: number; effectiveMultiplier?: number; currentLevel: number
   totalLevels: number; levelThresholds: number[]; cashoutAvailable: boolean; cashoutPerformed: boolean
   cashoutPreviewAmount?: number; cashoutMultiplier?: number; winAmount: number; roundScore: number
   status: 'RUNNING' | 'CASHED_OUT' | 'CRASHED' | 'FINISHED'; outcome?: 'CASHED_OUT' | 'LOSS'

@@ -110,15 +110,15 @@ Cashout фиксирует выплату, коэффициент и timestamp, 
 
 ```text
 elapsedSeconds = max(0, floor((t - t0) / 1 millisecond)) / 1000
-base(t) = 1 + growthPerSecond × elapsedSeconds
+flight(t) = 1 + growthPerSecond × elapsedSeconds
 factor(t) = boosterMultiplier, если бустер уже активирован; иначе 1
-authoritative(t) = floorTo4Decimals(base(t) × factor(t))
+effective(t) = floorTo4Decimals(flight(t) × factor(t))
 ```
 
 По умолчанию `growthPerSecond=0.10`. Деньги представлены `BigDecimal`:
 
 ```text
-cashoutMultiplier = authoritative(commandHandledAt)
+cashoutMultiplier = effective(commandHandledAt)
 winAmount = floorTo2Decimals(betAmount × cashoutMultiplier)
 ```
 
@@ -131,14 +131,12 @@ Engine посещает все математические границы ме�
 последнего тика. Timestamp границы — первый миллисекундный момент её достижения:
 
 ```text
-crossingMillis = ceil(1000 × max(0, boundary - factor) / (growthPerSecond × factor))
+crossingMillis = ceil(1000 × max(0, boundary - 1) / growthPerSecond)
 ```
 
-После скачка бустера timestamp дополнительно ограничен снизу временем активации:
-прыгнувшие уровни и crash не могут попасть в прошлое. При событии границы фиксируется
-её коэффициент; на момент обработки команды рассчитывается коэффициент для всего
-прошедшего времени. Время округляется до миллисекунд. Перевод часов назад не
-уменьшает уже достигнутые время и коэффициент.
+При событии границы фиксируется её flight-коэффициент; на момент обработки команды
+рассчитывается effective-коэффициент для всего прошедшего времени. Время округляется
+до миллисекунд. Перевод часов назад не уменьшает уже достигнутые время и коэффициент.
 
 ### Crash point
 
@@ -187,17 +185,20 @@ GREEN содержит ровно 9 порогов, RED — 12. Пороги с�
 На первом достижении выбранного уровня до cashout:
 
 ```text
-before = currentMultiplier
-after = before × boosterMultiplier
+before = effectiveMultiplier
+after = flightMultiplier × boosterMultiplier
 boosterActivated = true
 extraPoints = boosterPointsPerMultiplier × (boosterMultiplier - 1)
 ```
 
 При defaults x3 даёт 300 дополнительных очков. За уровень начисляются отдельные
-`ThemeConfig.points[level-1]`. Скачок 2→6 пересекает промежуточные пороги тем же
-временем. Если скачок достигает crash, он завершает полёт сразу. Уровни строго
-ниже crash засчитываются, порог, равный crash, — нет. Равенство crash и порога
-бустера также выигрывает crash: активации не происходит.
+`ThemeConfig.points[level-1]`. `flightMultiplier` — физическая прогрессия: только
+она пересекает уровни и сравнивается с заранее committed crash point. Booster
+изменяет только `effectiveMultiplier`/выплату и никогда не изменяет crash point,
+RNG или commitment. Поэтому x4 при flight=1.20 даёт effective=4.80, но раунд
+остаётся RUNNING до flight=crash. Если crash point находится до booster threshold,
+сначала фиксируется CRASH и booster не активируется; при пересечении обоих в одном
+тике порядок определяется их положением на шкале flight.
 
 ## Гонки и интеграционные ошибки
 

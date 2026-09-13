@@ -4,11 +4,12 @@ import type { GameEvent, Round } from '../../../api/types'
 import type { BetOption, Theme } from '../../betting/types'
 import type { CrashGameFinish } from '../types'
 import { useCrashSounds } from './useCrashSounds'
+import { getVisualFlightCoefficient } from '../lib/flightProgress'
 
 export type CrashRoundStatus = 'flying' | 'cashed-out' | 'crashed'
 type Props = { bet: number; boosterMultiplier: BetOption['multiplier']; onFinish: (result: CrashGameFinish) => void; roundId: string; soundOn: boolean; theme: Theme }
 
-export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
+export function useCrashRound({ boosterMultiplier, onFinish, roundId, soundOn }: Props) {
   const [server, setServer] = useState<Round | null>(null)
   const [status, setStatus] = useState<CrashRoundStatus>('flying')
   const [connection, setConnection] = useState<'connected'|'recovering'|'disconnected'>('recovering')
@@ -49,6 +50,7 @@ export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
       const current = serverRef.current
       if (!current || event.sequence <= latestSequence.current) return
       const multiplier = Number(event.data.multiplier)
+      const flightMultiplier = Number(event.data.flightMultiplier)
       const level = Number(event.data.level)
       if (!Number.isFinite(multiplier) || !Number.isFinite(level)) { void load(); return }
       const preview = Number(event.data.cashoutPreviewAmount)
@@ -56,6 +58,8 @@ export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
         ...current,
         currentLevel: level,
         currentMultiplier: multiplier,
+        ...(Number.isFinite(flightMultiplier) ? { flightMultiplier } : {}),
+        ...(Number.isFinite(flightMultiplier) ? { effectiveMultiplier: multiplier } : {}),
         sequence: event.sequence,
         serverTime: event.serverTime,
         timestamp: event.timestamp,
@@ -77,5 +81,8 @@ export function useCrashRound({ onFinish, roundId, soundOn }: Props) {
   const cashout = useCallback(() => { if (!server || status !== 'flying' || !server.cashoutAvailable || cashoutPending.current) return; cashoutPending.current = true; void api.game.cashout(roundId, cashoutKey.current).then(apply).then(() => play('cashout')).catch(() => {}).finally(() => { cashoutPending.current = false }) }, [apply, play, roundId, server, status])
   const levels = (server?.levelThresholds ?? []).map(Number)
   const raw = Number(server?.currentMultiplier ?? 1)
-  return { canCashout: status === 'flying' && Boolean(server?.cashoutAvailable), cashout, cashoutCoefficient: server?.cashoutMultiplier ? Number(server.cashoutMultiplier) : null, cashoutPayout: Number(server?.winAmount ?? 0), coefficient: raw, levels, boosterActivated: Boolean(server?.boosterActivated), boosterLevel: Number(server?.boosterLevel ?? 0), unlockSounds: unlock, mock: { boosterLevel: Number(server?.boosterLevel ?? 0), pointsPerLine: 0 }, points: Number(server?.roundScore ?? 0), potentialPayout: Number(server?.cashoutPreviewAmount ?? 0), rawCoefficient: raw, reachedLevels: Number(server?.currentLevel ?? 0), status, connection }
+  const flight = Number.isFinite(Number(server?.flightMultiplier))
+    ? Number(server?.flightMultiplier)
+    : getVisualFlightCoefficient(raw, Boolean(server?.boosterActivated), boosterMultiplier)
+  return { canCashout: status === 'flying' && Boolean(server?.cashoutAvailable), cashout, cashoutCoefficient: server?.cashoutMultiplier ? Number(server.cashoutMultiplier) : null, cashoutPayout: Number(server?.winAmount ?? 0), coefficient: raw, levels, boosterActivated: Boolean(server?.boosterActivated), boosterLevel: Number(server?.boosterLevel ?? 0), unlockSounds: unlock, mock: { boosterLevel: Number(server?.boosterLevel ?? 0), pointsPerLine: 0 }, points: Number(server?.roundScore ?? 0), potentialPayout: Number(server?.cashoutPreviewAmount ?? 0), rawCoefficient: flight, reachedLevels: Number(server?.currentLevel ?? 0), status, connection }
 }

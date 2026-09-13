@@ -13,7 +13,7 @@ Snapshot сохраняет прежние поля и добавляет:
 | --- | --- |
 | `id`, `roundId` | Один UUID; `id` сохранён для совместимости |
 | `status`, `theme`, `betAmount`, `boosterMultiplier` | Исходная ставка и текущий статус |
-| `currentMultiplier`, `currentLevel`, `roundScore` | Авторитетное состояние |
+| `currentMultiplier`/`effectiveMultiplier`, `flightMultiplier`, `currentLevel`, `roundScore` | Авторитетное состояние; flight управляет физическим прогрессом и crash, effective — отображением и cashout |
 | `boosterActivated`, `boosterLevel` | Позиция x2/x3/x4 видна из стартового snapshot; activation меняет только состояние и очки; x1 не имеет позиции |
 | `cashoutPerformed`, `cashoutMultiplier`, `winAmount`, `cashoutAt` | Зафиксированная выплата |
 | `startedAt`, `timestamp`, `serverTime` | Начало, время состояния, время ответа |

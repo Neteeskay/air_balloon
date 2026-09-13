@@ -12,7 +12,7 @@ export function getFlightBottomPercent(progress: number) {
   return FLIGHT_START_PERCENT + clampFlightProgress(progress) * FLIGHT_DISTANCE_PERCENT
 }
 
-/** The backend applies the booster to currentMultiplier; flight geometry must not jump with it. */
+/** Legacy fallback for snapshots that predate the additive flightMultiplier field. */
 export function getVisualFlightCoefficient(
   multiplier: number,
   boosterActivated: boolean,

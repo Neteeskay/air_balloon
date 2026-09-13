@@ -85,6 +85,8 @@ Demo credentials: `anna/balloon1`, `maks/balloon2`, `liza/balloon3`.
   "boosterLevel":3,
   "boosterActivated":false,
   "currentMultiplier":1.0000,
+  "flightMultiplier":1.0000,
+  "effectiveMultiplier":1.0000,
   "currentLevel":0,
   "totalLevels":9,
   "levelThresholds":[1.2,1.5,2,3,4,6,8,10,12],
@@ -213,11 +215,11 @@ POST start. Не отправлять клиентские игровые соо
 | type | data |
 | --- | --- |
 | ROUND_STARTED | `round: RoundView`, `fairnessCommitment`, `cashoutPreviewAmount` |
-| MULTIPLIER_UPDATE | `multiplier, level, cashoutPreviewAmount` до cashout |
-| LEVEL_REACHED | `level, multiplier, cashoutPreviewAmount, points, pointsToAward` до cashout |
-| BOOSTER_ACTIVATED | `booster, level, beforeMultiplier, afterMultiplier, cashoutPreviewAmount, points, pointsToAward` |
+| MULTIPLIER_UPDATE | `multiplier, flightMultiplier, effectiveMultiplier, level, cashoutPreviewAmount` до cashout |
+| LEVEL_REACHED | `level, multiplier, flightMultiplier, effectiveMultiplier, cashoutPreviewAmount, points, pointsToAward` до cashout |
+| BOOSTER_ACTIVATED | `booster, level, beforeMultiplier, afterMultiplier, flightMultiplier, effectiveMultiplier, cashoutPreviewAmount, points, pointsToAward` |
 | CASHOUT_SUCCESS | `multiplier, cashoutMultiplier, winAmount` |
-| CRASH | `crashMultiplier`, `fairnessReveal` |
+| CRASH | `crashMultiplier, flightMultiplier, effectiveMultiplier`, `fairnessReveal` |
 | ROUND_FINISHED | `round: RoundView` с полным финальным состоянием, `fairnessReveal` |
 
 `roundId`, `sequence`, `eventId`, `timestamp`, `serverTime` находятся в envelope всех игровых событий.

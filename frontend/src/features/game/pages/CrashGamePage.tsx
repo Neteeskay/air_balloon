@@ -15,7 +15,6 @@ import { useCrashRound } from '../hooks/useCrashRound'
 import {
   getFlightBottomPercent,
   getLevelFlightProgress,
-  getVisualFlightCoefficient,
   getVisualReachedLevels,
 } from '../lib/flightProgress'
 import type { CrashGameFinish } from '../types'
@@ -80,11 +79,7 @@ export function CrashGamePage({
     }
     return undefined
   }, [round.boosterActivated, round.boosterLevel, round.connection, roundId])
-  const visualCoefficient = getVisualFlightCoefficient(
-    round.rawCoefficient,
-    round.boosterActivated,
-    boosterMultiplier,
-  )
+  const visualCoefficient = round.rawCoefficient
   const authoritativeProgress = useMemo(
     () => getLevelFlightProgress(visualCoefficient, round.levels),
     [round.levels, visualCoefficient],
