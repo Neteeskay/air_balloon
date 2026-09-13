@@ -52,4 +52,49 @@ describe('admin client', () => {
     localStorage.setItem('air-balloon-admin-session', JSON.stringify({ accessToken: 'old', expiresAt: '2000-01-01T00:00:00Z' }))
     expect(adminSession()).toBeNull()
   })
+
+  it('imports a config file sending the raw content', async () => {
+    localStorage.setItem('air-balloon-admin-session', JSON.stringify({ accessToken: 'token-1', expiresAt: '2099-01-01T00:00:00Z' }))
+    const fetch = vi.fn().mockResolvedValue(json({ id: 'id-9', revision: 7, status: 'ACTIVE', points: { pointsPerLine: 777 } }))
+    vi.stubGlobal('fetch', fetch)
+    const client = new AdminClient()
+    const result = await client.importFile('yaml', 'gameId: air-balloon')
+    expect(result.revision).toBe(7)
+    expect(fetch).toHaveBeenCalledWith('/api/admin/config/import?format=yaml', expect.objectContaining({
+      method: 'POST',
+      body: 'gameId: air-balloon',
+      headers: { 'Content-Type': 'application/yaml', Authorization: 'Bearer token-1' },
+    }))
+  })
+
+  it('downloads the exported config file with the server filename', async () => {
+    localStorage.setItem('air-balloon-admin-session', JSON.stringify({ accessToken: 'token-1', expiresAt: '2099-01-01T00:00:00Z' }))
+    const response = {
+      ok: true,
+      status: 200,
+      headers: { get: (name: string) => name === 'Content-Disposition' ? 'attachment; filename="air-balloon-config-air-balloon.yaml"' : 'application/json' },
+      blob: vi.fn().mockResolvedValue(new Blob(['{"gameId":"air-balloon"}'], { type: 'application/json' })),
+    }
+    const fetch = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', fetch)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const anchor = document.createElement('a')
+    const clickSpy = vi.spyOn(anchor, 'click').mockImplementation(() => {})
+    const removeSpy = vi.spyOn(anchor, 'remove').mockImplementation(() => {})
+    const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(anchor)
+    const client = new AdminClient()
+    await client.exportFile('yaml')
+    expect(fetch).toHaveBeenCalledWith('/api/admin/config/export?format=yaml', expect.objectContaining({ method: 'GET' }))
+    expect(anchor.download).toBe('air-balloon-config-air-balloon.yaml')
+    expect(anchor.href).toBe('blob:mock')
+    expect(clickSpy).toHaveBeenCalled()
+    expect(createObjectURL).toHaveBeenCalled()
+    expect(revokeObjectURL).toHaveBeenCalled()
+    removeSpy.mockRestore()
+    clickSpy.mockRestore()
+    createElementSpy.mockRestore()
+    createObjectURL.mockRestore()
+    revokeObjectURL.mockRestore()
+  })
 })

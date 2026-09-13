@@ -399,6 +399,82 @@ class EconomyIntegrationTest extends PostgresSupport {
             .andExpect(status().isOk()).andReturn();
         return json.readTree(result.getResponse().getContentAsString()).get("revision").asLong();
     }
+    String exportFile(String token,String format) throws Exception {
+        var result=http.perform(get("/api/admin/config/export?format="+format).header("Authorization","Bearer "+token))
+            .andExpect(status().isOk())
+            .andExpect(header().exists("Content-Disposition"))
+            .andReturn();
+        assertThat(result.getResponse().getContentType()).contains(format.equals("json")?"json":"yaml");
+        return result.getResponse().getContentAsString();
+    }
+
+    @Test void adminExportImportRoundTripJsonAndYaml() throws Exception {
+        String token=adminToken();
+        String jsonFile=exportFile(token,"json");
+        var tree=json.readTree(jsonFile);
+        ((com.fasterxml.jackson.databind.node.ObjectNode)tree.path("points")).put("pointsPerLine",777);
+        var imported=http.perform(post("/api/admin/config/import?format=json").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(tree)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.revision").isNumber())
+            .andExpect(jsonPath("$.points.pointsPerLine").value(777))
+            .andReturn();
+        assertThat(json.readTree(imported.getResponse().getContentAsString()).path("id").asText()).isNotBlank();
+        assertThat(configs.getCurrentConfig().config().pointsPerLevel()).isEqualTo(777);
+
+        String yamlFile=exportFile(token,"yaml");
+        var yamlImport=http.perform(post("/api/admin/config/import?format=yaml").header("Authorization","Bearer "+token)
+                .contentType("application/yaml").content(yamlFile))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andReturn();
+        assertThat(json.readTree(yamlImport.getResponse().getContentAsString())
+                .path("points").path("pointsPerLine").asLong()).isEqualTo(777);
+        assertThat(configs.getCurrentConfig().config().pointsPerLevel()).isEqualTo(777);
+
+        http.perform(get("/api/admin/config/export?format=xml").header("Authorization","Bearer "+token))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+        http.perform(post("/api/admin/config/import?format=json").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content("{not:json"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+        http.perform(post("/api/admin/config/import?format=yaml").header("Authorization","Bearer "+token)
+                .contentType("application/yaml").content("crash:\n  alpha: [invalid"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+        http.perform(post("/api/admin/config/import?format=json").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"gameId\":\"air-balloon\"}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+    }
+
+    @Test void adminImportRejectsSemanticallyInvalidConfig() throws Exception {
+        String token=adminToken();
+        var tree=json.readTree(exportFile(token,"json"));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)tree.path("crash")).put("alpha",5.0);
+        http.perform(post("/api/admin/config/import?format=json").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(tree)))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM admin_config WHERE status='ACTIVE'",Long.class)).isEqualTo(1);
+    }
+    @Test void adminFpsDeltaAreConfigurableAndMustBeConsistent() throws Exception {
+        String token = adminToken();
+        var tree = json.readTree(exportFile(token, "json"));
+
+        ((com.fasterxml.jackson.databind.node.ObjectNode) tree.path("crash")).put("fps", 30.0);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) tree.path("crash")).put("delta", 1.0 / 30.0);
+        http.perform(post("/api/admin/config/import?format=json").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(tree)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.crash.fps").value(30.0))
+                .andExpect(jsonPath("$.crash.delta").value(1.0 / 30.0));
+
+        var bad = json.readTree(exportFile(token, "json"));
+        ((com.fasterxml.jackson.databind.node.ObjectNode) bad.path("crash")).put("fps", 45.0);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) bad.path("crash")).put("delta", 0.021); // != 1/45
+        http.perform(post("/api/admin/config/import?format=json").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(bad)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CONFIG_VALIDATION_ERROR"));
+    }
+
     Map<String,Object> draftBody(long revision,long points) {
         Map<String,Object> green=new LinkedHashMap<>();
         for(int i=1;i<=9;i++) green.put("line"+i+"LootProb",100.0/9);

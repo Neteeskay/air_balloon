@@ -20,8 +20,9 @@ services:
       - maven_test_cache:/root/.m2
     environment:
       DB_URL: jdbc:postgresql://postgres-test:5432/balloon_test
-      POSTGRES_USER: balloon_test
-      POSTGRES_PASSWORD: test-only
+      TEST_DATABASE_URL: jdbc:postgresql://postgres-test:5432/balloon_test
+      TEST_DATABASE_USER: balloon_test
+      TEST_DATABASE_PASSWORD: test-only
     depends_on:
       postgres-test:
         condition: service_healthy

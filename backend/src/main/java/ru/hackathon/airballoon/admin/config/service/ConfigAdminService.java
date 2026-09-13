@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.hackathon.airballoon.admin.config.domain.ConfigStatus;
 import ru.hackathon.airballoon.admin.config.dto.ConfigDiffResponse;
+import ru.hackathon.airballoon.admin.config.dto.ConfigFilePayload;
 import ru.hackathon.airballoon.admin.config.dto.ConfigValidationResponse;
 import ru.hackathon.airballoon.admin.config.dto.ConfigurationVersionDetail;
 import ru.hackathon.airballoon.admin.config.dto.ConfigurationVersionSummary;
@@ -144,6 +145,23 @@ public class ConfigAdminService {
         return diffService.diff(from, to);
     }
 
+    public ConfigFilePayload exportCurrent() {
+        return toFilePayload(repository.findActive(GAME_ID)
+                .orElseThrow(() -> new ResourceNotFoundException("No active configuration")));
+    }
+
+    public ConfigFilePayload exportVersion(UUID id) {
+        return toFilePayload(repository.findByIdAndApp(id, GAME_ID)
+                .orElseThrow(() -> new ResourceNotFoundException("Configuration version not found")));
+    }
+
+    @Transactional
+    public GameConfigurationResponse importConfig(ConfigFilePayload payload, String adminUser) {
+        long currentVersion = repository.findActiveForUpdate(GAME_ID).map(AdminConfigRow::revision).orElse(0L);
+        GameConfigurationResponse draft = createDraft(payload.toWriteRequest(currentVersion + 1), adminUser);
+        return activate(draft.id(), adminUser);
+    }
+
     @Transactional
     public ConfigurationVersionDetail rollback(UUID fromId, String adminUser) {
         AdminConfigRow source = repository.findByIdAndAppForUpdate(fromId, GAME_ID)
@@ -175,6 +193,15 @@ public class ConfigAdminService {
         Map<String, Double> green = AdminConfigMapper.toFlat(mapper.byLevel(rows, AdminConfigMapper.GREEN));
         Map<String, Double> red = AdminConfigMapper.toFlat(mapper.byLevel(rows, AdminConfigMapper.RED));
         return mapper.toResponse(row, green, red);
+    }
+
+    private ConfigFilePayload toFilePayload(AdminConfigRow row) {
+        var rows = probabilities.findByConfigId(row.id());
+        Map<String, Double> green = AdminConfigMapper.toFlat(mapper.byLevel(rows, AdminConfigMapper.GREEN));
+        Map<String, Double> red = AdminConfigMapper.toFlat(mapper.byLevel(rows, AdminConfigMapper.RED));
+        return new ConfigFilePayload(
+                GAME_ID, row.gameName(), row.gameType(), row.gameActive(),
+                mapper.crash(row), mapper.boosters(row, green, red), mapper.points(row));
     }
 
     private ConfigurationVersionDetail toDetail(AdminConfigRow row) {

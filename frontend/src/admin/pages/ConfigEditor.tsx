@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LineChart } from '../chart'
 import { AdminClient, AdminApiError } from '../client'
 import { HelpPopover } from '../components'
@@ -31,17 +31,23 @@ const GROUP_TITLE: Record<string, string> = {
   points: 'Очки',
 }
 
+const formatFromName = (filename: string): 'json' | 'yaml' => {
+  if (filename.endsWith('.yaml') || filename.endsWith('.yml')) return 'yaml'
+  return 'json'
+}
+
 export function ConfigEditor({ client, metadata }: { client: AdminClient; metadata: ConfigMetadata }) {
   const [current, setCurrent] = useState<GameConfiguration | null>(null)
   const [model, setModel] = useState<EditorModel>({})
   const [savedSnapshot, setSavedSnapshot] = useState<EditorModel | null>(null)
-  const [busyAction, setBusyAction] = useState<'validate' | 'save' | null>(null)
+  const [busyAction, setBusyAction] = useState<'validate' | 'save' | 'export' | 'import' | null>(null)
   const [flash, setFlash] = useState<Flash | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldViolation[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
   const [conflictVersion, setConflictVersion] = useState<number | null>(null)
   const [loadError, setLoadError] = useState('')
   const [boosterTheme, setBoosterTheme] = useState<'green' | 'red'>('green')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const reload = useCallback(() => {
     client.getCurrent()
       .then(config => {
@@ -60,6 +66,32 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     return assemble(model, current, nextRevision)
   }, [model, current, nextRevision])
   const handleFlash = (flash: Flash) => { setFlash(flash); setTimeout(() => setFlash(null), 12_000) }
+  const exportConfig = useCallback(async (format: 'json' | 'yaml') => {
+    setBusyAction('export')
+    try {
+      await client.exportFile(format)
+      handleFlash({ type: 'info', message: `Конфигурация экспортирована (${format.toUpperCase()}).` })
+    } catch (e) {
+      handleFlash({ type: 'error', message: `Ошибка экспорта: ${(e as Error).message}` })
+    } finally { setBusyAction(null) }
+  }, [client])
+  const onImportFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setBusyAction('import'); setFieldErrors([]); setWarnings([]); setConflictVersion(null)
+    try {
+      const format = formatFromName(file.name)
+      const content = await file.text()
+      const imported = await client.importFile(format, content)
+      const flat = flatten(imported, metadata)
+      setCurrent(imported); setModel(flat); setSavedSnapshot(flat)
+      handleFlash({ type: 'info', message: `Конфигурация импортирована и применена — ревизия #${imported.revision}.` })
+    } catch (e) {
+      if (e instanceof AdminApiError && e.fieldErrors?.length) { setFieldErrors(e.fieldErrors); handleFlash({ type: 'error', message: 'Импорт завершился с ошибками.' }) }
+      else handleFlash({ type: 'error', message: `Ошибка импорта: ${(e as Error).message}` })
+    } finally { setBusyAction(null) }
+  }, [client, metadata])
   const validate = useCallback(async () => {
     if (!current) return
     setBusyAction('validate'); setFieldErrors([]); setWarnings([])
@@ -146,6 +178,17 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
         <p className="admin-hint">Измените параметры и нажмите «Сохранить и применить» — изменения вступят в силу сразу.</p>
       </div>
       {current && <span className="admin-pill">ревизия #{current.revision}</span>}
+    </div>
+    <div className="admin-file-tools admin-mb-14">
+      <div className="admin-file-tools-inner">
+        <span className="admin-file-tools-label">Файл конфигурации</span>
+        <div className="admin-row-actions">
+          <button className="admin-secondary admin-primary-compact" onClick={() => void exportConfig('json')} disabled={busyAction !== null}>{busyAction === 'export' ? 'Экспортируем…' : 'Экспорт JSON'}</button>
+          <button className="admin-secondary admin-primary-compact" onClick={() => void exportConfig('yaml')} disabled={busyAction !== null}>{busyAction === 'export' ? 'Экспортируем…' : 'Экспорт YAML'}</button>
+          <button className="admin-secondary admin-primary-compact" onClick={() => fileInputRef.current?.click()} disabled={busyAction !== null}>{busyAction === 'import' ? 'Импортируем…' : 'Импорт…'}</button>
+          <input ref={fileInputRef} type="file" accept=".json,.yaml,.yml" hidden onChange={onImportFile} />
+        </div>
+      </div>
     </div>
     {conflictVersion !== null && <div className="admin-warning admin-mb-14" role="status">
       Настройки менялись на сервере (текущая ревизия: <strong>#{conflictVersion}</strong>).

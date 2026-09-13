@@ -46,13 +46,11 @@ public class ConfigAdminValidator {
                     "crash.fps", "fps must be > 0", crash.fps(), violations);
             check(() -> Double.isNaN(crash.delta()) || crash.delta() <= 0,
                     "crash.delta", "delta must be > 0", crash.delta(), violations);
-            // The current runtime samples on its deployment tick and does not read
-            // these admin values. Reject changes explicitly instead of silently
-            // persisting a setting that has no effect on a new round.
-            check(() -> Double.isFinite(crash.fps()) && Double.compare(crash.fps(), 60.0) != 0,
-                    "crash.fps", "fps is not runtime-configurable; only 60 is supported", crash.fps(), violations);
-            check(() -> Double.isFinite(crash.delta()) && Math.abs(crash.delta() - (1.0 / 60.0)) > 1e-9,
-                    "crash.delta", "delta is not runtime-configurable; only 1/60 is supported", crash.delta(), violations);
+            // fps and delta describe the same simulation cadence: delta is the duration of a
+            // single frame and must equal 1/fps. Accept configurable ranges but keep the pair consistent.
+            check(() -> Double.isFinite(crash.fps()) && Double.isFinite(crash.delta()) && crash.delta() > 0
+                            && Math.abs(crash.delta() - (1.0 / crash.fps())) > 1e-9,
+                    "crash.delta", "delta must equal 1/fps", crash.delta(), violations);
             if (crash.maxMultiplier() > 0 && crash.minCrashMultiplier() > 0
                     && !Double.isNaN(crash.maxMultiplier()) && !Double.isNaN(crash.minCrashMultiplier())
                     && crash.maxMultiplier() <= crash.minCrashMultiplier()) {
@@ -103,8 +101,8 @@ public class ConfigAdminValidator {
     public List<String> computeWarnings(GameConfigurationWriteRequest request) {
         List<String> warnings = new ArrayList<>();
         CrashSettingsDto crash = request.crash();
-        if (crash != null && crash.delta() > 0 && Math.abs(crash.delta() - 1.0 / 60.0) > PROB_SUM_EPSILON) {
-            warnings.add("delta does not match 1/fps of 60; live engine simulation may differ from settings");
+        if (crash != null && crash.fps() > 0 && crash.delta() > 0 && Math.abs(crash.delta() - 1.0 / crash.fps()) > PROB_SUM_EPSILON) {
+            warnings.add("delta does not match 1/fps; live engine simulation may differ from settings");
         }
         BoosterSettingsDto boosters = request.boosters();
         if (boosters != null) {

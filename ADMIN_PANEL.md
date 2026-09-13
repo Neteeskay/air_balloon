@@ -195,6 +195,8 @@ authoritative backend уже использует V306 для Puzzle/Profile):
 | GET | `/api/admin/config/versions/{id}` | Детали версии |
 | GET | `/api/admin/config/versions/{fromId}/diff/{toId}` | Diff между версиями |
 | POST | `/api/admin/config/versions/{id}/rollback` | Откат к версии (создаёт новую ACTIVE) |
+| GET | `/api/admin/config/export?format=json\|yaml&version=<uuid>` | Скачать конфигурацию файлом (текущую или конкретную версию) |
+| POST | `/api/admin/config/import?format=json\|yaml` | Импортировать конфигурацию из файла (валидация → draft → активация)
 
 ### Аудит
 
