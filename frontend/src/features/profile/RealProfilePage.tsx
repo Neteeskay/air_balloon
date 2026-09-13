@@ -160,6 +160,8 @@ export function RealProfilePage({
   const [outfitRewards, setOutfitRewards] = useState<OutfitRewardsState>({ status: 'loading', items: [] })
   const fallback = useMemo(() => fallbackView(user), [user])
 
+  useEffect(() => { setCurrentBalance(balance) }, [balance])
+
   const refreshOutfitRewards = useCallback(async () => {
     setOutfitRewards((current) => ({ status: 'loading', items: current.items }))
     try {
