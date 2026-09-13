@@ -62,7 +62,7 @@ public class ConfigAdminService {
     public GameConfigurationResponse getActive() {
         return repository.findActive(GAME_ID)
                 .map(this::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("No active configuration"));
+                .orElseThrow(() -> new ResourceNotFoundException("Активная конфигурация отсутствует"));
     }
 
     @Transactional
@@ -104,14 +104,14 @@ public class ConfigAdminService {
     @Transactional
     public GameConfigurationResponse activate(UUID id, String adminUser) {
         AdminConfigRow row = repository.findByIdAndAppForUpdate(id, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Configuration version not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Версия конфигурации не найдена"));
         if (ConfigStatus.ACTIVE.name().equals(row.status())) {
             throw new ConfigStateException("CONFIG_ALREADY_ACTIVE",
-                    "Configuration is already active: " + row.revision());
+                    "Конфигурация уже активна: " + row.revision());
         }
         if (!ConfigStatus.DRAFT.name().equals(row.status())) {
             throw new ConfigStateException("CONFIG_ACTIVATION_FAILED",
-                    "Only a draft configuration can be activated");
+                    "Активировать можно только черновик конфигурации");
         }
         List<AdminBoosterProbabilityRow> boosterRows = probabilities.findByConfigId(row.id());
         publisher.publishAndActivate(row, boosterRows, adminUser);
@@ -132,27 +132,27 @@ public class ConfigAdminService {
 
     public ConfigurationVersionDetail version(UUID id) {
         AdminConfigRow row = repository.findByIdAndApp(id, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Configuration version not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Версия конфигурации не найдена"));
         return toDetail(row);
     }
 
     @Transactional
     public ConfigDiffResponse diff(UUID fromId, UUID toId) {
         AdminConfigRow from = repository.findByIdAndApp(fromId, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Source configuration not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Исходная конфигурация не найдена"));
         AdminConfigRow to = repository.findByIdAndApp(toId, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Target configuration not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Целевая конфигурация не найдена"));
         return diffService.diff(from, to);
     }
 
     public ConfigFilePayload exportCurrent() {
         return toFilePayload(repository.findActive(GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("No active configuration")));
+                .orElseThrow(() -> new ResourceNotFoundException("Активная конфигурация отсутствует")));
     }
 
     public ConfigFilePayload exportVersion(UUID id) {
         return toFilePayload(repository.findByIdAndApp(id, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Configuration version not found")));
+                .orElseThrow(() -> new ResourceNotFoundException("Версия конфигурации не найдена")));
     }
 
     @Transactional
@@ -165,7 +165,7 @@ public class ConfigAdminService {
     @Transactional
     public ConfigurationVersionDetail rollback(UUID fromId, String adminUser) {
         AdminConfigRow source = repository.findByIdAndAppForUpdate(fromId, GAME_ID)
-                .orElseThrow(() -> new ResourceNotFoundException("Configuration version not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Версия конфигурации не найдена"));
         Long currentRevision = repository.findActive(GAME_ID).map(AdminConfigRow::revision).orElse(null);
 
         List<AdminBoosterProbabilityRow> boosterRows = probabilities.findByConfigId(source.id());

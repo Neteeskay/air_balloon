@@ -210,7 +210,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     </div>
     <section className="admin-card admin-mb-14">
       <h2 className="admin-card-title">{GROUP_TITLE.general}</h2>
-      {general.filter(p => p.dataType === 'boolean').map(p => <div key={p.technicalName} className="admin-form-grid admin-two-cols">
+      {general.filter(p => p.dataType === 'boolean').map(p => <div key={p.technicalName} className="admin-form-grid admin-two-cols admin-mb-14">
         <SelectField param={p} value={model[p.technicalName] ?? String(current.isActive)} onChange={setField} />
       </div>)}
       <div className="admin-fields admin-fields-2">{general.filter(p => p.dataType !== 'boolean').map(p => <div key={p.technicalName} className="admin-field-row">
@@ -223,7 +223,9 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
       <div className="admin-crash-layout">
         <div className="admin-crash-params">
           <p className="admin-section-label admin-plain">Параметры модели</p>
-          {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}
+          <div className="admin-crash-group">
+            {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}
+          </div>
           {liveCrash && <div className="admin-chart-chips">
             <span>P(X ≥ 2) ≈ <b>{previewP[0] ? (previewP[0].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 5) ≈ <b>{previewP[1] ? (previewP[1].p * 100).toFixed(2) : '—'}%</b></span>
@@ -235,7 +237,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
             <div className="admin-chart-head">
               <h3 className="admin-section-label admin-plain">Вероятность, что множитель будет не ниже x<small>P(X ≥ x) по модели усечённого Парето</small></h3>
             </div>
-            <LineChart height={250} series={[{ name: 'Теория', color: '#246b50', points: modelCurve }]} />
+            <LineChart height={320} series={[{ name: 'Теория', color: '#10B981', points: modelCurve }]} />
           </>}
         </div>
       </div>
@@ -252,13 +254,17 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
             <span className="admin-theme-dot" aria-hidden="true" />
             <strong>{theme === 'green' ? 'Зелёная' : 'Красная'} · {themeLevelCount(theme)} линий</strong>
             <small className={ok ? '' : 'admin-hint-error'}>сумма: {sum.toFixed(2)}%{!ok ? ' — нужно 100%' : ''}</small>
+            <span className="admin-theme-check" aria-hidden="true">✓</span>
           </button>
         })}
       </div>
-      <h3 className="admin-section-label">Множители бустеров</h3>
-      <div className="admin-form-grid admin-tier-grid">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
-      <h3 className="admin-section-label">{boosterTheme === 'green' ? 'Шансы линий · Зелёная тема' : 'Шансы линий · Красная тема'}</h3>
-      <div className="admin-form-grid admin-mb-0">{boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
+      <div className="admin-booster-group">
+        <h3 className="admin-section-label">Множители бустеров</h3>
+        <div className="admin-form-grid admin-tier-grid admin-mb-0">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
+      </div>
+      <LineProbabilitiesEditor theme={boosterTheme}
+        params={boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability')}
+        model={model} onChange={setField} errorOf={name => fieldErrors.find(e => e.field === name)?.message} />
     </section>
     <section className="admin-card">
       <h2 className="admin-card-title">{GROUP_TITLE.points}</h2>
@@ -283,6 +289,74 @@ function NumberField({ param, model, onChange, disabled, error }: { param: Param
     <input id={inputId} type="number" step={step} min={param.min ?? undefined} max={param.max ?? undefined} value={model[param.technicalName] ?? ''} onChange={e => onChange(param.technicalName, e.target.value)} disabled={disabled || !param.mutable} aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} />
     {error && <small id={`${inputId}-error`} className="admin-hint-error">Ошибка: {error}</small>}
   </label>
+}
+
+function LineProbabilitiesEditor({ theme, params, model, onChange, errorOf }: {
+  theme: 'green' | 'red'
+  params: ParameterMetadata[]
+  model: EditorModel
+  onChange: (name: string, value: string) => void
+  errorOf: (name: string) => string | undefined
+}) {
+  const themeLabel = theme === 'green' ? 'Зелёная тема' : 'Красная тема'
+  const sum = params.reduce((acc, p) => {
+    const v = Number(model[p.technicalName])
+    return acc + (Number.isFinite(v) ? v : 0)
+  }, 0)
+  const ok = Math.abs(sum - 100) <= 0.01
+  const remaining = 100 - sum
+
+  const distributeEvenly = () => {
+    if (params.length === 0) return
+    const base = Math.floor(100 / params.length)
+    const bigger = 100 - base * params.length
+    params.forEach((p, i) => onChange(p.technicalName, String(i < bigger ? base + 1 : base)))
+  }
+
+  const normalize = () => {
+    if (params.length === 0) return
+    let accounted = 0
+    params.forEach((p, i) => {
+      const current = Number(model[p.technicalName])
+      const raw = Number.isFinite(current) ? current : 0
+      let v: number
+      if (i === params.length - 1) {
+        v = Math.round((100 - accounted) * 100) / 100
+      } else {
+        const share = sum > 1e-9 ? raw / sum : 1 / params.length
+        v = Math.round(share * 100 * 100) / 100
+        accounted += v
+      }
+      onChange(p.technicalName, String(v))
+    })
+  }
+
+  return <div className="admin-lines-editor">
+    <h3 className="admin-section-label">Шансы линий · {themeLabel}</h3>
+    <div className="admin-lines-toolbar">
+      <div className={`admin-lines-budget ${ok ? 'ok' : remaining < 0 ? 'over' : 'under'}`} role="status">
+        <strong>{sum.toFixed(2)}%</strong>
+        <span>распределено из 100%</span>
+        <small>{ok ? 'Идеально — сумма равна 100%' : remaining > 0 ? `осталось распределить ${remaining.toFixed(2)}%` : `перебор на ${Math.abs(remaining).toFixed(2)}%`}</small>
+      </div>
+      <div className="admin-row-actions">
+        <button type="button" className="admin-secondary admin-primary-compact" onClick={distributeEvenly}>Поровну</button>
+        <button type="button" className="admin-secondary admin-primary-compact" onClick={normalize} disabled={ok}>Довести до 100%</button>
+      </div>
+    </div>
+    <div className="admin-lines-stack" role="img" aria-label={`Распределение процентов по линиям, ${themeLabel}`}>
+      {params.map(p => {
+        const v = Number(model[p.technicalName])
+        const w = Number.isFinite(v) && v > 0 ? Math.min(v, 100) : 0
+        return <span key={p.technicalName} className={`admin-lines-seg admin-lines-${theme}`} style={{ width: `${w}%` }} title={`${p.displayName}: ${Number.isFinite(v) ? v.toFixed(2) : '—'}%`} />
+      })}
+      {remaining > 0 && <span className="admin-lines-gap" style={{ width: `${remaining}%` }} />}
+    </div>
+    <div className="admin-form-grid admin-lines-grid">
+      {params.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={onChange} error={errorOf(p.technicalName)} />)}
+    </div>
+    <p className="admin-hint admin-mb-0">Сумма вероятностей всех линий должна быть ровно 100%. Изменения применяются после нажатия «Сохранить и применить».</p>
+  </div>
 }
 
 function SelectField({ param, value, onChange }: { param: ParameterMetadata; value: string; onChange: (name: string, value: string) => void }) {

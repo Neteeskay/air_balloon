@@ -54,7 +54,7 @@ public class LiveConfigPublisher {
         long version = publishLive(merged);
         int updated = adminConfigs.setStatus(row.id(), "ACTIVE", Instant.now(), adminUser);
         if (updated != 1) {
-            throw new ConfigStateException("CONFIG_ACTIVATION_FAILED", "Configuration could not be activated");
+            throw new ConfigStateException("CONFIG_ACTIVATION_FAILED", "Не удалось активировать конфигурацию");
         }
         return version;
     }
@@ -142,7 +142,7 @@ public class LiveConfigPublisher {
                 Long.class, jsonUnquoted(config));
         if (writtenVersion == null) {
             throw new ConfigStateException("LIVE_CONFIG_INSERT_FAILED",
-                    "Failed to publish live configuration; please retry");
+                    "Не удалось опубликовать живую конфигурацию; попробуйте ещё раз");
         }
         jdbc.update("UPDATE game_config_active SET version = ? WHERE id = 1", writtenVersion);
         return writtenVersion;
@@ -163,7 +163,7 @@ public class LiveConfigPublisher {
                 .toList();
         if (themeRows.size() < ("GREEN".equals(theme) ? 9 : 12)) {
             throw new ConfigStateException("LIVE_CONFIG_WEIGHTS_MISSING",
-                    theme + " theme must define all levels before publishing");
+                    (theme.equals("GREEN") ? "Зелёная" : "Красная") + " тема должна задавать все уровни перед публикацией");
         }
         List<Integer> weights = themeRows.stream()
                 .map(r -> (int) Math.round(r.probability() * 100.0))

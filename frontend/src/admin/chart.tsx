@@ -89,12 +89,12 @@ const formatY = (y: number) => {
 }
 
 /** Horizontal grid + axis label styles shared by all recharts charts. */
-const AXIS_TICK = { fontSize: 11, fill: '#6f8499' }
-const AXIS_LABEL = { fill: '#526b84', fontSize: 12, fontWeight: 700 }
+const AXIS_TICK = { fontSize: 11, fill: '#6B7280' }
+const AXIS_LABEL = { fill: '#111827', fontSize: 12, fontWeight: 500 }
 
 export function LineChart({
   series,
-  height = 320,
+  height = 370,
   xLabel = 'X — множитель',
   yLabel = 'P(X ≥ x)',
   logX = true,
@@ -140,17 +140,17 @@ export function LineChart({
         </span>)}
       </div>}
       <ReLineChart width={width} height={height} data={data} margin={{ top: 16, right: 20, bottom: 44, left: 54 }}>
-        <CartesianGrid vertical={false} stroke="#dce6ef" />
+        <CartesianGrid vertical={false} stroke="#E5E7EB" strokeWidth={1} />
         <XAxis dataKey="x" type="number" scale={logX ? 'log' : 'linear'} domain={[xMin, xMax]} ticks={xTicks}
           tickFormatter={formatX} axisLine={false} tickLine={false} tick={AXIS_TICK}
           label={{ value: xLabel, position: 'insideBottom', offset: -14, style: AXIS_LABEL }} />
         <YAxis type="number" domain={[0, 1]} ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]} tickFormatter={formatY}
           axisLine={false} tickLine={false} width={46} tick={AXIS_TICK}
           label={{ value: yLabel, angle: -90, position: 'insideLeft', dy: 8, style: { ...AXIS_LABEL, textAnchor: 'middle' } }} />
-        <Tooltip content={<LineTip total={total} />} cursor={{ stroke: '#8fa3b8', strokeDasharray: '3 3' }} />
+        <Tooltip content={<LineTip total={total} />} cursor={{ stroke: '#9CA3AF', strokeDasharray: '3 3' }} />
         {series.map((s, i) => <Line key={`${s.name}-${i}`} dataKey={`s${i}`} name={s.name} stroke={s.color}
-          strokeWidth={2.2} strokeDasharray={s.dashed ? '6 4' : undefined} dot={false} activeDot={{ r: 4 }} />)}
-        <ReferenceLine y={0} stroke="#c2d2e0" strokeWidth={1.4} />
+          strokeWidth={2.5} strokeDasharray={s.dashed ? '6 4' : undefined} dot={false} activeDot={{ r: 4 }} />)}
+        <ReferenceLine y={0} stroke="#D1D5DB" strokeWidth={1.5} />
       </ReLineChart>
     </div>
   </div>
@@ -168,7 +168,7 @@ export function LineTip({ active, payload, label, total }: any) {
       return <div key={p.name} className="admin-chart-tip-row">
         <span className="admin-chart-tip-swatch" style={{ background: p.color || p.stroke }} />
         <span className="admin-chart-tip-name">{p.name}</span>
-        <span className="admin-chart-tip-val">{formatY(p.value)}{count !== undefined ? ` · ${count.toLocaleString('ru-RU')} из ${total.toLocaleString('ru-RU')} игр` : ''}</span>
+        <span className="admin-chart-tip-val">{formatY(p.value)}{count !== undefined ? ` · ${count.toLocaleString('ru-RU')} игр` : ''}</span>
       </div>
     })}
   </div>
@@ -178,11 +178,11 @@ export function LineTip({ active, payload, label, total }: any) {
 // eslint-disable-next-line react-refresh/only-export-components
 export const pointLabel = (p: Point) => ({ x: formatX(p.x), y: formatY(p.y) })
 
-const HIST_BIN_COLOR = '#2f6fa8'
-const HIST_THEORY_COLOR = '#5b6b80'
+const HIST_BIN_COLOR = '#3B82F6'
+const HIST_THEORY_COLOR = '#6B7280'
 
-const HIST_BIN_TOP = '#549bd4'
-const HIST_BIN_BOTTOM = '#1f6292'
+const HIST_BIN_TOP = '#60A5FA'
+const HIST_BIN_BOTTOM = '#3B82F6'
 
 function niceHistMax(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 1
@@ -206,7 +206,7 @@ export function HistogramChart({
   data,
   total,
   params,
-  height = 300,
+  height = 350,
   xLabel = 'X — множитель',
   yLabel = 'доля игр',
 }: {
@@ -248,18 +248,18 @@ export function HistogramChart({
             <stop offset="100%" stopColor={HIST_BIN_BOTTOM} />
           </linearGradient>
         </defs>
-        <CartesianGrid vertical={false} stroke="#dce6ef" />
+        <CartesianGrid vertical={false} stroke="#E5E7EB" strokeWidth={1} />
         <XAxis dataKey="mid" type="number" scale="log" domain={[minValue, xMax]} ticks={xTicks}
           tickFormatter={formatX} axisLine={false} tickLine={false} tick={AXIS_TICK}
           label={{ value: xLabel, position: 'insideBottom', offset: -14, style: AXIS_LABEL }} />
         <YAxis type="number" domain={[0, yMax]} ticks={linearTicks(0, yMax, 4)} tickFormatter={formatY}
           axisLine={false} tickLine={false} width={46} tick={AXIS_TICK}
           label={{ value: yLabel, angle: -90, position: 'insideLeft', dy: 8, style: { ...AXIS_LABEL, textAnchor: 'middle' } }} />
-        <Tooltip content={<HistTip />} cursor={{ fill: 'rgba(143,163,184,0.1)', stroke: '#8fa3b8', strokeDasharray: '3 3' }} />
+        <Tooltip content={<HistTip />} cursor={{ fill: 'rgba(156, 163, 175, 0.1)', stroke: '#9CA3AF', strokeDasharray: '3 3' }} />
         <Bar dataKey="share" name="симуляция" fill={`url(#${uid}b)`} radius={[5, 5, 0, 0]} barSize={12} />
         {params && <Line dataKey="theo" name="теория" stroke={HIST_THEORY_COLOR} strokeDasharray="5 4"
-          strokeWidth={1.5} dot={false} type="linear" />}
-        <ReferenceLine y={0} stroke="#c2d2e0" strokeWidth={1.4} />
+          strokeWidth={2} dot={false} type="linear" />}
+        <ReferenceLine y={0} stroke="#D1D5DB" strokeWidth={1.5} />
       </ComposedChart>
     </div>
   </div>

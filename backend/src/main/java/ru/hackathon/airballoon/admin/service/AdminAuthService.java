@@ -31,9 +31,9 @@ public class AdminAuthService {
     public LoginResponse login(LoginRequest request) {
         AdminUserEntity user = users.findByUsername(request.username())
                 .filter(AdminUserEntity::enabled)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
+                .orElseThrow(() -> new InvalidCredentialsException("Неверный логин или пароль администратора"));
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-            throw new InvalidCredentialsException("Invalid username or password");
+            throw new InvalidCredentialsException("Неверный логин или пароль администратора");
         }
         IssuedToken issued = tokens.issue(user);
         audit.record(user.username(), AuditAction.ADMIN_LOGIN, "AdminSession", GAME_ID, null,

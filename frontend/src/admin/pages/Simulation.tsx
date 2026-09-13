@@ -8,8 +8,8 @@ import type { GameConfiguration } from '../types'
 
 const MAX_GAMES = 1_000_000
 const MONEY = 'бонусов'
-const THEORY_COLOR = '#d97706'
-const EMPIRIC_COLOR = '#2f6fa8'
+const THEORY_COLOR = '#F59E0B'
+const EMPIRIC_COLOR = '#3B82F6'
 
 const parseOr = (value: string, fallback: number) => {
   const trimmed = value.trim()
@@ -116,7 +116,7 @@ export function Simulation({ client }: { client: AdminClient }) {
             <small className="admin-hint">Одинаковый ключ — одинаковый результат.</small>
           </label>
         </div>
-        <div className="admin-editor-controls admin-mt-14">
+        <div className="admin-sim-actions">
           <button className="admin-primary" onClick={run} disabled={invalidGames || invalidBet || invalidTarget || !paramsValid}>Запустить симуляцию</button>
         </div>
         {runError && <div role="alert" className="admin-error admin-mt-12">{runError}</div>}
@@ -128,7 +128,7 @@ export function Simulation({ client }: { client: AdminClient }) {
           <div className="admin-field-row"><dt>Мин. множитель</dt><dd>{effectiveParams?.minCrashMultiplier ?? config.crash.minCrashMultiplier}</dd></div>
           <div className="admin-field-row"><dt>Макс. множитель</dt><dd>×{effectiveParams?.maxMultiplier ?? config.crash.maxMultiplier}</dd></div>
         </div>
-        <h3 className="admin-section-label">Попробовать другой вариант модели<small>без сохранения — поля можно оставить пустыми</small></h3>
+        <h3 className="admin-section-label admin-sim-options">Попробовать другой вариант модели<small>без сохранения — поля можно оставить пустыми</small></h3>
         <div className="admin-sim-form admin-sim-form-3">
           <label className="admin-form-label"><span>Наклон кривой (α)</span>
             <input type="number" min={0} max={1} step="0.01" value={overrideAlpha} onChange={e => setOverrideAlpha(e.target.value)} placeholder={String(config.crash.alpha)} />
@@ -166,16 +166,18 @@ export function Simulation({ client }: { client: AdminClient }) {
           <small>P(X ≥ {result.cashoutTarget}) по формуле модели</small>
         </div>
       </div>
-      <section className="admin-card">
-        <div className="admin-card-head"><h2 className="admin-card-title">Симуляция против теории</h2></div>
-        <LineChart height={320} xLabel="X — множитель" yLabel="P(X ≥ x)" total={result.games} series={[...theoreticalSeries, ...empiricalSeries]} />
-        <p className="admin-hint admin-mt-12">Пунктир — теоретическая вероятность P(X ≥ x) модели (непрерывный усечённый хвост на [1, max], без атомов). Сплошная линия — доля игр симуляции, где шар добрался до x. Чем больше игр, тем ближе симуляция к теории. Наведите курсор на график — покажет долю игр и их число, добравшихся до этого множителя и выше.</p>
-      </section>
-      <section className="admin-card admin-mb-0">
-        <div className="admin-card-head"><h2 className="admin-card-title">Распределение коэффициентов</h2></div>
-        <HistogramChart data={result.histogram} total={result.games} params={result.params} />
-        <p className="admin-hint admin-mt-12">Первый столбец — низкий хвост распределения; у модели нет «мгновенных крахов» (α задаёт наклон кривой, а не вероятность сразу ×1). Пунктир — теоретическая доля игр в каждом диапазоне. Наведите курсор на столбец, чтобы увидеть точное число игр.</p>
-      </section>
+      <div className="admin-sim-charts">
+        <section className="admin-card">
+          <div className="admin-card-head"><h2 className="admin-card-title">Симуляция против теории</h2></div>
+          <LineChart height={380} xLabel="X — множитель" yLabel="P(X ≥ x)" total={result.games} series={[...theoreticalSeries, ...empiricalSeries]} />
+          <p className="admin-hint admin-mt-12">Пунктир — теоретическая вероятность P(X ≥ x) модели (непрерывный усечённый хвост на [1, max], без атомов). Сплошная линия — доля игр симуляции, где шар добрался до x. Чем больше игр, тем ближе симуляция к теории. Наведите курсор на график — покажет долю игр и их число, добравшихся до этого множителя и выше.</p>
+        </section>
+        <section className="admin-card admin-mb-0">
+          <div className="admin-card-head"><h2 className="admin-card-title">Распределение коэффициентов</h2></div>
+          <HistogramChart data={result.histogram} total={result.games} params={result.params} height={380} />
+          <p className="admin-hint admin-mt-12">Первый столбец — низкий хвост распределения; у модели нет «мгновенных крахов» (α задаёт наклон кривой, а не вероятность сразу ×1). Пунктир — теоретическая доля игр в каждом диапазоне. Наведите курсор на столбец, чтобы увидеть точное число игр.</p>
+        </section>
+      </div>
     </> : <section className="admin-card">
       <div className="admin-loading">Запустите симуляцию — здесь появятся итоговый результат и график.</div>
     </section>}

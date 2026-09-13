@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         List<FieldViolation> violations = e.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new FieldViolation(fe.getField(), fe.getDefaultMessage()))
                 .toList();
-        return body(HttpStatus.BAD_REQUEST, "CONFIG_VALIDATION_ERROR", "Configuration validation failed",
+        return body(HttpStatus.BAD_REQUEST, "CONFIG_VALIDATION_ERROR", "Ошибка проверки конфигурации",
                 violations, null, request);
     }
 
@@ -64,14 +64,14 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiErrorResponse> malformedRequest(Exception e, HttpServletRequest request) throws Exception {
         if (!adminPath(request)) throw e; // keep the game engine handler for player-facing paths
         return body(HttpStatus.BAD_REQUEST, "INVALID_REQUEST",
-                "Invalid JSON, unsupported fields or malformed parameters", null, null, request);
+                "Некорректный JSON, неизвестные поля или неверные параметры", null, null, request);
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> unexpected(Exception e, HttpServletRequest request) {
         log.error("Admin API request failed [{}]", TraceId.current(), e);
         return body(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
-                "Internal server error", null, null, request);
+                "Внутренняя ошибка сервера", null, null, request);
     }
 
     private ResponseEntity<ApiErrorResponse> body(HttpStatus status, String code, String message,

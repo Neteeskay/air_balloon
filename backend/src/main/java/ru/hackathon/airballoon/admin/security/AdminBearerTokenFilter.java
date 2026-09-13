@@ -60,12 +60,12 @@ public class AdminBearerTokenFilter extends OncePerRequestFilter {
                 chain.doFilter(request, response);
                 return;
             }
-            reject(response, 401, "UNAUTHORIZED", "Authentication required");
+            reject(response, 401, "UNAUTHORIZED", "Требуется авторизация");
             return;
         }
         String token = bearerToken(request.getHeader("Authorization"));
         if (token == null) {
-            reject(response, 401, "UNAUTHORIZED", "Authentication required");
+            reject(response, 401, "UNAUTHORIZED", "Требуется авторизация");
             return;
         }
         Optional<AdminPrincipal> principal = tokens.resolve(token);
@@ -75,10 +75,10 @@ public class AdminBearerTokenFilter extends OncePerRequestFilter {
             return;
         }
         if (playerToken != null && !playerToken.isBlank() && constantTimeEquals(playerToken, token)) {
-            reject(response, 403, "FORBIDDEN", "You are not allowed to access this resource");
+            reject(response, 403, "FORBIDDEN", "Доступ к ресурсу запрещён");
             return;
         }
-        reject(response, 401, "UNAUTHORIZED", "Invalid or expired token");
+        reject(response, 401, "UNAUTHORIZED", "Токен недействителен или истёк");
     }
 
     private static String decodedPath(HttpServletRequest request) {
