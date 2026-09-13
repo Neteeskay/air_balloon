@@ -12,6 +12,7 @@ import { CrashRoundPanel } from '../components/CrashRoundPanel'
 import { DynamicFlightBackground } from '../components/DynamicFlightBackground'
 import { LevelProgressTrack } from '../components/LevelProgressTrack'
 import { useCrashRound } from '../hooks/useCrashRound'
+import { getLevelFlightProgress } from '../lib/flightProgress'
 import type { CrashGameFinish } from '../types'
 
 type CrashGamePageProps = {
@@ -71,10 +72,15 @@ export function CrashGamePage({
     }
     return undefined
   }, [round.boosterActivated, round.boosterLevel, round.connection, roundId])
-  const progress = useMemo(() => {
-    const lastThreshold = round.levels[round.levels.length - 1]
-    return Math.min(1, Math.max(0, (round.rawCoefficient - 1) / (lastThreshold - 1)))
-  }, [round.levels, round.rawCoefficient])
+  const authoritativeProgress = useMemo(
+    () => getLevelFlightProgress(round.rawCoefficient, round.levels),
+    [round.levels, round.rawCoefficient],
+  )
+  const lastFlyingProgress = useRef(authoritativeProgress)
+  const progress = round.status === 'crashed' ? lastFlyingProgress.current : authoritativeProgress
+  useEffect(() => {
+    if (round.status !== 'crashed') lastFlyingProgress.current = authoritativeProgress
+  }, [authoritativeProgress, round.status])
 
   return (
     <main
@@ -104,21 +110,23 @@ export function CrashGamePage({
           level={round.reachedLevels}
           status={round.status}
         />
-        <LevelProgressTrack
-          boosterLevel={round.mock.boosterLevel}
-          boosterMultiplier={boosterMultiplier}
-          levels={round.levels}
-          rawCoefficient={round.rawCoefficient}
-          reachedLevels={round.reachedLevels}
-          theme={theme}
-        />
-        <BalloonFlight
-          pointsPerLine={round.mock.pointsPerLine}
-          progress={progress}
-          reachedLevels={round.reachedLevels}
-          status={round.status}
-          theme={theme}
-        />
+        <div className="crash-flight-area">
+          <LevelProgressTrack
+            boosterLevel={round.mock.boosterLevel}
+            boosterMultiplier={boosterMultiplier}
+            levels={round.levels}
+            progress={progress}
+            reachedLevels={round.reachedLevels}
+            theme={theme}
+          />
+          <BalloonFlight
+            pointsPerLine={round.mock.pointsPerLine}
+            progress={progress}
+            reachedLevels={round.reachedLevels}
+            status={round.status}
+            theme={theme}
+          />
+        </div>
         <CrashRoundPanel
           canCashout={round.canCashout}
           cashoutPayout={round.cashoutPayout}

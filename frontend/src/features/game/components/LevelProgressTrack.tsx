@@ -1,11 +1,12 @@
 import { getBoosterIconByMultiplier } from '../../betting/lib/getBoosterIconByMultiplier'
 import type { BetOption, Theme } from '../../betting/types'
+import { getLevelMarkerProgress } from '../lib/flightProgress'
 
 type LevelProgressTrackProps = {
   boosterLevel: number
   boosterMultiplier: BetOption['multiplier']
   levels: number[]
-  rawCoefficient: number
+  progress: number
   reachedLevels: number
   theme: Theme
 }
@@ -14,35 +15,12 @@ export function LevelProgressTrack({
   boosterLevel,
   boosterMultiplier,
   levels,
-  rawCoefficient,
+  progress,
   reachedLevels,
   theme,
 }: LevelProgressTrackProps) {
   const boosterIcon = getBoosterIconByMultiplier(boosterMultiplier)
-  const firstLevel = levels[0] ?? 2
-  let levelPosition = levels.length
-    ? -0.6 + Math.min(1, Math.max(0, (rawCoefficient - 1) / Math.max(0.0001, firstLevel - 1))) * 0.6
-    : 0
-
-  for (let index = 0; index < levels.length - 1; index += 1) {
-    if (rawCoefficient >= levels[index]) {
-      const segmentProgress = Math.min(
-        1,
-        (rawCoefficient - levels[index]) / (levels[index + 1] - levels[index]),
-      )
-      levelPosition = index + segmentProgress
-    }
-  }
-
-  if (rawCoefficient >= levels[levels.length - 1]) levelPosition = levels.length - 1
-
-  const spacing = 92
-  // Keep the marker tied to the authoritative coefficient for the whole
-  // round. The previous fixed 178px clamp made it visually freeze after the
-  // first couple of levels on long (GREEN/RED) rounds.
-  const naturalMarkerY = (levelPosition + 0.6) * spacing
-  const markerY = naturalMarkerY
-  const trackShift = 0
+  const firstMarker = getLevelMarkerProgress(0, levels.length)
 
   return (
     <aside className={`crash-levels theme-${theme}`} aria-label="Прогресс по уровням">
@@ -51,9 +29,8 @@ export function LevelProgressTrack({
         style={{
           // Keep the rail exactly between the first and last marker centers.
           // This prevents a dangling line beyond the final level.
-          '--track-height': `${(levels.length - 1) * spacing}px`,
-          '--track-bottom': `${spacing * 0.6}px`,
-          '--track-shift': `${trackShift}px`,
+          '--track-height': `${(1 - firstMarker) * 100}%`,
+          '--track-bottom': `${firstMarker * 100}%`,
         } as React.CSSProperties}
       >
         <span className="crash-levels__rail" />
@@ -65,8 +42,10 @@ export function LevelProgressTrack({
           return (
             <div
               className={`crash-level${isReached ? ' is-reached' : ''}${isBooster ? ' is-booster' : ''}`}
+              data-level-progress={getLevelMarkerProgress(index, levels.length).toFixed(6)}
+              data-testid="flight-level"
               key={level}
-              style={{ '--level-y': `${(index + 0.6) * spacing}px` } as React.CSSProperties}
+              style={{ '--level-y': `${getLevelMarkerProgress(index, levels.length) * 100}%` } as React.CSSProperties}
             >
               <span className="crash-level__dot" />
               <b>{level}</b>
@@ -83,7 +62,9 @@ export function LevelProgressTrack({
       </div>
       <span
         className="crash-levels__marker"
-        style={{ '--flight-y': `${markerY}px` } as React.CSSProperties}
+        data-flight-progress={progress.toFixed(6)}
+        data-testid="level-progress-marker"
+        style={{ '--flight-y': `${progress * 100}%` } as React.CSSProperties}
       />
     </aside>
   )

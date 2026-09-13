@@ -13,7 +13,7 @@ export function CoefficientDisplay({ bet, coefficient, level, status }: Coeffici
 
   return (
     <section className={`crash-coefficient crash-coefficient--level-${styleLevel}`} aria-live="polite">
-      <strong>×{coefficient.toFixed(2)}</strong>
+      <strong data-testid="multiplier">×{coefficient.toFixed(2)}</strong>
       <div className="crash-bet-chip">
         <span>{bet}</span>
         <CoinIcon />

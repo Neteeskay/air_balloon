@@ -21,7 +21,9 @@ export function BalloonFlight({
   return (
     <div
       className={`crash-balloon crash-balloon--${status}`}
-      style={{ '--flight-y': `${14 + progress * 59}%` } as React.CSSProperties}
+      data-flight-progress={progress.toFixed(6)}
+      data-testid="flight-balloon"
+      style={{ '--flight-y': `${progress * 100}%` } as React.CSSProperties}
     >
       {status === 'crashed' ? (
         <CrashExplosionEffect theme={theme} />

@@ -27,7 +27,7 @@ export function CrashRoundPanel({
   const shownPayout = hasCashedOut ? cashoutPayout : potentialPayout
 
   return (
-    <section className="crash-round-panel" aria-label="Выигрыш и действия">
+    <section className="crash-round-panel" aria-label="Выигрыш и действия" data-testid="cashout-panel">
       {!hasCashedOut && status !== 'crashed' && <CashoutHintOnboarding show={showCashoutHint} />}
       <div className="crash-round-panel__numbers">
         <b>Выигрыш:</b>

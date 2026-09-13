@@ -59,10 +59,28 @@
 .crash-shell .animated-sky { z-index: 2; opacity: .32; filter: blur(1px); }
 
 .crash-stage {
+  --cashout-panel-bottom: 20px;
+  --cashout-panel-height: 104px;
+  --flight-safe-gap: clamp(24px, 3svh, 36px);
+  --flight-balloon-width: clamp(112px, min(17vw, 22svh), 245px);
+  --flight-balloon-half-height: clamp(75px, min(11.333vw, 14.667svh), 164px);
+  --flight-area-top: calc(var(--flight-balloon-half-height) + 12px);
+  --flight-area-bottom: calc(var(--cashout-panel-bottom) + var(--cashout-panel-height) + var(--flight-safe-gap) + var(--flight-balloon-half-height));
   position: absolute;
   z-index: 3;
   inset: 74px 0 0;
   overflow: hidden;
+}
+
+.crash-flight-area {
+  position: absolute;
+  z-index: 4;
+  top: var(--flight-area-top);
+  right: 0;
+  bottom: var(--flight-area-bottom);
+  left: 0;
+  min-height: 1px;
+  pointer-events: none;
 }
 
 .crash-coefficient {
@@ -131,8 +149,7 @@
 .crash-levels {
   position: absolute;
   z-index: 4;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   left: clamp(34px, 10.5vw, 190px);
   width: calc(100% - clamp(68px, 18vw, 330px));
   overflow: hidden;
@@ -142,8 +159,7 @@
 .crash-levels__world {
   position: absolute;
   inset: 0;
-  transform: translate3d(0, calc(var(--track-position) - var(--flight-y)), 0);
-  will-change: transform;
+  transform: none;
 }
 
 .crash-levels__rail {
@@ -254,9 +270,10 @@
 .crash-balloon {
   position: absolute;
   z-index: 5;
-  left: 59%;
+  left: 66%;
   bottom: var(--flight-y);
-  width: clamp(145px, 17vw, 245px);
+  width: var(--flight-balloon-width);
+  aspect-ratio: 3 / 4;
   transform: translate(-50%, 50%);
   will-change: bottom, transform;
 }
@@ -292,7 +309,7 @@
   top: 50%;
   left: 50%;
   /* Match the live balloon footprint so the crash frame never "grows". */
-  width: clamp(145px, 17vw, 245px);
+  width: var(--flight-balloon-width);
   aspect-ratio: 1.08;
   transform: translate(-50%, -50%);
   background-repeat: no-repeat;
@@ -342,9 +359,9 @@
   position: absolute;
   z-index: 9;
   left: 50%;
-  bottom: 20px;
+  bottom: var(--cashout-panel-bottom);
   width: min(490px, calc(100% - 36px));
-  min-height: 104px;
+  height: var(--cashout-panel-height);
   display: grid;
   grid-template-columns: 150px 1px minmax(210px, 1fr);
   align-items: center;
@@ -443,7 +460,15 @@
 
 @media (max-width: 760px) {
   .crash-shell { min-height: 100svh; overflow: hidden; }
-  .crash-stage { inset: 62px 0 0; }
+  .crash-stage {
+    --cashout-panel-bottom: 10px;
+    --cashout-panel-height: 91px;
+    --flight-safe-gap: clamp(24px, 3.5svh, 32px);
+    --flight-balloon-width: clamp(108px, min(34vw, 20svh), 180px);
+    --flight-balloon-half-height: clamp(72px, min(22.667vw, 13.333svh), 120px);
+    --flight-area-top: clamp(220px, 31svh, 280px);
+    inset: 62px 0 0;
+  }
   .crash-coefficient { top: 20px; }
   .crash-coefficient > strong { font-size: clamp(3.25rem, 17vw, 4.8rem); }
   .crash-coefficient--level-3 > strong { font-size: clamp(3.7rem, 19vw, 5.3rem); }
@@ -458,9 +483,9 @@
   .crash-levels__marker { left: 0; width: 30px; height: 30px; }
   .crash-booster-badge { top: -1px; left: 0; width: 82px; height: 41px; font-size: .95rem; }
   .crash-booster-badge img { left: 2px; width: 45px; height: 45px; }
-  .crash-balloon { left: 63%; width: clamp(112px, 34vw, 180px); }
-  .crash-explosion-sprite { width: clamp(112px, 34vw, 180px); }
-  .crash-round-panel { bottom: 10px; min-height: 91px; grid-template-columns: 104px 1px minmax(145px, 1fr); gap: 10px; padding: 10px 12px; border-radius: 26px; }
+  .crash-balloon { left: 63%; }
+  .crash-explosion-sprite { width: var(--flight-balloon-width); }
+  .crash-round-panel { grid-template-columns: 104px 1px minmax(145px, 1fr); gap: 10px; padding: 10px 12px; border-radius: 26px; }
   .crash-round-panel__numbers > b { font-size: .73rem; }
   .crash-round-panel__numbers strong { min-width: 36px; font-size: 1rem; }
   .crash-round-panel__numbers .coin { width: 22px; height: 22px; }
@@ -477,7 +502,10 @@
 
 @media (max-width: 390px) {
   .crash-balloon { left: 65%; width: 108px; }
-  .crash-explosion-sprite { width: 108px; }
+  .crash-stage {
+    --flight-balloon-width: 108px;
+    --flight-balloon-half-height: 72px;
+  }
   .crash-round-panel { width: calc(100% - 14px); grid-template-columns: 92px 1px minmax(135px, 1fr); gap: 7px; padding-inline: 9px; }
   .cashout-button { padding-inline: 8px; font-size: 1rem; }
   .cashout-onboarding { width: 250px; }
