@@ -396,9 +396,13 @@
 .rules-boosters .puzzle-piece-hint strong { font-size: .76rem; }
 .rules-boosters .puzzle-piece-hint span span { display: none; }
 .modal-action { min-width: 180px; min-height: 48px; margin: 18px auto 0; }
-.rules-modal { position: relative; overflow: visible; }
-.rules-content { position: relative; z-index: 1; }
-.lucky-mascot { position: absolute; z-index: 2; right: -68px; bottom: -47px; width: 190px; height: 116px; pointer-events: none; }
+.rules-modal { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.rules-content { position: relative; z-index: 1; min-height: 0; overflow: auto; }
+.rules-actions { width: min(100%, 410px); display: flex; align-items: center; justify-content: center; gap: 9px; margin: 18px auto 0; padding: 0 4px; }
+.rules-actions { flex: 0 0 auto; }
+.rules-actions .modal-action { min-width: 0; flex: 1 1 0; margin: 0; }
+.rules-actions .rules-more-button { color: #422a13; border: 2px solid #422a13; background: #fffaf0; box-shadow: none; }
+.rules-modal .lucky-mascot { position: absolute; z-index: 1; right: 8px; bottom: 7px; width: 92px; height: 62px; pointer-events: none; }
 .lucky-mascot img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right; }
 .lucky-mascot audio { display: none; }
 
@@ -511,8 +515,8 @@
   .price { gap: 1px; font-size: .85rem; }
   .price .coin { width: 20px; height: 20px; }
   .start-button { width: 100%; min-height: 50px; margin-top: 9px; font-size: 1.25rem; }
-  .rules-modal { overflow: visible; }
-  .lucky-mascot { right: -12px; bottom: -29px; width: 100px; height: 66px; margin: 0; }
+  .rules-modal { overflow: hidden; }
+  .rules-modal .lucky-mascot { right: 4px; bottom: 5px; width: 76px; height: 50px; margin: 0; }
   .modal-backdrop:has(.tournament-modal) { align-items: end; padding: 0; }
   .tournament-modal { position: relative; width: 100%; height: 94svh; padding: 19px 12px 12px; border-radius: 26px 26px 0 0; }
   .tournament-modal::before { content: ''; position: absolute; top: 7px; left: 50%; width: 42px; height: 4px; transform: translateX(-50%); border-radius: 999px; background: #cbc5bb; }
@@ -567,6 +571,8 @@
   .rules-boosters .puzzle-piece-hint { min-height: 82px; flex-direction: column; align-items: center; gap: 2px; padding: 6px 3px; text-align: center; }
   .rules-boosters .puzzle-piece-hint > img { width: 32px; height: 32px; }
   .rules-boosters .puzzle-piece-hint strong { font-size: .62rem; overflow-wrap: anywhere; line-height: 1.15; }
+  .rules-actions { gap: 6px; margin-top: 11px; }
+  .rules-actions .modal-action { min-width: 0; flex: 1; min-height: 42px; padding-inline: 8px; font-size: .82rem; }
   .modal-action { min-height: 44px; margin-top: 11px; }
 }
 

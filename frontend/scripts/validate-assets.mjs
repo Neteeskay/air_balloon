@@ -1,8 +1,9 @@
 /* global URL, console, process */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('../', import.meta.url).pathname.replace(/^\/(.:\/)/, '$1')
+const root = fileURLToPath(new URL('../', import.meta.url))
 const source = join(root, 'src')
 const publicDir = join(root, 'public')
 const extensions = new Set(['.ts', '.tsx', '.css', '.html'])

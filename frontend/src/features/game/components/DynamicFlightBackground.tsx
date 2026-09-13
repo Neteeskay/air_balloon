@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import {
-  FLIGHT_BACKGROUND_COUNT,
   useFlightBackgroundProgress,
 } from '../hooks/useFlightBackgroundProgress'
 
@@ -21,10 +20,15 @@ const getSourceSet = (frame: number) => (
 
 export function DynamicFlightBackground({ progress }: DynamicFlightBackgroundProps) {
   const { blend, fromIndex, progress: normalized, toIndex } = useFlightBackgroundProgress(progress)
+  const tail = Math.max(0, progress - 1)
+  // Once the last source frame is reached, keep a very small compositor-only
+  // drift in the background instead of freezing every visual property at 1.
+  // The frame selection remains bounded to the supplied seven images.
+  const motionProgress = normalized + Math.min(0.35, tail * 0.35)
   const style: DynamicBackgroundStyle = {
-    '--flight-bg-shift': `${normalized * -7}%`,
-    '--flight-bg-scale': 1 + normalized * 0.065,
-    '--flight-bg-wash': normalized * 0.22,
+    '--flight-bg-shift': `${motionProgress * -7}%`,
+    '--flight-bg-scale': 1 + motionProgress * 0.065,
+    '--flight-bg-wash': Math.min(0.3, motionProgress * 0.22),
   }
 
   return (
@@ -35,25 +39,18 @@ export function DynamicFlightBackground({ progress }: DynamicFlightBackgroundPro
       data-flight-progress={normalized.toFixed(6)}
       style={style}
     >
-      {Array.from({ length: FLIGHT_BACKGROUND_COUNT }, (_, index) => {
-        const opacity = index === fromIndex
-          ? 1 - blend
-          : index === toIndex
-            ? blend
-            : 0
-        return (
+      {[fromIndex, ...(toIndex === fromIndex ? [] : [toIndex])].map((index) => (
         <img
           alt=""
-          className={`dynamic-flight-background__frame${opacity > 0 ? ' is-active' : ''}`}
+          className="dynamic-flight-background__frame is-active"
           decoding="async"
           key={index}
           src={`/assets/backgrounds/flight/flight-${String(index + 1).padStart(2, '0')}-desktop.webp`}
           srcSet={getSourceSet(index)}
           sizes="100vw"
-          style={{ opacity }}
+          style={{ opacity: index === fromIndex ? 1 - blend : blend }}
         />
-        )
-      })}
+      ))}
       <span className="dynamic-flight-background__atmosphere" />
     </div>
   )
