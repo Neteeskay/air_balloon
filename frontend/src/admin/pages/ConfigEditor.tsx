@@ -313,24 +313,6 @@ function LineProbabilitiesEditor({ theme, params, model, onChange, errorOf }: {
     params.forEach((p, i) => onChange(p.technicalName, String(i < bigger ? base + 1 : base)))
   }
 
-  const normalize = () => {
-    if (params.length === 0) return
-    let accounted = 0
-    params.forEach((p, i) => {
-      const current = Number(model[p.technicalName])
-      const raw = Number.isFinite(current) ? current : 0
-      let v: number
-      if (i === params.length - 1) {
-        v = Math.round((100 - accounted) * 100) / 100
-      } else {
-        const share = sum > 1e-9 ? raw / sum : 1 / params.length
-        v = Math.round(share * 100 * 100) / 100
-        accounted += v
-      }
-      onChange(p.technicalName, String(v))
-    })
-  }
-
   return <div className="admin-lines-editor">
     <h3 className="admin-section-label">Шансы линий · {themeLabel}</h3>
     <div className="admin-lines-toolbar">
@@ -341,7 +323,6 @@ function LineProbabilitiesEditor({ theme, params, model, onChange, errorOf }: {
       </div>
       <div className="admin-row-actions">
         <button type="button" className="admin-secondary admin-primary-compact" onClick={distributeEvenly}>Поровну</button>
-        <button type="button" className="admin-secondary admin-primary-compact" onClick={normalize} disabled={ok}>Довести до 100%</button>
       </div>
     </div>
     <div className="admin-lines-stack" role="img" aria-label={`Распределение процентов по линиям, ${themeLabel}`}>
