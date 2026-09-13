@@ -200,7 +200,7 @@ export function AvatarProfile({
                 {!unlocked && <small>{item.reward ? 'Собери пазл' : 'Откроется позже'}</small>}
               </button>
             })}{[1, 2].map((value) => <div className="av-item av-coming" key={`coming-${category}-${value}`} role="img" aria-label="Скоро"><span aria-hidden="true">✦</span><Lock /><strong>Скоро</strong><small>Новый предмет</small></div>)}</div>
-            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Не только для красоты!</span></div><div className="av-equip">
+            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Меняет внешний вид</span></div><div className="av-equip">
               <button disabled={!selectedUnlocked || equipped} onClick={equipSelected}>{!selectedUnlocked ? <><Lock /> Закрыто</> : equipped ? 'Надето ✓' : 'Надеть'}</button>
             </div>{!selectedUnlocked && <p className="av-locked-reason">Собери пазл «{puzzle.name}»: {puzzle.collectedFragments} / {puzzle.totalFragments}</p>}</div>
           </section>

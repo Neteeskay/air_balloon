@@ -58,10 +58,18 @@
   background: linear-gradient(145deg, #e8edf3, #d9e1eb);
 }
 
-.puzzle-piece-slot { position: relative; min-width: 0; min-height: 0; border: 1px solid rgba(125, 142, 163, .42); }
+.puzzle-piece-slot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid rgba(125, 142, 163, .42);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .26), rgba(165, 184, 203, .22));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35);
+}
+.puzzle-piece-slot.is-pending { border-style: dashed; border-color: rgba(77, 108, 139, .72); }
 /* The supplied SVG/PNG pieces have different intrinsic canvases. Normalize each
    one to the same slot so seams stay aligned in both profile and collection. */
-.puzzle-piece-slot img { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: fill; opacity: .09; filter: grayscale(1); }
+.puzzle-piece-slot img { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: fill; opacity: .28; filter: grayscale(.8) contrast(.9) drop-shadow(0 0 1px rgba(57, 92, 126, .72)); }
 .puzzle-piece-slot.is-collected img { z-index: 2; opacity: 1; filter: none; }
 .puzzle-piece-grid.is-locked { filter: grayscale(1); opacity: .74; }
 .puzzle-piece-grid__lock { position: absolute; z-index: 5; top: 50%; left: 50%; width: 64px; height: 64px; display: grid; place-items: center; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(255, 255, 255, .9); box-shadow: 0 5px 18px rgba(38, 52, 68, .24); font-size: 33px; }

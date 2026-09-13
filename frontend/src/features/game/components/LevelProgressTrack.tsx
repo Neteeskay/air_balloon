@@ -23,6 +23,9 @@ export function LevelProgressTrack({
   const spacing = 92
   const leadingOffset = 0.6
   const trackPosition = (getTrackLevelPosition(progress, levels.length) + leadingOffset) * spacing
+  const reachedLevelCount = Number.isFinite(reachedLevels)
+    ? Math.min(levels.length, Math.max(0, Math.trunc(reachedLevels)))
+    : 0
 
   return (
     <aside className={`crash-levels theme-${theme}`} aria-label="Прогресс по уровням">
@@ -38,11 +41,14 @@ export function LevelProgressTrack({
         {levels.map((_, index) => {
           const level = index + 1
           const isBooster = boosterMultiplier > 1 && level === boosterLevel
-          const isReached = level <= reachedLevels
+          const isReached = index < reachedLevelCount
 
           return (
             <div
               className={`crash-level${isReached ? ' is-reached' : ''}${isBooster ? ' is-booster' : ''}`}
+              aria-label={`Уровень ${level}: ${isReached ? 'пройден' : 'впереди'}`}
+              data-level={level}
+              data-reached={isReached ? 'true' : 'false'}
               data-testid="flight-level"
               key={level}
               style={{ '--level-y': `${(index + leadingOffset) * spacing}px` } as React.CSSProperties}

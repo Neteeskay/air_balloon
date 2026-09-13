@@ -19,7 +19,7 @@ export function PuzzlePieceGrid({ collectedFragments, totalFragments = 12, compa
         const isCollected = !locked && index < collected
         return (
           <span
-            className={`puzzle-piece-slot${isCollected ? ' is-collected' : ''}`}
+            className={`puzzle-piece-slot${isCollected ? ' is-collected' : ' is-pending'}`}
             data-piece-number={index + 1}
             key={piece.collected}
           >

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { useSkyAnimation, type BirdSkyElement, type SkyElement } from './useSkyAnimation'
 
 type SkyElementStyle = CSSProperties & {
@@ -48,7 +48,7 @@ function getBirdStyle(bird: BirdSkyElement): BirdElementStyle {
   }
 }
 
-export function AnimatedSkyBackground() {
+export const AnimatedSkyBackground = memo(function AnimatedSkyBackground() {
   const { birds, clouds } = useSkyAnimation()
 
   return (
@@ -79,4 +79,4 @@ export function AnimatedSkyBackground() {
       ))}
     </div>
   )
-}
+})

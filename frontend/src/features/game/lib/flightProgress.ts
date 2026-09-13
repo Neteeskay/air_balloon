@@ -54,6 +54,37 @@ export function getLevelFlightProgress(multiplier: number, levels: number[]) {
   return MAX_FLIGHT_PROGRESS
 }
 
+/**
+ * Maps the coefficient to the visual route without a progressively slower
+ * last half of the flight.
+ *
+ * `getLevelFlightProgress` is intentionally level-oriented: it gives every
+ * level the same amount of screen space. That coordinate is kept for level
+ * track compatibility, but it makes the balloon slow down whenever the
+ * server's coefficient gaps get wider (for example 8 -> 10 -> 12). The
+ * flight itself must follow the authoritative coefficient. A coefficient
+ * based speed floor therefore wins over the level coordinate once threshold
+ * gaps become wide, while the level coordinate still keeps early markers
+ * aligned with the existing track.
+ */
+export function getContinuousFlightProgress(multiplier: number, levels: number[]) {
+  if (!levels.length || !Number.isFinite(multiplier)) return MIN_FLIGHT_PROGRESS
+
+  const lastThreshold = levels[levels.length - 1]
+  if (typeof lastThreshold !== 'number' || !Number.isFinite(lastThreshold) || lastThreshold <= 1) return MIN_FLIGHT_PROGRESS
+  if (multiplier <= 1) return MIN_FLIGHT_PROGRESS
+
+  const levelProgress = getLevelFlightProgress(multiplier, levels)
+  const speedFloorThreshold = levels.find(value => value >= 6) ?? lastThreshold
+  const speedFloor = ((multiplier - 1) / Math.max(1, speedFloorThreshold - 1)) * 1.2
+  if (speedFloor <= 1) return Math.max(levelProgress, clampFlightProgress(speedFloor))
+
+  // There are no level art frames beyond the last threshold, but a long
+  // round must still have a changing visual signal. Keep the route itself at
+  // the top while exposing a small bounded tail to the background layer.
+  return 1 + Math.min(0.6, speedFloor - 1)
+}
+
 export function getLevelMarkerProgress(levelIndex: number, levelCount: number) {
   if (levelCount <= 0) return MIN_FLIGHT_PROGRESS
   return clampFlightProgress((levelIndex + 1) / levelCount)

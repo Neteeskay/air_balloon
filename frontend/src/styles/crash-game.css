@@ -166,7 +166,7 @@
   position: absolute;
   inset: 0;
   transform: translate3d(0, calc(var(--track-position) - var(--flight-y)), 0);
-  transition: transform 140ms linear;
+  transition: transform var(--flight-transition, 140ms) linear;
   will-change: transform;
 }
 
@@ -265,7 +265,7 @@
   z-index: 6;
   inset: 0;
   transform: translate3d(0, calc(0px - var(--flight-y)), 0);
-  transition: transform 140ms linear;
+  transition: transform var(--flight-transition, 140ms) linear;
   will-change: transform;
 }
 
@@ -289,7 +289,7 @@
   z-index: 5;
   inset: 0;
   transform: translate3d(0, calc(0px - var(--flight-y)), 0);
-  transition: transform 140ms linear;
+  transition: transform var(--flight-transition, 140ms) linear;
   will-change: transform;
 }
 
@@ -302,8 +302,49 @@
   transform: translate(-50%, 50%);
 }
 
-.crash-balloon__float { animation: crash-balloon-float 2.8s ease-in-out infinite; }
+.crash-balloon__float { position: relative; isolation: isolate; animation: crash-balloon-float 2.8s ease-in-out infinite; }
 .crash-balloon .balloon-crop { width: 100%; filter: drop-shadow(0 20px 18px rgba(20, 59, 84, .23)); }
+
+/* The activation cue is composited around the existing balloon layer, so it
+   does not add another React animation loop or move the authoritative flight
+   position. */
+.crash-stage.booster-activated .crash-balloon__float::before,
+.crash-stage.booster-activated .crash-balloon__float::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.crash-stage.booster-activated .crash-balloon__float::before {
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 249, 154, .82) 0 12%, rgba(255, 192, 23, .48) 28%, transparent 68%);
+  filter: blur(5px);
+  animation: booster-balloon-glow .9s ease-out both;
+}
+
+.crash-stage.booster-activated .crash-balloon__float::after {
+  inset: -26%;
+  background:
+    radial-gradient(circle at 12% 35%, #fff8a7 0 2.5%, transparent 3.5%),
+    radial-gradient(circle at 86% 28%, #fff8a7 0 2%, transparent 3%),
+    radial-gradient(circle at 78% 82%, #ffd43a 0 2.5%, transparent 3.5%),
+    radial-gradient(circle at 21% 79%, #fff 0 1.8%, transparent 3%);
+  animation: booster-balloon-sparks .9s ease-out both;
+}
+
+@keyframes booster-balloon-glow {
+  0% { opacity: 0; transform: scale(.55); }
+  22% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 0; transform: scale(1.42); }
+}
+
+@keyframes booster-balloon-sparks {
+  0% { opacity: 0; transform: scale(.55) rotate(0deg); }
+  22% { opacity: 1; transform: scale(1) rotate(8deg); }
+  100% { opacity: 0; transform: scale(1.2) rotate(25deg); }
+}
 
 @keyframes crash-balloon-float {
   0%, 100% { transform: translate3d(-4px, 3px, 0) rotate(-1.4deg); }

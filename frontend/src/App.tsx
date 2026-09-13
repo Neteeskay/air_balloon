@@ -12,11 +12,19 @@ import { ResultScreen } from './features/results'
 import type { ResultScreenData } from './types/result'
 import { RealProfilePage } from './features/profile/RealProfilePage'
 import { RatingPage } from './features/rating/RatingPage'
+import { RulesDetailedPage } from './features/betting/pages/RulesDetailedPage'
 import { unlockCrashAudio } from './features/game/hooks/useCrashSounds'
 import { APP_BACKGROUND_MUSIC_VOLUME, backgroundMusic } from './audio/backgroundMusic'
 import { adaptRoundResult } from './services/resultAdapter'
 
 const pathOf = () => window.location.pathname.replace(/\/+$/, '') || '/'
+
+type NavigationState = { rulesReturnPath?: string } | null
+
+const rulesReturnPathOf = () => {
+  const candidate = (window.history.state as NavigationState)?.rulesReturnPath
+  return candidate === '/game' || candidate === '/bet' ? candidate : '/bet'
+}
 
 export function App() {
   useEffect(() => {
@@ -27,23 +35,27 @@ export function App() {
 
   const game = useGameSession()
   const [path, setPath] = useState(pathOf)
+  const [profileReturnPath, setProfileReturnPath] = useState('/mode')
   const { unlockSkySounds } = useSkySounds({ enabled: game.soundOn, flightActive: Boolean(game.round) })
   const unlockAudio = useCallback(() => { backgroundMusic.unlock(); unlockSkySounds(); unlockCrashAudio() }, [unlockSkySounds])
   useEffect(() => { const onPop = () => setPath(pathOf()); window.addEventListener('popstate', onPop); return () => window.removeEventListener('popstate', onPop) }, [])
-  const navigate = useCallback((next: string, replace = false) => { (replace ? window.history.replaceState : window.history.pushState).call(window.history, null, '', next); setPath(next); window.scrollTo(0, 0) }, [])
+  const navigate = useCallback((next: string, replace = false, state: NavigationState = null) => { (replace ? window.history.replaceState : window.history.pushState).call(window.history, state, '', next); setPath(next); window.scrollTo(0, 0) }, [])
+  const openProfile = useCallback((returnPath: string) => { setProfileReturnPath(returnPath); navigate('/profile') }, [navigate])
+  const openDetailedRules = useCallback((returnPath: '/bet' | '/game') => { navigate('/rules', false, { rulesReturnPath: returnPath }) }, [navigate])
   useEffect(() => { if (!game.loading && !game.user && path !== '/' && path !== '/login') navigate('/login', true) }, [game.loading, game.user, navigate, path])
   if (game.loading) return <main className="game-shell" role="status"><p>Готовим ваш полёт…</p></main>
   if (path === '/') return <LandingPage onPlay={() => navigate(game.user ? '/mode' : '/login')} onUnlockAudio={unlockAudio} />
   if (!game.user) return <LoginPage onAuthenticated={async (login, password) => { await game.login(login, password); navigate('/mode', true) }} onBack={() => navigate('/')} />
   if (path === '/login') { navigate('/mode', true); return null }
-  if (path === '/mode') return <FlightModePage currentUser={game.user} onUnlockAudio={unlockAudio} soundOn={game.soundOn} onLogout={async () => { await game.logout(); navigate('/login', true) }} onModeSelected={(mode: FlightMode) => { if (game.theme !== mode.toLowerCase()) game.switchTheme(); navigate('/bet') }} onProfile={() => navigate('/profile')} onOpenRating={() => navigate('/rating')} />
-  if (path === '/profile') return <RealProfilePage api={api} user={game.user} balance={game.balance} onClose={() => navigate('/mode')} onLogout={async () => { await game.logout(); navigate('/login', true) }} onOpenRating={() => navigate('/rating')} onToggleSound={game.toggleSound} soundOn={game.soundOn} />
+  if (path === '/mode') return <FlightModePage currentUser={game.user} onUnlockAudio={unlockAudio} soundOn={game.soundOn} onLogout={async () => { await game.logout(); navigate('/login', true) }} onModeSelected={(mode: FlightMode) => { if (game.theme !== mode.toLowerCase()) game.switchTheme(); navigate('/bet') }} onProfile={() => openProfile('/mode')} onOpenRating={() => navigate('/rating')} />
+  if (path === '/profile') return <RealProfilePage api={api} user={game.user} balance={game.balance} onClose={() => navigate(profileReturnPath)} onLogout={async () => { await game.logout(); navigate('/login', true) }} onOpenRating={() => navigate('/rating')} onToggleSound={game.toggleSound} soundOn={game.soundOn} />
   if (path === '/rating') return <RatingPage api={api} onBack={() => navigate('/mode')} />
+  if (path === '/rules') return <RulesDetailedPage api={api} onBack={() => navigate(rulesReturnPathOf(), true)} stakeOptions={game.betOptions} theme={game.theme} />
   if (path === '/tournament') return <DataPanel title="Турнир пилотов" load={() => api.tournament.getActive()} onBack={() => navigate('/bet')} />
-  if (path === '/game' && game.round) return <CrashGamePage api={api} balance={game.balance} bet={game.round.bet} boosterMultiplier={game.round.boosterMultiplier} onFinish={async () => { const final = await game.finishRound(); navigate(final?.result === 'LOSS' ? '/result/loss' : '/result/win') }} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockSkySounds} roundId={game.round.roundId} showCashoutHint={game.round.showCashoutHint} soundOn={game.soundOn} theme={game.theme} onBack={() => navigate('/bet')} onProfile={() => navigate('/profile')} />
-  if ((path === '/result/win' || path === '/result/loss') && game.result) return <ResultView result={game.result} user={game.user} balance={game.balance} theme={game.theme} onAgain={() => { game.clearResult(); navigate('/bet') }} onRepeatBet={async () => { await game.repeatBet(); navigate('/game') }} onProfile={() => navigate('/profile')} onMenu={() => navigate('/mode')} />
+  if (path === '/game' && game.round) return <CrashGamePage api={api} balance={game.balance} bet={game.round.bet} boosterMultiplier={game.round.boosterMultiplier} onFinish={async () => { const final = await game.finishRound(); navigate(final?.result === 'LOSS' ? '/result/loss' : '/result/win') }} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockSkySounds} roundId={game.round.roundId} showCashoutHint={game.round.showCashoutHint} soundOn={game.soundOn} theme={game.theme} userId={game.user?.id} onBack={() => navigate('/bet')} onProfile={() => openProfile('/game')} onOpenDetailedRules={() => openDetailedRules('/game')} />
+  if ((path === '/result/win' || path === '/result/loss') && game.result) return <ResultView result={game.result} user={game.user} balance={game.balance} theme={game.theme} onAgain={() => { game.clearResult(); navigate('/bet') }} onRepeatBet={async () => { await game.repeatBet(); navigate('/game') }} onProfile={() => openProfile(path)} onMenu={() => navigate('/mode')} />
   if (path === '/game' || path === '/result/win' || path === '/result/loss') { navigate('/bet', true); return null }
-  return <BetSelectionPage api={api} balance={game.balance} soundOn={game.soundOn} theme={game.theme} options={game.betOptions} onStartGame={async selection => { unlockAudio(); await game.startRound(selection); navigate('/game') }} onSwitchTheme={game.switchTheme} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockAudio} onBack={() => navigate('/mode')} onProfile={() => navigate('/profile')} />
+  return <BetSelectionPage api={api} balance={game.balance} soundOn={game.soundOn} theme={game.theme} options={game.betOptions} onStartGame={async selection => { unlockAudio(); await game.startRound(selection); navigate('/game') }} onSwitchTheme={game.switchTheme} onToggleSound={game.toggleSound} onTopUp={game.topUpBalance} onUnlockAudio={unlockAudio} onBack={() => navigate('/mode')} onProfile={() => openProfile('/bet')} onOpenDetailedRules={() => openDetailedRules('/bet')} />
 }
 
 function ResultView({ result, user, balance, theme, onAgain, onRepeatBet, onProfile, onMenu }: { result: Result; user: User; balance: number; theme: 'green'|'red'; onAgain: () => void; onRepeatBet: () => Promise<void>; onProfile: () => void; onMenu: () => void }) {

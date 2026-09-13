@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AnimatedSkyBackground } from '../../../components/sky/AnimatedSkyBackground'
-import { Toast } from '../../../components/ui/Toast'
 import { BetSelectionHeader } from '../../betting/components/BetSelectionHeader'
 import { RulesModal } from '../../betting/components/RulesModal'
 import { TournamentModal } from '../../betting/components/TournamentModal'
 import type { BetOption, BetSelectionModal, Theme } from '../../betting/types'
 import { BalloonFlight } from '../components/BalloonFlight'
 import { CoefficientDisplay } from '../components/CoefficientDisplay'
-import { CrashResultOverlay } from '../components/CrashResultOverlay'
 import { CrashRoundPanel } from '../components/CrashRoundPanel'
 import { DynamicFlightBackground } from '../components/DynamicFlightBackground'
 import { LevelProgressTrack } from '../components/LevelProgressTrack'
 import { useCrashRound } from '../hooks/useCrashRound'
 import {
+  getContinuousFlightProgress,
   getFlightBottomPercent,
-  getLevelFlightProgress,
   getVisualFlightCoefficient,
-  getVisualReachedLevels,
 } from '../lib/flightProgress'
 import type { CrashGameFinish } from '../types'
 import type { Api } from '../../../api/types'
@@ -35,7 +32,9 @@ type CrashGamePageProps = {
   theme: Theme
   onBack?: () => void
   onProfile?: () => void
+  onOpenDetailedRules?: () => void
   api?: Api
+  userId?: string
 }
 
 export function CrashGamePage({
@@ -52,10 +51,12 @@ export function CrashGamePage({
   theme,
   onBack,
   onProfile,
+  onOpenDetailedRules,
   api,
+  userId,
 }: CrashGamePageProps) {
   const [modal, setModal] = useState<BetSelectionModal>(null)
-  const round = useCrashRound({ bet, boosterMultiplier, onFinish, roundId, soundOn, theme })
+  const round = useCrashRound({ bet, boosterMultiplier, onFinish, persistenceScope: userId ? `user:${userId}` : undefined, roundId, soundOn, theme })
   const [boosterPulse, setBoosterPulse] = useState(false)
   const previousBooster = useRef(round.boosterActivated)
   const activationKey = useRef<string | null>(round.boosterActivated ? `${roundId}:${round.boosterLevel}` : null)
@@ -86,27 +87,27 @@ export function CrashGamePage({
     boosterMultiplier,
   )
   const authoritativeProgress = useMemo(
-    () => getLevelFlightProgress(visualCoefficient, round.levels),
+    () => getContinuousFlightProgress(visualCoefficient, round.levels),
     [round.levels, visualCoefficient],
   )
   const lastFlyingProgress = useRef(authoritativeProgress)
   const targetProgress = round.status === 'crashed' ? lastFlyingProgress.current : authoritativeProgress
   const progress = targetProgress
-  const targetReachedLevels = getVisualReachedLevels(progress, round.levels.length)
-  const [visualReachedLevels, setVisualReachedLevels] = useState(targetReachedLevels)
+  // Level colouring is authoritative state, not an animation estimate. In
+  // particular, a booster can cross several non-equidistant thresholds in a
+  // single server tick, so delaying/reconstructing this number loses levels.
+  const visualReachedLevels = Number.isFinite(round.reachedLevels)
+    ? Math.min(round.levels.length, Math.max(0, Math.trunc(round.reachedLevels)))
+    : 0
   const flightPosition = `${getFlightBottomPercent(progress)}%`
+  const progressTiming = useRef(performance.now())
+  const flightTransitionMs = Math.min(900, Math.max(120, performance.now() - progressTiming.current))
   useEffect(() => {
     if (round.status !== 'crashed') lastFlyingProgress.current = authoritativeProgress
   }, [authoritativeProgress, round.status])
   useEffect(() => {
-    if (targetReachedLevels <= visualReachedLevels) {
-      setVisualReachedLevels(targetReachedLevels)
-      return undefined
-    }
-    const timer = window.setTimeout(() => setVisualReachedLevels(targetReachedLevels), 140)
-    return () => window.clearTimeout(timer)
-  }, [targetReachedLevels, visualReachedLevels])
-
+    progressTiming.current = performance.now()
+  }, [progress])
   return (
     <main
       className={`game-shell crash-shell theme-${theme}`}
@@ -138,7 +139,7 @@ export function CrashGamePage({
         />
         <div
           className="crash-flight-area"
-          style={{ '--flight-y': flightPosition } as CSSProperties}
+          style={{ '--flight-y': flightPosition, '--flight-transition': `${flightTransitionMs}ms` } as CSSProperties}
         >
           <LevelProgressTrack
             boosterLevel={round.mock.boosterLevel}
@@ -165,13 +166,16 @@ export function CrashGamePage({
           showCashoutHint={showCashoutHint}
           status={round.status}
         />
-        <CrashResultOverlay cashoutPayout={round.cashoutPayout} status={round.status} />
       </section>
 
       {boosterPulse && <div className="booster-activation-pulse" role="status" aria-live="polite">Бустер активирован!</div>}
 
-      <Toast message={round.cashoutPayout > 0 && round.status !== 'crashed' ? 'Могли бы забрать больше' : ''} />
-      {modal === 'rules' && <RulesModal onClose={() => setModal(null)} />}
+      {modal === 'rules' && (
+        <RulesModal
+          onClose={() => setModal(null)}
+          onOpenDetails={onOpenDetailedRules}
+        />
+      )}
       {modal === 'tournament' && <TournamentModal api={api} onClose={() => setModal(null)} />}
     </main>
   )

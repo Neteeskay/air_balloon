@@ -27,6 +27,7 @@ type BetSelectionPageProps = {
   options: BetOption[]
   onBack?: () => void
   onProfile?: () => void
+  onOpenDetailedRules?: () => void
   api?: Api
 }
 
@@ -42,6 +43,7 @@ export function BetSelectionPage({
   options,
   onBack,
   onProfile,
+  onOpenDetailedRules,
   api,
 }: BetSelectionPageProps) {
   const {
@@ -108,7 +110,7 @@ export function BetSelectionPage({
       </section>
 
       <Toast message={notice} />
-      {modal === 'rules' && <RulesModal onClose={closeModal} />}
+      {modal === 'rules' && <RulesModal onClose={closeModal} onOpenDetails={onOpenDetailedRules} />}
       {modal === 'tournament' && <TournamentModal api={api} onClose={closeModal} />}
     </main>
   )

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampFlightProgress,
+  getContinuousFlightProgress,
   getFlightBottomPercent,
   getLevelFlightProgress,
   getLevelMarkerProgress,
@@ -29,6 +30,18 @@ describe('flight progress coordinates', () => {
     expect(samples.at(-1)).toBe(1)
     expect(clampFlightProgress(-0.2)).toBe(0)
     expect(clampFlightProgress(1.2)).toBe(1)
+  })
+
+  it('keeps the visual flight speed tied to coefficient time, not threshold gaps', () => {
+    const beforeFloor = getContinuousFlightProgress(2, greenLevels)
+    const afterFloor = getContinuousFlightProgress(4, greenLevels)
+
+    expect(afterFloor).toBeGreaterThan(beforeFloor)
+    expect(getContinuousFlightProgress(3.16, greenLevels)).toBeGreaterThan(0.5)
+    expect(getContinuousFlightProgress(6, greenLevels)).toBeGreaterThan(1)
+    expect(getContinuousFlightProgress(12, greenLevels)).toBeGreaterThan(1)
+    expect(getContinuousFlightProgress(12.1, greenLevels)).toBeGreaterThan(1)
+    expect(getContinuousFlightProgress(200, greenLevels)).toBeLessThanOrEqual(1.6)
   })
 
   it('uses the same normalized positions for level markers', () => {
