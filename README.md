@@ -2,6 +2,16 @@
 
 Монорепозиторий рабочего MVP бонусной crash-игры «Воздушный Шар».
 
+## Содержание
+
+- [Стек](#stack)
+- [Структура](#structure)
+- [Приоритет MVP](#mvp-priority)
+- [Удалённый сайт для теста](#remote-test)
+- [Локальный запуск](#local-run)
+- [Правило архитектуры](#architecture)
+
+<a id="stack"></a>
 ## Стек
 
 - Frontend: React + TypeScript + Vite
@@ -10,6 +20,7 @@
 - Realtime: native WebSocket с replay/checkpoint recovery
 - Infrastructure: Docker Compose + Nginx
 
+<a id="structure"></a>
 ## Структура
 
 - `frontend/` — пользовательский интерфейс игры
@@ -18,12 +29,23 @@
 - `infra/` — инфраструктурные конфиги
 - `scripts/` — вспомогательные скрипты
 
+<a id="mvp-priority"></a>
 ## Приоритет MVP
 
 Инструкции запуска backend, API, ограничения и интеграция:
 [данные и экономика](docs/backend-data-economy.md), [REST API](docs/API_CONTRACT.md).
 
-Локальный запуск всех сервисов: `docker compose up -d --build --wait`.
+<a id="remote-test"></a>
+## Удалённый сайт для теста
+
+Для быстрого просмотра опубликованной версии используйте [удалённый тестовый сайт](https://nfmd.ru): [https://nfmd.ru](https://nfmd.ru).
+
+Удалённый сайт предназначен для проверки пользовательского сценария в браузере. Для локальной разработки и проверки backend используйте инструкции ниже.
+
+<a id="local-run"></a>
+## Локальный запуск
+
+Запуск всех сервисов: `docker compose up -d --build --wait`.
 Порты и browser origin задаются в `.env` на основе `.env.example`:
 
 ```dotenv
@@ -63,6 +85,7 @@ Frontend использует серверную demo-сессию (`anna/balloo
 
 Дополнительные функции — рейтинг, турнирная таблица, upsell, расширенная анимация — после стабильного MVP.
 
+<a id="architecture"></a>
 ## Правило архитектуры
 
 Вся игровая математика и случайные события должны считаться на backend. Frontend только отображает состояние и отправляет действия пользователя.
