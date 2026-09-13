@@ -48,6 +48,8 @@ class ReconnectIT extends IntegrationSupport {
                 assertThat(snapshot.path("currentLevel").asInt()).isEqualTo(3);
                 assertThat(snapshot.path("boosterActivated").asBoolean()).isTrue();
                 assertThat(snapshot.path("currentMultiplier").decimalValue()).isEqualByComparingTo("6");
+                assertThat(snapshot.path("flightMultiplier").decimalValue()).isEqualByComparingTo("2");
+                assertThat(snapshot.path("effectiveMultiplier").decimalValue()).isEqualByComparingTo("6");
                 assertThat(snapshot.path("cashoutPreviewAmount").decimalValue()).isEqualByComparingTo("3000");
                 assertThat(snapshot.path("serverTime").asText()).isEqualTo(START.plusSeconds(10).toString());
                 assertThat(service.activeRoundCount()).isGreaterThanOrEqualTo(1);

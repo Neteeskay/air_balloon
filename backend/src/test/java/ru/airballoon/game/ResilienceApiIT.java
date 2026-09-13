@@ -45,6 +45,7 @@ class ResilienceApiIT extends IntegrationSupport {
         mvc.perform(get("/api/rounds/{id}", r.id()).principal(() -> user.toString()))
                 .andExpect(jsonPath("roundId").value(r.id().toString())).andExpect(jsonPath("currentLevel").value(3))
                 .andExpect(jsonPath("currentMultiplier").value(6)).andExpect(jsonPath("boosterActivated").value(true))
+                .andExpect(jsonPath("flightMultiplier").value(2)).andExpect(jsonPath("effectiveMultiplier").value(6))
                 .andExpect(jsonPath("boosterLevel").value(3)).andExpect(jsonPath("cashoutPerformed").value(false))
                 .andExpect(jsonPath("serverTime").value(START.plusSeconds(10).toString()))
                 .andExpect(jsonPath("fairnessCommitment").value(r.fairnessCommitment())).andExpect(jsonPath("fairnessReveal").doesNotExist());
