@@ -32,38 +32,36 @@ public class ConfigAdminValidator {
 
         CrashSettingsDto crash = request.crash();
         if (crash == null) {
-            violations.add(new FieldViolation("crash", "crash settings are required", null));
+            violations.add(new FieldViolation("crash", "Параметры краша обязательны", null));
         } else {
             check(() -> Double.isNaN(crash.alpha()) || crash.alpha() < 0.0 || crash.alpha() >= 1.0,
-                    "crash.alpha", "alpha must be in [0, 1)", crash.alpha(), violations);
+                    "crash.alpha", "alpha должен быть в диапазоне [0, 1)", crash.alpha(), violations);
             check(() -> Double.isNaN(crash.maxMultiplier()) || crash.maxMultiplier() <= 0,
-                    "crash.maxMultiplier", "maxMultiplier must be > 0", crash.maxMultiplier(), violations);
+                    "crash.maxMultiplier", "maxMultiplier должен быть больше 0", crash.maxMultiplier(), violations);
             check(() -> Double.isNaN(crash.minCrashMultiplier()) || crash.minCrashMultiplier() <= 0,
-                    "crash.minCrashMultiplier", "minCrashMultiplier must be > 0", crash.minCrashMultiplier(), violations);
+                    "crash.minCrashMultiplier", "minCrashMultiplier должен быть больше 0", crash.minCrashMultiplier(), violations);
             check(() -> Double.isNaN(crash.multiplierGrowthRate()) || crash.multiplierGrowthRate() < 0,
-                    "crash.multiplierGrowthRate", "multiplierGrowthRate must be >= 0", crash.multiplierGrowthRate(), violations);
+                    "crash.multiplierGrowthRate", "multiplierGrowthRate должен быть не меньше 0", crash.multiplierGrowthRate(), violations);
             check(() -> Double.isNaN(crash.fps()) || crash.fps() <= 0,
-                    "crash.fps", "fps must be > 0", crash.fps(), violations);
+                    "crash.fps", "fps должен быть больше 0", crash.fps(), violations);
             check(() -> Double.isNaN(crash.delta()) || crash.delta() <= 0,
-                    "crash.delta", "delta must be > 0", crash.delta(), violations);
-            // The current runtime samples on its deployment tick and does not read
-            // these admin values. Reject changes explicitly instead of silently
-            // persisting a setting that has no effect on a new round.
-            check(() -> Double.isFinite(crash.fps()) && Double.compare(crash.fps(), 60.0) != 0,
-                    "crash.fps", "fps is not runtime-configurable; only 60 is supported", crash.fps(), violations);
-            check(() -> Double.isFinite(crash.delta()) && Math.abs(crash.delta() - (1.0 / 60.0)) > 1e-9,
-                    "crash.delta", "delta is not runtime-configurable; only 1/60 is supported", crash.delta(), violations);
+                    "crash.delta", "delta должен быть больше 0", crash.delta(), violations);
+            // fps and delta describe the same simulation cadence: delta is the duration of a
+            // single frame and must equal 1/fps. Accept configurable ranges but keep the pair consistent.
+            check(() -> Double.isFinite(crash.fps()) && Double.isFinite(crash.delta()) && crash.delta() > 0
+                            && Math.abs(crash.delta() - (1.0 / crash.fps())) > 1e-9,
+                    "crash.delta", "delta должен равняться 1/fps", crash.delta(), violations);
             if (crash.maxMultiplier() > 0 && crash.minCrashMultiplier() > 0
                     && !Double.isNaN(crash.maxMultiplier()) && !Double.isNaN(crash.minCrashMultiplier())
                     && crash.maxMultiplier() <= crash.minCrashMultiplier()) {
                 violations.add(new FieldViolation("crash.maxMultiplier",
-                        "maxMultiplier must be greater than minCrashMultiplier", crash.maxMultiplier()));
+                        "maxMultiplier должен быть больше minCrashMultiplier", crash.maxMultiplier()));
             }
         }
 
         BoosterSettingsDto boosters = request.boosters();
         if (boosters == null) {
-            violations.add(new FieldViolation("boosters", "booster settings are required", null));
+            violations.add(new FieldViolation("boosters", "Настройки бустеров обязательны", null));
         } else {
             List<Double> tiers = List.of(boosters.multiplierTier1Value(), boosters.multiplierTier2Value(),
                     boosters.multiplierTier3Value(), boosters.multiplierTier4Value());
@@ -71,31 +69,31 @@ public class ConfigAdminValidator {
                 Double v = tiers.get(i);
                 if (v == null || Double.isNaN(v) || v <= 0) {
                     violations.add(new FieldViolation("boosters.multiplierTier%dValue".formatted(i + 1),
-                            "tier multiplier must be > 0", v));
+                            "Множитель бустера должен быть больше 0", v));
                 } else if (!ALLOWED_TIERS.contains(v)) {
                     violations.add(new FieldViolation("boosters.multiplierTier%dValue".formatted(i + 1),
-                            "tier multiplier must be exactly " + ALLOWED_TIERS + " to match the engine booster model", v));
+                            "Множитель бустера должен быть строго одним из " + ALLOWED_TIERS + " — так работает движок игры", v));
                 }
             }
             if (tiers.stream().noneMatch(v -> v == null || Double.isNaN(v))
                     && !tiers.equals(List.of(1.0, 2.0, 3.0, 4.0))) {
-                violations.add(new FieldViolation("boosters", "tier multipliers are fixed at [1, 2, 3, 4]", tiers));
+                violations.add(new FieldViolation("boosters", "Множители бустеров зафиксированы: [1, 2, 3, 4]", tiers));
             }
             validateTheme(boosters.green(), GameTheme.GREEN, "boosters.green", violations);
             validateTheme(boosters.red(), GameTheme.RED, "boosters.red", violations);
         }
 
         if (request.points() == null) {
-            violations.add(new FieldViolation("points", "points settings are required", null));
+            violations.add(new FieldViolation("points", "Настройки очков обязательны", null));
         }
         if (request.gameId() == null || request.gameId().isBlank()) {
-            violations.add(new FieldViolation("gameId", "gameId is required", null));
+            violations.add(new FieldViolation("gameId", "Обязательно укажите gameId", null));
         }
         if (request.gameType() == null || !"CRASH".equals(request.gameType())) {
-            violations.add(new FieldViolation("gameType", "gameType must be CRASH", request.gameType()));
+            violations.add(new FieldViolation("gameType", "gameType должен быть CRASH", request.gameType()));
         }
         if (request.revision() == null || request.revision() <= 0) {
-            violations.add(new FieldViolation("revision", "revision must be a positive long", request.revision()));
+            violations.add(new FieldViolation("revision", "revision должно быть положительным числом", request.revision()));
         }
         return violations.stream().sorted(Comparator.comparing(FieldViolation::field)).toList();
     }
@@ -103,20 +101,20 @@ public class ConfigAdminValidator {
     public List<String> computeWarnings(GameConfigurationWriteRequest request) {
         List<String> warnings = new ArrayList<>();
         CrashSettingsDto crash = request.crash();
-        if (crash != null && crash.delta() > 0 && Math.abs(crash.delta() - 1.0 / 60.0) > PROB_SUM_EPSILON) {
-            warnings.add("delta does not match 1/fps of 60; live engine simulation may differ from settings");
+        if (crash != null && crash.fps() > 0 && crash.delta() > 0 && Math.abs(crash.delta() - 1.0 / crash.fps()) > PROB_SUM_EPSILON) {
+            warnings.add("delta не совпадает с 1/fps — живая симуляция движка может отличаться от настроек");
         }
         BoosterSettingsDto boosters = request.boosters();
         if (boosters != null) {
-            warnIfNotSum100(boosters.green(), "green", warnings);
-            warnIfNotSum100(boosters.red(), "red", warnings);
+            warnIfNotSum100(boosters.green(), "зелёной", warnings);
+            warnIfNotSum100(boosters.red(), "красной", warnings);
         }
         return warnings;
     }
 
     private void validateTheme(ThemeProbabilitiesDto theme, GameTheme expected, String path, List<FieldViolation> violations) {
         if (theme == null || theme.values().isEmpty()) {
-            violations.add(new FieldViolation(path, expected.name().toLowerCase() + " probabilities are required", null));
+            violations.add(new FieldViolation(path, "Вероятности " + themeName(expected) + " темы обязательны", null));
             return;
         }
         Map<Integer, Double> byLevel = byLevel(theme.values());
@@ -124,7 +122,7 @@ public class ConfigAdminValidator {
         for (int i = 1; i <= expected.levelCount(); i++) expectedLevels.add(i);
         if (!new TreeSet<>(byLevel.keySet()).equals(expectedLevels)) {
             violations.add(new FieldViolation(path,
-                    expected.name().toLowerCase() + " must define exactly levels " + expectedLevels + ", got " + byLevel.keySet(),
+                    "Тема " + themeName(expected) + " должна задавать ровно уровни " + expectedLevels + ", получено " + byLevel.keySet(),
                     byLevel.keySet()));
             return;
         }
@@ -134,12 +132,12 @@ public class ConfigAdminValidator {
             sum += v;
             if (Double.isNaN(v) || v < 0.0 || v > 100.0) {
                 violations.add(new FieldViolation("%s.line%dLootProb".formatted(path, e.getKey()),
-                        "probability must be in [0, 100]", v));
+                        "вероятность должна быть в диапазоне [0, 100]", v));
             }
         }
         if (Math.abs(sum - 100.0) > PROB_SUM_EPSILON) {
             violations.add(new FieldViolation(path,
-                    expected.name().toLowerCase() + " probabilities must sum to 100%, got " + pct(sum), sum));
+                    "Вероятности " + themeName(expected) + " темы должны давать в сумме 100%, получено " + pct(sum), sum));
         }
     }
 
@@ -147,8 +145,12 @@ public class ConfigAdminValidator {
         if (theme == null || theme.values().isEmpty()) return;
         double sum = theme.values().values().stream().filter(v -> v != null).mapToDouble(Double::doubleValue).sum();
         if (Math.abs(sum - 100.0) > PROB_SUM_EPSILON) {
-            warnings.add(name + " probabilities sum to " + pct(sum) + "% (expected 100%)");
+            warnings.add("Вероятности " + name + " темы дают " + pct(sum) + "% (ожидается 100%)");
         }
+    }
+
+    private static String themeName(GameTheme theme) {
+        return theme == GameTheme.GREEN ? "зелёной" : "красной";
     }
 
     private Map<Integer, Double> byLevel(Map<String, Double> flat) {

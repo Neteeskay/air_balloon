@@ -3,9 +3,12 @@ package ru.hackathon.airballoon.admin.config.web;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +26,7 @@ import ru.hackathon.airballoon.admin.config.dto.ConfigurationVersionSummary;
 import ru.hackathon.airballoon.admin.config.dto.GameConfigurationResponse;
 import ru.hackathon.airballoon.admin.config.dto.GameConfigurationWriteRequest;
 import ru.hackathon.airballoon.admin.config.service.ConfigAdminService;
+import ru.hackathon.airballoon.admin.config.service.ConfigFileService;
 import ru.hackathon.airballoon.admin.config.service.ConfigMetadataService;
 import ru.hackathon.airballoon.admin.security.AdminSecurityConfiguration;
 import ru.hackathon.airballoon.common.PageResponse;
@@ -32,9 +36,11 @@ import ru.hackathon.airballoon.common.PageResponse;
 public class ConfigAdminController {
     private final ConfigAdminService service;
     private final ConfigMetadataService metadata;
-    public ConfigAdminController(ConfigAdminService service, ConfigMetadataService metadata) {
+    private final ConfigFileService files;
+    public ConfigAdminController(ConfigAdminService service, ConfigMetadataService metadata, ConfigFileService files) {
         this.service = service;
         this.metadata = metadata;
+        this.files = files;
     }
 
     @GetMapping("/current")
@@ -96,6 +102,37 @@ public class ConfigAdminController {
     public ResponseEntity<ConfigurationVersionDetail> rollback(@PathVariable UUID id, HttpServletRequest http) {
         ConfigurationVersionDetail rolled = service.rollback(id, username(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(rolled);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(name = "format", required = false) String format,
+            @RequestParam(name = "version", required = false) UUID version) {
+        ConfigFileService.Format fmt = files.parseFormat(format == null ? "" : format);
+        var payload = version == null ? service.exportCurrent() : service.exportVersion(version);
+        String content = files.serialize(payload, fmt);
+        MediaType mediaType = fmt == ConfigFileService.Format.JSON ? MediaType.APPLICATION_JSON
+                : MediaType.parseMediaType("application/yaml; charset=UTF-8");
+        String extension = fmt == ConfigFileService.Format.JSON ? "json" : "yaml";
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("air-balloon-config-" + payload.gameId() + "." + extension)
+                                .build().toString())
+                .body(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<GameConfigurationResponse> importConfig(
+            @RequestParam(name = "format", required = false) String format,
+            @RequestBody String content,
+            HttpServletRequest http) {
+        ConfigFileService.Format fmt = files.parseFormat(format == null ? "" : format);
+        var payload = files.deserialize(content, fmt);
+        GameConfigurationResponse config = service.importConfig(payload, username(http));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.ETAG, revisionTag(config.revision()))
+                .body(config);
     }
 
     private static String username(HttpServletRequest request) {

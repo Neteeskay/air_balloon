@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LineChart } from '../chart'
 import { AdminClient, AdminApiError } from '../client'
 import { HelpPopover } from '../components'
@@ -31,17 +31,23 @@ const GROUP_TITLE: Record<string, string> = {
   points: 'Очки',
 }
 
+const formatFromName = (filename: string): 'json' | 'yaml' => {
+  if (filename.endsWith('.yaml') || filename.endsWith('.yml')) return 'yaml'
+  return 'json'
+}
+
 export function ConfigEditor({ client, metadata }: { client: AdminClient; metadata: ConfigMetadata }) {
   const [current, setCurrent] = useState<GameConfiguration | null>(null)
   const [model, setModel] = useState<EditorModel>({})
   const [savedSnapshot, setSavedSnapshot] = useState<EditorModel | null>(null)
-  const [busyAction, setBusyAction] = useState<'validate' | 'save' | null>(null)
+  const [busyAction, setBusyAction] = useState<'validate' | 'save' | 'export' | 'import' | null>(null)
   const [flash, setFlash] = useState<Flash | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldViolation[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
   const [conflictVersion, setConflictVersion] = useState<number | null>(null)
   const [loadError, setLoadError] = useState('')
   const [boosterTheme, setBoosterTheme] = useState<'green' | 'red'>('green')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const reload = useCallback(() => {
     client.getCurrent()
       .then(config => {
@@ -60,6 +66,32 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     return assemble(model, current, nextRevision)
   }, [model, current, nextRevision])
   const handleFlash = (flash: Flash) => { setFlash(flash); setTimeout(() => setFlash(null), 12_000) }
+  const exportConfig = useCallback(async (format: 'json' | 'yaml') => {
+    setBusyAction('export')
+    try {
+      await client.exportFile(format)
+      handleFlash({ type: 'info', message: `Конфигурация экспортирована (${format.toUpperCase()}).` })
+    } catch (e) {
+      handleFlash({ type: 'error', message: `Ошибка экспорта: ${(e as Error).message}` })
+    } finally { setBusyAction(null) }
+  }, [client])
+  const onImportFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setBusyAction('import'); setFieldErrors([]); setWarnings([]); setConflictVersion(null)
+    try {
+      const format = formatFromName(file.name)
+      const content = await file.text()
+      const imported = await client.importFile(format, content)
+      const flat = flatten(imported, metadata)
+      setCurrent(imported); setModel(flat); setSavedSnapshot(flat)
+      handleFlash({ type: 'info', message: `Конфигурация импортирована и применена — ревизия #${imported.revision}.` })
+    } catch (e) {
+      if (e instanceof AdminApiError && e.fieldErrors?.length) { setFieldErrors(e.fieldErrors); handleFlash({ type: 'error', message: 'Импорт завершился с ошибками.' }) }
+      else handleFlash({ type: 'error', message: `Ошибка импорта: ${(e as Error).message}` })
+    } finally { setBusyAction(null) }
+  }, [client, metadata])
   const validate = useCallback(async () => {
     if (!current) return
     setBusyAction('validate'); setFieldErrors([]); setWarnings([])
@@ -147,6 +179,17 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
       </div>
       {current && <span className="admin-pill">ревизия #{current.revision}</span>}
     </div>
+    <div className="admin-file-tools admin-mb-14">
+      <div className="admin-file-tools-inner">
+        <span className="admin-file-tools-label">Файл конфигурации</span>
+        <div className="admin-row-actions">
+          <button className="admin-secondary admin-primary-compact" onClick={() => void exportConfig('json')} disabled={busyAction !== null}>{busyAction === 'export' ? 'Экспортируем…' : 'Экспорт JSON'}</button>
+          <button className="admin-secondary admin-primary-compact" onClick={() => void exportConfig('yaml')} disabled={busyAction !== null}>{busyAction === 'export' ? 'Экспортируем…' : 'Экспорт YAML'}</button>
+          <button className="admin-secondary admin-primary-compact" onClick={() => fileInputRef.current?.click()} disabled={busyAction !== null}>{busyAction === 'import' ? 'Импортируем…' : 'Импорт…'}</button>
+          <input ref={fileInputRef} type="file" accept=".json,.yaml,.yml" hidden onChange={onImportFile} />
+        </div>
+      </div>
+    </div>
     {conflictVersion !== null && <div className="admin-warning admin-mb-14" role="status">
       Настройки менялись на сервере (текущая ревизия: <strong>#{conflictVersion}</strong>).
       <button className="admin-link-button" onClick={() => void reload()}>Обновить</button></div>}
@@ -167,7 +210,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
     </div>
     <section className="admin-card admin-mb-14">
       <h2 className="admin-card-title">{GROUP_TITLE.general}</h2>
-      {general.filter(p => p.dataType === 'boolean').map(p => <div key={p.technicalName} className="admin-form-grid admin-two-cols">
+      {general.filter(p => p.dataType === 'boolean').map(p => <div key={p.technicalName} className="admin-form-grid admin-two-cols admin-mb-14">
         <SelectField param={p} value={model[p.technicalName] ?? String(current.isActive)} onChange={setField} />
       </div>)}
       <div className="admin-fields admin-fields-2">{general.filter(p => p.dataType !== 'boolean').map(p => <div key={p.technicalName} className="admin-field-row">
@@ -180,7 +223,9 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
       <div className="admin-crash-layout">
         <div className="admin-crash-params">
           <p className="admin-section-label admin-plain">Параметры модели</p>
-          {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}
+          <div className="admin-crash-group">
+            {crashParams.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}
+          </div>
           {liveCrash && <div className="admin-chart-chips">
             <span>P(X ≥ 2) ≈ <b>{previewP[0] ? (previewP[0].p * 100).toFixed(2) : '—'}%</b></span>
             <span>P(X ≥ 5) ≈ <b>{previewP[1] ? (previewP[1].p * 100).toFixed(2) : '—'}%</b></span>
@@ -192,7 +237,7 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
             <div className="admin-chart-head">
               <h3 className="admin-section-label admin-plain">Вероятность, что множитель будет не ниже x<small>P(X ≥ x) по модели усечённого Парето</small></h3>
             </div>
-            <LineChart height={250} series={[{ name: 'Теория', color: '#246b50', points: modelCurve }]} />
+            <LineChart height={320} series={[{ name: 'Теория', color: '#10B981', points: modelCurve }]} />
           </>}
         </div>
       </div>
@@ -209,13 +254,17 @@ export function ConfigEditor({ client, metadata }: { client: AdminClient; metada
             <span className="admin-theme-dot" aria-hidden="true" />
             <strong>{theme === 'green' ? 'Зелёная' : 'Красная'} · {themeLevelCount(theme)} линий</strong>
             <small className={ok ? '' : 'admin-hint-error'}>сумма: {sum.toFixed(2)}%{!ok ? ' — нужно 100%' : ''}</small>
+            <span className="admin-theme-check" aria-hidden="true">✓</span>
           </button>
         })}
       </div>
-      <h3 className="admin-section-label">Множители бустеров</h3>
-      <div className="admin-form-grid admin-tier-grid">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
-      <h3 className="admin-section-label">{boosterTheme === 'green' ? 'Шансы линий · Зелёная тема' : 'Шансы линий · Красная тема'}</h3>
-      <div className="admin-form-grid admin-mb-0">{boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
+      <div className="admin-booster-group">
+        <h3 className="admin-section-label">Множители бустеров</h3>
+        <div className="admin-form-grid admin-tier-grid admin-mb-0">{boostersParams.filter(p => p.semanticType === 'multiplier').map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={setField} error={fieldErrors.find(e => e.field === p.technicalName)?.message} />)}</div>
+      </div>
+      <LineProbabilitiesEditor theme={boosterTheme}
+        params={boostersParams.filter(p => new RegExp(`^boosters\\.${boosterTheme}\\.line\\d+LootProb$`).test(p.technicalName) && p.semanticType === 'probability')}
+        model={model} onChange={setField} errorOf={name => fieldErrors.find(e => e.field === name)?.message} />
     </section>
     <section className="admin-card">
       <h2 className="admin-card-title">{GROUP_TITLE.points}</h2>
@@ -240,6 +289,55 @@ function NumberField({ param, model, onChange, disabled, error }: { param: Param
     <input id={inputId} type="number" step={step} min={param.min ?? undefined} max={param.max ?? undefined} value={model[param.technicalName] ?? ''} onChange={e => onChange(param.technicalName, e.target.value)} disabled={disabled || !param.mutable} aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} />
     {error && <small id={`${inputId}-error`} className="admin-hint-error">Ошибка: {error}</small>}
   </label>
+}
+
+function LineProbabilitiesEditor({ theme, params, model, onChange, errorOf }: {
+  theme: 'green' | 'red'
+  params: ParameterMetadata[]
+  model: EditorModel
+  onChange: (name: string, value: string) => void
+  errorOf: (name: string) => string | undefined
+}) {
+  const themeLabel = theme === 'green' ? 'Зелёная тема' : 'Красная тема'
+  const sum = params.reduce((acc, p) => {
+    const v = Number(model[p.technicalName])
+    return acc + (Number.isFinite(v) ? v : 0)
+  }, 0)
+  const ok = Math.abs(sum - 100) <= 0.01
+  const remaining = 100 - sum
+
+  const distributeEvenly = () => {
+    if (params.length === 0) return
+    const base = Math.floor(100 / params.length)
+    const bigger = 100 - base * params.length
+    params.forEach((p, i) => onChange(p.technicalName, String(i < bigger ? base + 1 : base)))
+  }
+
+  return <div className="admin-lines-editor">
+    <h3 className="admin-section-label">Шансы линий · {themeLabel}</h3>
+    <div className="admin-lines-toolbar">
+      <div className={`admin-lines-budget ${ok ? 'ok' : remaining < 0 ? 'over' : 'under'}`} role="status">
+        <strong>{sum.toFixed(2)}%</strong>
+        <span>распределено из 100%</span>
+        <small>{ok ? 'Идеально — сумма равна 100%' : remaining > 0 ? `осталось распределить ${remaining.toFixed(2)}%` : `перебор на ${Math.abs(remaining).toFixed(2)}%`}</small>
+      </div>
+      <div className="admin-row-actions">
+        <button type="button" className="admin-secondary admin-primary-compact" onClick={distributeEvenly}>Поровну</button>
+      </div>
+    </div>
+    <div className="admin-lines-stack" role="img" aria-label={`Распределение процентов по линиям, ${themeLabel}`}>
+      {params.map(p => {
+        const v = Number(model[p.technicalName])
+        const w = Number.isFinite(v) && v > 0 ? Math.min(v, 100) : 0
+        return <span key={p.technicalName} className={`admin-lines-seg admin-lines-${theme}`} style={{ width: `${w}%` }} title={`${p.displayName}: ${Number.isFinite(v) ? v.toFixed(2) : '—'}%`} />
+      })}
+      {remaining > 0 && <span className="admin-lines-gap" style={{ width: `${remaining}%` }} />}
+    </div>
+    <div className="admin-form-grid admin-lines-grid">
+      {params.map(p => <NumberField key={p.technicalName} param={p} model={model} onChange={onChange} error={errorOf(p.technicalName)} />)}
+    </div>
+    <p className="admin-hint admin-mb-0">Сумма вероятностей всех линий должна быть ровно 100%. Изменения применяются после нажатия «Сохранить и применить».</p>
+  </div>
 }
 
 function SelectField({ param, value, onChange }: { param: ParameterMetadata; value: string; onChange: (name: string, value: string) => void }) {

@@ -226,6 +226,75 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ApiError' }
+  /config/export:
+    get:
+      operationId: exportConfig
+      summary: Download the configuration as a JSON or YAML file
+      description: |
+        Returns the active configuration (or a specific version via `version`) as a portable
+        JSON/YAML file that can be re-imported with the import endpoint.
+      tags: [Configuration]
+      parameters:
+        - name: format
+          in: query
+          required: true
+          description: File format
+          schema: { type: string, enum: [json, yaml] }
+        - name: version
+          in: query
+          required: false
+          description: Configuration version id to export (defaults to the active configuration)
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Configuration file
+          headers:
+            Content-Disposition:
+              description: attachment; filename="air-balloon-config-<gameId>.json|.yaml"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfigFilePayload' }
+            application/yaml:
+              schema: { $ref: '#/components/schemas/ConfigFilePayload' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Configuration version not found
+  /config/import:
+    post:
+      operationId: importConfig
+      summary: Import a configuration from a JSON or YAML file
+      description: |
+        Parses the raw body as the config content, validates it and immediately applies it
+        (creates a draft and activates it). The file format is selected via `format`; any
+        revision stored in the file is ignored and replaced with the next revision.
+      tags: [Configuration]
+      parameters:
+        - name: format
+          in: query
+          required: true
+          description: File format
+          schema: { type: string, enum: [json, yaml] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfigFilePayload' }
+          application/yaml:
+            schema: { $ref: '#/components/schemas/ConfigFilePayload' }
+      responses:
+        '201':
+          description: Configuration imported and activated
+          headers:
+            ETag:
+              description: Revision tag "revision-N"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameConfiguration' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /audit:
     get:
       operationId: searchAuditLog
@@ -399,6 +468,18 @@ components:
         gameType: { type: string, enum: [CRASH] }
         isActive: { type: boolean }
         revision: { type: integer, format: int64, minimum: 1 }
+        crash: { $ref: '#/components/schemas/CrashSettings' }
+        boosters: { $ref: '#/components/schemas/BoosterSettings' }
+        points: { $ref: '#/components/schemas/PointsSettings' }
+    ConfigFilePayload:
+      type: object
+      description: Portable config file content used by export/import (no server-side revision/status metadata).
+      required: [gameId, gameName, gameType, isActive, crash, boosters, points]
+      properties:
+        gameId: { type: string, enum: [air-balloon] }
+        gameName: { type: string }
+        gameType: { type: string, enum: [CRASH] }
+        isActive: { type: boolean }
         crash: { $ref: '#/components/schemas/CrashSettings' }
         boosters: { $ref: '#/components/schemas/BoosterSettings' }
         points: { $ref: '#/components/schemas/PointsSettings' }
