@@ -347,7 +347,7 @@ integration tests, затем упаковывает executable JAR. Все сц
 Сетевые тесты имеют ограниченные timeout для обнаружения зависаний.
 
 Проверяется полный 1000→900→1503 сценарий с x3, first-level gate, latest-time
-cashout, повторные/одновременные команды, crash tie, мгновенный crash от бустера,
+cashout, повторные/одновременные команды, crash tie и отсутствие ложного crash от бустера,
 cadence independence, отсутствие повторов, 9/12 уровней, заморозка score,
 config validation/snapshot, seed profiles, ownership, unknown fields, WebSocket
 изоляция, сохранение выигрыша при отказах и замена DI-адаптера.
