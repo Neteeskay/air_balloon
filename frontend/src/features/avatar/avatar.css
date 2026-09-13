@@ -8,12 +8,13 @@
 .av-world { position: relative; isolation: isolate; min-height: 100%; padding: 22px max(24px, calc((100vw - 1480px) / 2)) 28px; }
 .av-world::before { content: ''; position: absolute; z-index: -2; inset: 0; background: linear-gradient(#244b7280, #365a7540 50%, #4c4a24a6), url('/assets/avatar/background.png') center 65% / cover; }
 .av-world::after { content: ''; position: absolute; z-index: -1; inset: 0; backdrop-filter: blur(6px); background: linear-gradient(90deg, #53759712, transparent 40%, #677ba425); }
-.av-header { display: flex; align-items: center; gap: 18px; min-height: 58px; padding: 0 10px 18px; margin-bottom: 18px; border-bottom: 1px solid #e0efff33; color: white; }
+.av-profile-loading { display: grid; place-items: center; min-height: 100dvh; color: #fff; font-size: 20px; font-weight: 700; }
+.av-header { position: relative; display: flex; align-items: center; gap: 18px; min-height: 58px; padding: 0 10px 18px; margin-bottom: 18px; border-bottom: 1px solid #e0efff33; color: white; }
 .av-header h1 { font-size: clamp(22px, 2.1vw, 32px); margin: 0; outline: none; }
 .av-blue { border: 1px solid #c4e6ff65; border-radius: 40px; color: #fff; background: linear-gradient(#589adaaa, #1763a9cf); box-shadow: inset 0 2px 2px #ffffff35, 0 5px 12px #09396122; padding: 12px 19px; display: flex; gap: 10px; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
 .av-blue:hover { background: linear-gradient(#66adeb, #1763a9); }
 .av-back span { font-size: 26px; line-height: 18px; }
-.av-balance { margin-left: auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 150px; padding: 3px 23px 3px 8px; border: 1px solid #c4e6ff55; border-radius: 50px; background: linear-gradient(#6aa2d380, #095493a8); box-shadow: inset 0 2px 3px #d6e6f830; }
+.av-balance { position: absolute; left: 50%; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 150px; padding: 3px 23px 3px 8px; border: 1px solid #c4e6ff55; border-radius: 50px; background: linear-gradient(#6aa2d380, #095493a8); box-shadow: inset 0 2px 3px #d6e6f830; transform: translateX(-50%); }
 .av-balance img { width: 48px; height: 45px; object-fit: contain; }
 .av-balance strong { font-size: 28px; color: white; }
 .av-help span { border-radius: 50%; color: #3877b0; background: #eff9ff; width: 24px; height: 24px; line-height: 24px; text-align: center; font-size: 20px; }
@@ -104,7 +105,7 @@
 .av-user h2 { font-size: clamp(23px, 2vw, 30px); overflow-wrap: anywhere; margin: 0 0 10px; }
 .av-badge { display: inline-block; background: #f7ebd9; border: 1px solid #e9dcc5; border-radius: 30px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
 .av-profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.av-profile-stats > div { display: flex; align-items: center; gap: 8px; padding: 14px 9px; border: 1px solid #e9dfd0; background: #fffaf1; border-radius: 17px; }
+.av-profile-stats > div { display: flex; align-items: center; gap: 8px; padding: 14px 9px; border: 1px solid rgba(233, 223, 208, 0.5); background: #fffaf1; border-radius: 17px; }
 .av-stat-icon { flex: 0 0 39px; width: 39px; height: 39px; display: grid; place-items: center; border-radius: 13px; }
 .av-stat-icon svg { width: 27px; height: 27px; stroke-width: 2.5; }
 .av-stat-icon--score, .av-stat-icon--wins { color: #bd7804; background: linear-gradient(145deg, #fff7b5, #ffd24f); box-shadow: inset 0 1px 3px #fff; }
@@ -112,19 +113,19 @@
 .av-stat-icon--mode { color: #1974bd; background: linear-gradient(145deg, #e8f7ff, #a6daf7); }
 .av-profile-stats strong { font-size: 16px; overflow-wrap: anywhere; min-width: 0; }
 .av-profile-stats small { font-size: 11px; display: block; color: #777b7a; margin-top: 5px; font-weight: 400; }
-.av-rating-summary { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px 10px; margin-top: 14px; padding: 12px 14px; border: 1px solid #efd58e; border-radius: 17px; color: #6f5620; background: linear-gradient(135deg, #fff9dc, #ffedb8); }
-.av-rating-summary > span { grid-column: 1 / -1; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.av-rating-summary > strong { font-size: 26px; color: #9a6d08; }
-.av-rating-summary > small { color: #7d6c42; font-size: 11px; }
-.av-rating-summary > button { grid-column: 1 / -1; justify-self: start; padding: 7px 11px; border: 0; font-size: 11px; cursor: pointer; }
-.av-rating-summary > button:hover { filter: brightness(1.08); }
-.av-profile-card blockquote { margin: 28px 4px 0; font-size: 25px; line-height: 1.3; color: #7c8079; }
+.av-profile-card blockquote { margin: 25px 4px 0; font-size: 25px; line-height: 1.3; color: #7c8079; }
 .av-profile-pet { align-self: end; position: relative; text-align: center; padding-top: 28px; }
 .av-profile-pet .av-pet { width: min(80%, 480px); }
 .av-profile-pet .av-pedestal { margin-top: -21px; }
 .av-profile-pet > button { position: relative; z-index: 3; margin: -17px auto 10px; font-size: 19px; padding: 14px 24px; }
 .av-luck-card { text-align: center; padding: 22px 17px 14px; }
 .av-header .top-actions { margin-left: 0; gap: 8px; }
+.av-header > .top-actions { margin-left: auto; }
+.av-history-button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 17px 0 2px; padding: 10px 14px; border: 1px solid #ebd18a; border-radius: 14px; color: #674b18;     background: linear-gradient(#fff3a2 0%, #ffe16d 30%, #ffc539 72%, #f9ac24);
+    border: 2px solid #ffe99d; box-shadow: 0 4px 10px #9d74221c, inset 0 1px 1px #fff; font-size: 14px; font-weight: 800; cursor: pointer; transition: filter .2s ease, box-shadow .2s ease, transform .2s ease; }
+.av-history-button:hover { filter: brightness(1.04); box-shadow: 0 6px 14px #9d742235, inset 0 1px 1px #fff; transform: translateY(-1px); }
+.av-history-button > span:first-child { font-size: 20px; line-height: 1; }
+.av-history-button > span:last-child { font-size: 20px; line-height: 1; }
 .av-luck-card h2 { font-size: 26px; margin: 0 0 6px; }
 .av-luck-card > p { color: #8b8c81; font-size: 13px; }
 .av-wheel { position: relative; width: min(255px, 100%); aspect-ratio: 1; margin: 23px auto 16px; border: 10px solid #eba825; border-radius: 50%; background: conic-gradient(from -30deg, #e9482d 0deg 60deg, #fff0c6 60deg 120deg, #e9482d 120deg 180deg, #fff0c6 180deg 240deg, #e9482d 240deg 300deg, #fff0c6 300deg); box-shadow: inset 0 0 0 4px #ffd775, 0 0 0 4px #ffdf7c, 0 5px 8px #a16c3444; }

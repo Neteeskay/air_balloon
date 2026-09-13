@@ -137,8 +137,8 @@ export class MockBackend {
     },
     catalog: { get: async () => clone(mockCatalog) },
     history: {
-      getGlobalHistory: async (page = 0) => this.historyPage(page),
-      getPersonalHistory: async (page = 0) => this.historyPage(page, this.user()),
+      getGlobalHistory: async (page = 0, size = 10) => this.historyPage(page, undefined, size),
+      getPersonalHistory: async (page = 0, size = 10) => this.historyPage(page, this.user(), size),
     },
     game: {
       startRound: async (input: StartInput) => {
@@ -200,12 +200,12 @@ export class MockBackend {
     },
   }
 
-  private historyPage(page: number, owner?: string) {
+  private historyPage(page: number, owner?: string, size = 10) {
     this.tick()
     const items: HistoryItem[] = Object.values(this.db.rounds)
       .filter(r => (!owner || r.owner === owner) && r.view.status === 'FINISHED')
       .map(({ view: v, owner: roundOwner }) => ({ roundId: v.id, username: roundOwner, theme: v.theme, betAmount: v.betAmount, boosterMultiplier: v.boosterMultiplier, cashoutMultiplier: v.cashoutMultiplier, crashMultiplier: v.crashMultiplier!, winAmount: v.winAmount, score: v.roundScore, result: v.cashoutPerformed ? 'WIN' : 'LOSS', completedAt: v.finishedAt! }))
     items.sort((a, b) => b.completedAt.localeCompare(a.completedAt) || b.roundId.localeCompare(a.roundId))
-    return { items: items.slice(page * 10, (page + 1) * 10), page, size: 10, total: items.length }
+    return { items: items.slice(page * size, (page + 1) * size), page, size, total: items.length }
   }
 }

@@ -76,6 +76,7 @@ export function BetSelectionPage({
         soundOn={soundOn}
         onBack={onBack}
         onProfile={onProfile}
+        api={api}
       />
 
       <GameHistoryStrip />

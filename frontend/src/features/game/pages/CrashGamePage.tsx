@@ -125,6 +125,7 @@ export function CrashGamePage({
         soundOn={soundOn}
         onBack={onBack}
         onProfile={onProfile}
+        api={api}
       />
 
       <section className={`crash-stage${round.boosterActivated ? ' has-booster' : ''}${boosterPulse ? ' booster-activated' : ''}`} aria-label="Полёт воздушного шара" data-round-id={roundId}>

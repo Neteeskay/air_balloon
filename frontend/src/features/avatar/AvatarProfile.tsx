@@ -7,6 +7,10 @@ import type { FortuneWheelPrize } from '../../mocks/fortuneWheelPrizes'
 import { PuzzlePieceGrid } from '../puzzles/components/PuzzlePieceGrid'
 import { PuzzleCollectionPage } from '../puzzles/pages/PuzzleCollectionPage/PuzzleCollectionPage'
 import { TopMenuActions } from '../betting/components/TopMenuActions'
+import { TournamentModal } from '../betting/components/TournamentModal'
+import { api as defaultApi } from '../../api'
+import type { Api } from '../../api/types'
+import { ProfileHistoryModal } from '../history/ProfileHistoryModal'
 import { asset, categories, findItem, items, normalizeOutfit, outfitImage, renderAssets, type Category, type Item, type Outfit } from './catalog'
 import { ItemArt } from './ItemArt'
 import './avatar.css'
@@ -45,7 +49,9 @@ type Props = {
   soundOn: boolean
   onToggleSound: () => void
   onUnlockAudio?: () => void
-  onSave: (petName: string, equipped: MockEquippedClothing) => void
+  onSave: (petName: string, equipped: MockEquippedClothing) => void | Promise<void>
+  api?: Api
+  onLogout?: () => void | Promise<void>
   onClose: () => void
 }
 
@@ -66,6 +72,8 @@ export function AvatarProfile({
   onToggleSound,
   onUnlockAudio,
   onSave,
+  api,
+  onLogout,
   onClose,
 }: Props) {
   const initial: Outfit = normalizeOutfit({ name: petName, head: equippedClothing.headId, neck: equippedClothing.neckId })
@@ -78,6 +86,9 @@ export function AvatarProfile({
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [fortuneOpen, setFortuneOpen] = useState(false)
   const [collectionOpen, setCollectionOpen] = useState(false)
+  const [tournamentOpen, setTournamentOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [info, setInfo] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -93,6 +104,7 @@ export function AvatarProfile({
   const rewardItem = findItem(puzzle.rewardClothingId)
   const progress = Math.round((puzzle.collectedFragments / puzzle.totalFragments) * 100)
   const fortune = useFortuneWheel({ onPrize: onFortunePrize, userId })
+  const tournamentApi = api ?? defaultApi
   const profileStats = [
     { id: 'score', icon: <Star />, value: formatNumber(score), label: 'Игровые очки' },
     { id: 'games', icon: <Gamepad2 />, value: formatNumber(gamesPlayed), label: 'Игр сыграно' },
@@ -127,26 +139,44 @@ export function AvatarProfile({
   const save = () => {
     if (!draft.name.trim()) { setError('Дай питомцу имя — от 1 до 24 символов.'); setRenaming(true); return }
     const outfit = normalizeOutfit(draft)
-    onSave(outfit.name, { headId: outfit.head, neckId: outfit.neck })
-    setSaved(outfit); setDraft(outfit); setEditing(false); setNotice('Образ сохранён'); setError(''); setInfo(''); setRenaming(false)
+    const complete = () => {
+      setSaved(outfit); setDraft(outfit); setEditing(false); setNotice('Образ сохранён'); setError(''); setInfo(''); setRenaming(false)
+    }
+    try {
+      const result = onSave(outfit.name, { headId: outfit.head, neckId: outfit.neck })
+      if (result && typeof result.then === 'function') {
+        void result.then(complete).catch((reason) => {
+          setError(reason instanceof Error ? reason.message : 'Не удалось сохранить образ')
+        })
+      } else complete()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось сохранить образ')
+    }
   }
-  return <dialog ref={dialog} className="av-dialog" aria-labelledby="av-title" onCancel={(event) => {
+  return <dialog ref={dialog} className="av-dialog" aria-label={editing ? undefined : 'Профиль'} aria-labelledby={editing ? 'av-title' : undefined} onCancel={(event) => {
     event.preventDefault()
     if (fortuneOpen) { if (!fortune.isSpinning) setFortuneOpen(false); return }
     if (collectionOpen) { setCollectionOpen(false); return }
+    if (tournamentOpen) { setTournamentOpen(false); return }
+    if (historyOpen) { setHistoryOpen(false); return }
     if (confirmLeave) setConfirmLeave(false); else if (info) setInfo(''); else leave()
   }}>
     <div className={`av-world ${editing ? 'av-world--editor' : ''}`} onPointerDownCapture={onUnlockAudio} onKeyDownCapture={onUnlockAudio}>
-      <div inert={confirmLeave || fortuneOpen || collectionOpen}>
+      <div inert={confirmLeave || fortuneOpen || collectionOpen || tournamentOpen || historyOpen}>
       <header className="av-header">
         <button className="av-blue av-back" onClick={leave}><span aria-hidden="true">←</span> Назад</button>
-        <h1 id="av-title" ref={title} tabIndex={-1}>{editing ? 'Настройка образа' : 'Мой профиль'}</h1>
+        {editing && <h1 id="av-title" ref={title} tabIndex={-1}>Настройка образа</h1>}
         <div className="av-balance" aria-label={`Бонусный баланс: ${formatNumber(balance)}`}><img src={asset('coin')} alt="" /><strong>{formatNumber(balance)}</strong></div>
         <TopMenuActions
-          onOpenRules={() => setInfo(info ? '' : 'За каждый завершённый полёт ты получаешь фрагмент. Собери пазл полностью, чтобы открыть одежду. Полученный предмет можно надеть здесь, в гардеробе. Прогресс и образ сохраняются в текущей mock-сессии.')}
+          onOpenRules={() => { setProfileMenuOpen(false); setInfo(info ? '' : 'За каждый завершённый полёт ты получаешь фрагмент. Собери пазл полностью, чтобы открыть одежду. Полученный предмет можно надеть здесь, в гардеробе. Прогресс и образ сохраняются в профиле аккаунта.') }}
+          onOpenTournament={() => { setProfileMenuOpen(false); setTournamentOpen(true) }}
+          onOpenHistory={() => { setProfileMenuOpen(false); setHistoryOpen(true) }}
           onProfile={editing ? leave : () => undefined}
+          onLogout={onLogout}
+          onToggleProfileMenu={onLogout ? () => setProfileMenuOpen((value) => !value) : undefined}
+          onCloseProfileMenu={() => setProfileMenuOpen(false)}
+          profileMenuOpen={profileMenuOpen}
           onToggleSound={onToggleSound}
-          showTournament={false}
           soundOn={soundOn}
         />
       </header>
@@ -170,7 +200,7 @@ export function AvatarProfile({
                 {!unlocked && <small>{item.reward ? 'Собери пазл' : 'Откроется позже'}</small>}
               </button>
             })}{[1, 2].map((value) => <div className="av-item av-coming" key={`coming-${category}-${value}`} role="img" aria-label="Скоро"><span aria-hidden="true">✦</span><Lock /><strong>Скоро</strong><small>Новый предмет</small></div>)}</div>
-            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Только для красоты</span></div><div className="av-equip">
+            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Не только для красоты!</span></div><div className="av-equip">
               <button disabled={!selectedUnlocked || equipped} onClick={equipSelected}>{!selectedUnlocked ? <><Lock /> Закрыто</> : equipped ? 'Надето ✓' : 'Надеть'}</button>
             </div>{!selectedUnlocked && <p className="av-locked-reason">Собери пазл «{puzzle.name}»: {puzzle.collectedFragments} / {puzzle.totalFragments}</p>}</div>
           </section>
@@ -179,7 +209,7 @@ export function AvatarProfile({
       </> : <>
         {notice && <p className="av-success" role="status">✓ {notice}</p>}
         <div className="av-profile-grid">
-          <section className="av-profile-card"><div className="av-user"><div className="av-user-portrait"><img src={asset('chinchilla')} alt="" /></div><div><h2>{userName}</h2><span className="av-badge">🎁 Покоритель облаков</span></div></div><div className="av-profile-stats">{profileStats.map((stat) => <div key={stat.id}><span className={`av-stat-icon av-stat-icon--${stat.id}`} aria-hidden="true">{stat.icon}</span><strong>{stat.value}<small>{stat.label}</small></strong></div>)}</div><blockquote>«Выше облаков —<br />больше возможностей!»</blockquote></section>
+          <section className="av-profile-card"><div className="av-user"><div className="av-user-portrait"><img src={asset('chinchilla')} alt="" /></div><div><h2>{userName}</h2><span className="av-badge">🎁 Покоритель облаков</span></div></div><div className="av-profile-stats">{profileStats.map((stat) => <div key={stat.id}><span className={`av-stat-icon av-stat-icon--${stat.id}`} aria-hidden="true">{stat.icon}</span><strong>{stat.value}<small>{stat.label}</small></strong></div>)}</div><button className="av-history-button" type="button" onClick={() => { setHistoryOpen(true); setProfileMenuOpen(false) }}><span aria-hidden="true">☷</span> История игр <span aria-hidden="true">→</span></button><blockquote>«Выше облаков —<br />больше возможностей!»</blockquote></section>
           <section className="av-profile-pet"><PetPreview outfit={saved} /><div className="av-pedestal" /><button className="av-gold" onClick={openEditor}><span aria-hidden="true">👕</span> Открыть гардероб</button></section>
           <section className="av-luck-card"><h2>🎁 Ежедневная удача</h2><p>Крути колесо раз в сутки и забирай приз!</p><div className="av-wheel" aria-hidden="true"><i>▼</i><span>☁</span><span>🧩</span><span>⭐</span><span>×2</span><span>🎁</span><span>☁</span><b>✦</b></div><button className="av-gold av-fortune-button" type="button" disabled={!fortune.canSpin} onClick={() => setFortuneOpen(true)}>{fortune.canSpin ? 'Крутить колесо' : `Через ${fortune.remainingLabel}`}</button></section>
         </div>
@@ -191,7 +221,7 @@ export function AvatarProfile({
           </div>
           <div className="av-collection-grid">
             <article>
-              <PuzzlePieceGrid collectedFragments={puzzle.collectedFragments} compact />
+              <PuzzlePieceGrid collectedFragments={puzzle.collectedFragments} totalFragments={puzzle.totalFragments} compact />
               <div><h3>{puzzle.name}</h3><span className="av-progress"><i style={{ width: `${progress}%` }} /></span><small className="av-progress-label">🧩 {puzzle.collectedFragments} / {puzzle.totalFragments}</small><p>🎁 Награда: {rewardItem?.name ?? 'Облачный шарфик'}</p></div>
             </article>
             <article className="is-locked">
@@ -215,6 +245,8 @@ export function AvatarProfile({
         result={fortune.result}
         rotation={fortune.rotation}
       />
+      {tournamentOpen && <TournamentModal api={tournamentApi} onClose={() => setTournamentOpen(false)} />}
+      {historyOpen && <ProfileHistoryModal api={tournamentApi} onClose={() => setHistoryOpen(false)} />}
       {collectionOpen && <PuzzleCollectionPage onClose={() => setCollectionOpen(false)} puzzle={puzzle} />}
     </div>
   </dialog>

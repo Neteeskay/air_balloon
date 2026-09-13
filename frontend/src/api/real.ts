@@ -97,11 +97,11 @@ export function createRealApi(base = ''): Api {
       purchase: (offerId, key) => request<Scenario8Purchase>('/api/current-user/upsell/lottery-tickets/purchase', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key }, body: JSON.stringify({ offerId }) }),
     },
     history: {
-      getGlobalHistory: async page => {
-        const value = await request<GlobalHistoryPageDto>(`/api/history?page=${page ?? 0}&size=20`)
+      getGlobalHistory: async (page = 0, size = 20) => {
+        const value = await request<GlobalHistoryPageDto>(`/api/history?page=${page}&size=${size}`)
         return { ...value, items: value.items.map(({ roundScore, finishedAt, ...item }) => ({ ...item, score: roundScore, completedAt: finishedAt })) } as never
       },
-      getPersonalHistory: page => request(`/api/current-user/history?page=${page ?? 0}&size=20`),
+      getPersonalHistory: (page = 0, size = 20) => request(`/api/current-user/history?page=${page}&size=${size}`),
     },
     game: {
       startRound: (input, idempotencyKey) => request('/api/rounds', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) }, body: JSON.stringify(input) }),

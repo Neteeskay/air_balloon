@@ -29,8 +29,13 @@
 .flight-mode-page .user-panel button.user-panel__avatar { padding: 0; color: #174478; background: rgba(235,247,255,.92); }
 .flight-mode-page .mode-grid { position: absolute; top: var(--mode-top); left: 50%; z-index: 3; display: flex; gap: clamp(24px,2.1cqw,42px); transform: translateX(-50%); }
 .flight-mode-page .mode-card { --accent: #e92328; --accent-dark: #c6121e; position: relative; width: clamp(286px,21.2cqw,407px); height: var(--mode-card-height); overflow: visible; border: 3px solid rgba(255,255,255,.93); border-radius: clamp(25px,2cqw,38px); background: var(--card-surface); box-shadow: 0 20px 42px rgba(16,76,110,.2); animation: fm-card-rise 760ms cubic-bezier(.2,.75,.28,1) both; }
+.flight-mode-page .mode-card:hover,
+.flight-mode-page .mode-card:focus-within { box-shadow: 0 22px 46px rgba(16,76,110,.28), 0 0 0 4px color-mix(in srgb,var(--accent),transparent 70%), 0 0 30px color-mix(in srgb,var(--accent),transparent 62%); }
 .flight-mode-page .mode-card--green { --accent: #19ad45; --accent-dark: #078c34; }
 .flight-mode-page .mode-card__balloon { --balloon-x: -50%; position: absolute; top: -8%; left: 50%; z-index: 1; width: auto; height: 68%; transform: translateX(var(--balloon-x)); animation: fm-balloon-float 4.8s ease-in-out infinite; object-fit: contain; pointer-events: none; }
+.flight-mode-page .mode-card__balloon { transition: filter .25s ease; }
+.flight-mode-page .mode-card:hover .mode-card__balloon,
+.flight-mode-page .mode-card:focus-within .mode-card__balloon { filter: drop-shadow(0 0 16px color-mix(in srgb,var(--accent),white 25%)) drop-shadow(0 0 30px color-mix(in srgb,var(--accent),transparent 35%)) brightness(1.1) saturate(1.12); }
 .flight-mode-page .mode-card--green .mode-card__balloon { --balloon-x: calc(-50% + clamp(10px,1.4cqw,24px)); animation-delay: -1.8s; }
 .flight-mode-page .chinchilla-greeting { display: none; }
 .flight-mode-page .mode-card__copy { position: absolute; right: 6%; bottom: 16.5%; left: 6%; z-index: 2; text-align: center; }
@@ -42,6 +47,7 @@
 .flight-mode-page .signal i:nth-child(1) { height: 7px; }.flight-mode-page .signal i:nth-child(2) { height: 13px; }.flight-mode-page .signal i:nth-child(3) { height: 19px; }
 .flight-mode-page .mode-card__copy p { margin: .45rem 0 0; color: #52627a; font-size: clamp(13px,.92cqw,18px); font-weight: 600; }
 .flight-mode-page .mode-card__button { position: absolute; right: 5%; bottom: 3.3%; left: 5%; z-index: 4; display: flex; align-items: center; justify-content: center; gap: 1rem; height: 11.5%; border: 0; border-radius: 999px; color: #fff; background: linear-gradient(180deg,color-mix(in srgb,var(--accent),white 9%),var(--accent-dark)); box-shadow: inset 0 2px 2px rgba(255,255,255,.35),0 6px 12px color-mix(in srgb,var(--accent),transparent 68%); font-size: clamp(17px,1.18cqw,23px); font-weight: 900; cursor: pointer; }
+.flight-mode-page .mode-card__button:hover { filter: brightness(1.1); }
 .flight-mode-page .rating-card { position: absolute; top: calc(var(--mode-top) + var(--mode-card-height) + var(--rating-gap)); left: 50%; z-index: 4; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: clamp(16px,1.5cqw,30px); width: clamp(620px,46.5cqw,892px); height: clamp(82px,10.5cqh,114px); padding: 10px clamp(20px,1.8cqw,34px); border: 3px solid rgba(255,255,255,.88); border-radius: 27px; color: #0c265a; background: #fff; box-shadow: 0 13px 30px rgba(15,82,123,.17),inset 0 1px 0 #fff; transform: translateX(-50%); }
 .flight-mode-page .rating-card__trophy { display: grid; place-items: center; width: clamp(62px,5cqw,94px); padding: 4px; color: #e69600; }.flight-mode-page .rating-card__trophy img { display: block; width: 100%; max-height: 100%; object-fit: contain; }.flight-mode-page .rating-card h2 { margin: 0; font-size: clamp(18px,1.32cqw,25px); font-weight: 900; }.flight-mode-page .rating-card p { margin: .22rem 0 0; color: #425d82; font-size: clamp(12px,.8cqw,16px); font-weight: 600; line-height: 1.25; }.flight-mode-page .rating-card__days { display: flex; align-items: center; gap: .55rem; padding: .65rem 1rem; border-radius: 999px; color: #78541d; background: #ffeab2; font-size: clamp(14px,.95cqw,18px); font-weight: 900; white-space: nowrap; }
 .flight-mode-page .tutorial-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }

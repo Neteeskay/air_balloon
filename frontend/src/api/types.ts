@@ -22,7 +22,7 @@ export type Round = {
 }
 export type GameEvent = { type: string; roundId: string; sequence: number; eventId: string; timestamp: string; serverTime: string; data: Record<string, unknown> }
 export type Replay = { roundId: string; events: GameEvent[]; oldestAvailableSequence: number; latestSequence: number; snapshotRequired: boolean; serverTime: string }
-export type HistoryItem = { roundId: string; username?: string; theme: Theme; betAmount: number; boosterMultiplier: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; result: 'WIN' | 'LOSS'; completedAt: string; reward?: { id?: string; type: string; rarity: string; createdAt?: string } }
+export type HistoryItem = { roundId: string; username?: string; displayName?: string; boosterTier?: number; theme: Theme; betAmount: number; boosterMultiplier: number; cashoutMultiplier?: number; crashMultiplier: number; winAmount: number; score: number; result: 'WIN' | 'LOSS'; completedAt: string; reward?: { id?: string; type: string; rarity: string; createdAt?: string } }
 export type HistoryPage = { items: HistoryItem[]; page: number; size: number; total: number; serverTime?: string }
 export type PlayerCharacterCode = 'CAUTIOUS' | 'COLD_BLOODED' | 'CLOSE_CALL' | 'BOOSTER_HUNTER' | 'GREEDY' | 'ADVENTURER'
 export type PlayerCharacter = { code: PlayerCharacterCode; title: string; description: string }
@@ -57,7 +57,7 @@ export interface Api {
   economy: { getBalance(id?: string): Promise<Wallet> }
   upsell: { getOffer(roundId: string): Promise<Scenario8Offer | null>; purchase(offerId: string, key: string): Promise<Scenario8Purchase> }
   catalog: { get(): Promise<Catalog> }
-  history: { getGlobalHistory(page?: number): Promise<HistoryPage>; getPersonalHistory(page?: number): Promise<HistoryPage> }
+  history: { getGlobalHistory(page?: number, size?: number): Promise<HistoryPage>; getPersonalHistory(page?: number, size?: number): Promise<HistoryPage> }
   game: GameApi
   tournament: {
     getActive(): Promise<{ active: boolean; tournament?: Tournament }>

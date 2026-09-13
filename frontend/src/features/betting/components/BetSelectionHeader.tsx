@@ -1,6 +1,9 @@
-import { ArrowLeft, HelpCircle, UserRound, Volume2, VolumeX } from 'lucide-react'
-import { IconButton } from '../../../components/ui/IconButton'
+import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
 import { BalanceDisplay } from './BalanceDisplay'
+import { TopMenuActions } from './TopMenuActions'
+import { ProfileHistoryModal } from '../../history/ProfileHistoryModal'
+import type { Api } from '../../../api/types'
 
 type BetSelectionHeaderProps = {
   balance: number
@@ -11,6 +14,7 @@ type BetSelectionHeaderProps = {
   onTopUp: () => void
   onBack?: () => void
   onProfile?: () => void
+  api?: Api
 }
 
 export function BetSelectionHeader({
@@ -22,7 +26,10 @@ export function BetSelectionHeader({
   onTopUp,
   onBack,
   onProfile,
+  api,
 }: BetSelectionHeaderProps) {
+  const [historyOpen, setHistoryOpen] = useState(false)
+
   return (
     <header className="topbar">
       <button className="back-button" type="button" onClick={onBack} aria-label="Назад">
@@ -32,27 +39,15 @@ export function BetSelectionHeader({
 
       <BalanceDisplay balance={balance} onTopUp={onTopUp} />
 
-      <nav className="top-actions" aria-label="Дополнительные действия">
-        <button className="tournament-button" onClick={onOpenTournament} type="button">
-          <img alt="" className="tournament-icon" src="/assets/icons/кубок_старт.png" />
-          <span><b>Турнир</b><small>25 дней</small></span>
-        </button>
-        <button className="rules-button" onClick={onOpenRules} type="button">
-          <HelpCircle size={20} />
-          <span>Правила</span>
-        </button>
-        <span className="divider" />
-        <IconButton
-          label={soundOn ? 'Выключить звук' : 'Включить звук'}
-          onClick={onToggleSound}
-          pressed={soundOn}
-        >
-          {soundOn ? <Volume2 size={23} /> : <VolumeX size={23} />}
-        </IconButton>
-        <IconButton label="Профиль" onClick={onProfile}>
-          <UserRound size={23} />
-        </IconButton>
-      </nav>
+      <TopMenuActions
+        onOpenRules={onOpenRules}
+        onOpenTournament={onOpenTournament}
+        onOpenHistory={() => setHistoryOpen(true)}
+        onProfile={onProfile ?? (() => undefined)}
+        onToggleSound={onToggleSound}
+        soundOn={soundOn}
+      />
+      {historyOpen && <ProfileHistoryModal api={api} onClose={() => setHistoryOpen(false)} />}
     </header>
   )
 }
