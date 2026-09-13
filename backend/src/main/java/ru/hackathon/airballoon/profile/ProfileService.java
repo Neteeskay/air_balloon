@@ -11,13 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.hackathon.airballoon.common.BusinessException;
+import ru.hackathon.airballoon.economy.BalanceService;
 import ru.hackathon.airballoon.user.UserService;
 import ru.hackathon.airballoon.user.UserState;
 
 @Service
 public class ProfileService {
     public record Equipped(String headId, String neckId) {}
-    public record Avatar(Equipped equipped, long version, Instant updatedAt) {}
+    public record Avatar(Equipped equipped, long version, Instant updatedAt,
+                         List<OutfitRewardService.RewardGrant> newOutfitRewards,
+                         long balanceAfter) {}
     public record Puzzle(String id, String name, int totalFragments, int collectedFragments,
                          boolean completed, Instant completedAt, String rewardClothingId, boolean active) {}
     public record WardrobeItem(String id, String displayName, String slot, String assetKey,
@@ -28,11 +31,16 @@ public class ProfileService {
     private final JdbcTemplate jdbc;
     private final UserService users;
     private final Clock clock;
+    private final OutfitRewardService outfitRewards;
+    private final BalanceService balances;
 
-    public ProfileService(JdbcTemplate jdbc, UserService users, Clock clock) {
+    public ProfileService(JdbcTemplate jdbc, UserService users, Clock clock,
+                          OutfitRewardService outfitRewards, BalanceService balances) {
         this.jdbc = jdbc;
         this.users = users;
         this.clock = clock;
+        this.outfitRewards = outfitRewards;
+        this.balances = balances;
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -63,6 +71,11 @@ public class ProfileService {
                 """, this::mapWardrobe, userId);
     }
 
+    @Transactional(readOnly = true)
+    public List<OutfitRewardService.OutfitStatus> outfitRewards(UUID userId) {
+        return outfitRewards.statuses(userId);
+    }
+
     @Transactional
     public Avatar equip(UUID userId, String headId, String neckId) {
         if (jdbc.query("SELECT id FROM users WHERE id=? FOR UPDATE", (rs, row) -> rs.getObject(1, UUID.class), userId).isEmpty())
@@ -75,7 +88,8 @@ public class ProfileService {
                 WHERE user_id=?
                 """, head, neck, userId);
         if (changed != 1) throw BusinessException.conflict("PROFILE_NOT_READY", "Профиль пользователя не инициализирован");
-        return avatar(userId);
+        OutfitRewardService.GrantResult result = outfitRewards.grantMatching(userId);
+        return avatar(userId, result.rewards(), result.balanceAfter());
     }
 
     private UUID resolveOwned(UUID userId, String code, String expectedSlot) {
@@ -98,6 +112,10 @@ public class ProfileService {
     }
 
     private Avatar avatar(UUID userId) {
+        return avatar(userId, List.of(), balances.getBalance(userId));
+    }
+
+    private Avatar avatar(UUID userId, List<OutfitRewardService.RewardGrant> rewards, long balanceAfter) {
         return jdbc.query("""
                 SELECT h.code head_code,n.code neck_code,e.version,e.updated_at
                 FROM user_avatar_equipment e
@@ -105,7 +123,7 @@ public class ProfileService {
                 LEFT JOIN clothing_items n ON n.id=e.neck_clothing_id
                 WHERE e.user_id=?
                 """, (rs, row) -> new Avatar(new Equipped(rs.getString("head_code"), rs.getString("neck_code")),
-                rs.getLong("version"), rs.getTimestamp("updated_at").toInstant()), userId)
+                rs.getLong("version"), rs.getTimestamp("updated_at").toInstant(), rewards, balanceAfter), userId)
                 .stream().findFirst().orElseThrow(() -> BusinessException.conflict(
                         "PROFILE_NOT_READY", "Профиль пользователя не инициализирован"));
     }

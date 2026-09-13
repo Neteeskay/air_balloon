@@ -26,6 +26,41 @@ public class PostgresBalanceService implements BalanceService {
     public BalanceChange debitBet(UUID userId, UUID roundId, long amount) { return change(userId,roundId,amount,true); }
     @Transactional
     public BalanceChange creditWin(UUID userId, UUID roundId, long amount) { return change(userId,roundId,amount,false); }
+    @Transactional
+    public BalanceChange creditOutfitReward(UUID userId, UUID outfitRewardId, long amount) {
+        if (amount <= 0) throw BusinessException.invalid("INVALID_AMOUNT", "Недопустимая сумма");
+        Long configuredAmount = jdbc.query("""
+                SELECT reward_amount FROM outfit_reward_definitions WHERE id=? AND active
+                """, (rs, n) -> rs.getLong(1), outfitRewardId).stream().findFirst()
+                .orElseThrow(() -> BusinessException.missing("OUTFIT_REWARD_NOT_FOUND"));
+        if (configuredAmount != amount)
+            throw BusinessException.conflict("OUTFIT_REWARD_AMOUNT_MISMATCH", "Сумма награды не соответствует настройке комплекта");
+
+        Long before = jdbc.query("SELECT bonus_balance FROM users WHERE id=? FOR UPDATE",
+                (rs, n) -> rs.getLong(1), userId).stream().findFirst()
+                .orElseThrow(() -> BusinessException.missing("USER_NOT_FOUND"));
+        var previous = jdbc.query("""
+                SELECT id,amount,balance_before,balance_after FROM economy_transactions
+                WHERE user_id=? AND outfit_reward_id=? AND type='OUTFIT_REWARD'
+                """, (rs, n) -> new BalanceChange(rs.getObject("id", UUID.class), rs.getLong("amount"),
+                rs.getLong("balance_before"), rs.getLong("balance_after"), true), userId, outfitRewardId);
+        if (!previous.isEmpty()) {
+            if (previous.getFirst().amount() != amount)
+                throw BusinessException.conflict("IDEMPOTENCY_CONFLICT", "Повтор операции с другой суммой");
+            return previous.getFirst();
+        }
+
+        long after;
+        try { after = Math.addExact(before, amount); }
+        catch (ArithmeticException e) { throw BusinessException.conflict("BALANCE_LIMIT", "Превышен предел баланса"); }
+        UUID transactionId = UUID.randomUUID();
+        jdbc.update("UPDATE users SET bonus_balance=?,updated_at=now() WHERE id=?", after, userId);
+        jdbc.update("""
+                INSERT INTO economy_transactions(id,user_id,round_id,type,amount,balance_before,balance_after,outfit_reward_id)
+                VALUES (?,?,NULL,'OUTFIT_REWARD',?,?,?,?)
+                """, transactionId, userId, amount, before, after, outfitRewardId);
+        return new BalanceChange(transactionId, amount, before, after, false);
+    }
     private BalanceChange change(UUID userId,UUID roundId,long amount,boolean debit) {
         if (amount<0 || (debit && amount==0)) throw BusinessException.invalid("INVALID_AMOUNT","Недопустимая сумма");
         GameRound r=rounds.lockById(roundId);

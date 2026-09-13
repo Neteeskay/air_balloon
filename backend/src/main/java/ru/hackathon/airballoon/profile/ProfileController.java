@@ -28,6 +28,11 @@ public class ProfileController {
         return profiles.wardrobe(CurrentUser.id(principal));
     }
 
+    @GetMapping("/outfit-rewards")
+    public List<OutfitRewardService.OutfitStatus> outfitRewards(Principal principal) {
+        return profiles.outfitRewards(CurrentUser.id(principal));
+    }
+
     @PutMapping("/avatar/equipment")
     public ProfileService.Avatar equipment(Principal principal, @RequestBody EquipmentRequest request) {
         if (request == null)
