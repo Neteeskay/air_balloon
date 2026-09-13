@@ -61,6 +61,18 @@ describe('profile wardrobe', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
+  it('opens the logout menu from the profile icon and closes it outside', () => {
+    const onLogout = vi.fn()
+    render(<AvatarProfile {...props} onLogout={onLogout} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Профиль' }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Профиль' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Выйти' }))
+    expect(onLogout).toHaveBeenCalledTimes(1)
+  })
+
   it('uses the shared top menu to toggle sound', () => {
     render(<AvatarProfile {...props} />)
     fireEvent.click(screen.getByRole('button', { name: 'Выключить звук' }))
@@ -108,7 +120,8 @@ describe('profile wardrobe', () => {
     fireEvent.click(screen.getByRole('button', { name: /Назад/ }))
     const confirmation = screen.getByRole('alertdialog')
     fireEvent.click(within(confirmation).getByRole('button', { name: 'Выйти без сохранения' }))
-    expect(screen.getByRole('heading', { name: 'Мой профиль' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Мой профиль' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'История игр' })).toBeInTheDocument()
     expect(onSave).not.toHaveBeenCalled()
   })
 

@@ -105,7 +105,7 @@ export const adaptRoundResult = (payload: unknown): ResultScreenData => {
         'reward.count',
         0,
       ),
-      label: String(pick(rewardSource, ['puzzleName', 'label', 'name']) ?? 'Новый фрагмент'),
+      label: String(pick(rewardSource, ['puzzleName', 'label', 'name']) ?? 'Фрагмент не получен') || undefined,
       puzzleName: String(pick(rewardSource, ['puzzleName']) ?? '') || undefined,
       collectedFragments: toNumber(
         pick(rewardSource, ['fragments', 'currentFragments', 'collectedFragments']),

@@ -32,7 +32,9 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background: #4aa7e5;
+  background:
+    #4aa7e5
+    url('/assets/backgrounds/flight/flight-01-desktop.webp') center / cover no-repeat;
 }
 
 .dynamic-flight-background__frame {
@@ -43,8 +45,12 @@
   object-fit: cover;
   transform: translate3d(0, var(--flight-bg-shift), 0) scale(var(--flight-bg-scale));
   transform-origin: center center;
+  transition: opacity 160ms linear, transform 160ms linear;
   will-change: opacity, transform;
+  visibility: hidden;
 }
+
+.dynamic-flight-background__frame.is-active { visibility: visible; }
 
 .dynamic-flight-background__atmosphere {
   position: absolute;
@@ -159,7 +165,9 @@
 .crash-levels__world {
   position: absolute;
   inset: 0;
-  transform: none;
+  transform: translate3d(0, calc(var(--track-position) - var(--flight-y)), 0);
+  transition: transform 140ms linear;
+  will-change: transform;
 }
 
 .crash-levels__rail {
@@ -211,6 +219,8 @@
   left: 51px;
   color: rgba(255, 255, 255, .94);
   font-size: 1.05rem;
+  line-height: 1.2;
+  white-space: nowrap;
   text-shadow: 0 1px 3px rgba(27, 77, 115, .45);
 }
 
@@ -250,10 +260,18 @@
 
 .crash-booster-badge img { position: absolute; left: 4px; width: 53px; height: 53px; object-fit: contain; }
 
-.crash-levels__marker {
+.crash-levels__marker-anchor {
   position: absolute;
   z-index: 6;
-  bottom: var(--flight-y);
+  inset: 0;
+  transform: translate3d(0, calc(0px - var(--flight-y)), 0);
+  transition: transform 140ms linear;
+  will-change: transform;
+}
+
+.crash-levels__marker {
+  position: absolute;
+  bottom: 0;
   left: 2px;
   width: 35px;
   height: 35px;
@@ -262,20 +280,26 @@
   border-radius: 50%;
   background: radial-gradient(circle, #ff544b, #e10f19 62%, #a90d1c);
   box-shadow: 0 0 0 7px rgba(255, 255, 255, .18), 0 0 18px rgba(255, 255, 255, .75);
-  will-change: bottom;
 }
 
 .theme-green .crash-levels__marker { background: radial-gradient(circle, #54e99b, #19a65f 62%, #087b46); }
 
-.crash-balloon {
+.crash-balloon-anchor {
   position: absolute;
   z-index: 5;
+  inset: 0;
+  transform: translate3d(0, calc(0px - var(--flight-y)), 0);
+  transition: transform 140ms linear;
+  will-change: transform;
+}
+
+.crash-balloon {
+  position: absolute;
   left: 66%;
-  bottom: var(--flight-y);
+  bottom: 0;
   width: var(--flight-balloon-width);
   aspect-ratio: 3 / 4;
   transform: translate(-50%, 50%);
-  will-change: bottom, transform;
 }
 
 .crash-balloon__float { animation: crash-balloon-float 2.8s ease-in-out infinite; }
@@ -477,7 +501,7 @@
   .crash-coefficient small { font-size: .78rem; }
   .crash-levels { left: 18px; width: calc(100% - 36px); }
   .crash-levels__rail { left: 13px; width: 3px; }
-  .crash-level__dot { top: 9px; left: 3px; width: 23px; height: 23px; }
+  .crash-level__dot { top: 10px; left: 4px; width: 20px; height: 20px; }
   .crash-level > b { top: 10px; left: 38px; font-size: .78rem; }
   .crash-level__guide { left: 61px; top: 20px; }
   .crash-levels__marker { left: 0; width: 30px; height: 30px; }
@@ -512,6 +536,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dynamic-flight-background__frame,
+  .crash-levels__world,
+  .crash-levels__marker-anchor,
+  .crash-balloon-anchor { transition: none; }
   .crash-balloon__float,
   .points-popup,
   .crash-burst,

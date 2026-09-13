@@ -21,4 +21,10 @@ describe('PuzzlePieceGrid', () => {
     expect(container.querySelector('.puzzle-piece-grid')).toHaveClass('is-locked')
     expect(container.querySelector('.puzzle-piece-grid__lock')).toHaveTextContent('🔒')
   })
+
+  it('supports the server puzzle size without changing the twelve-piece default', () => {
+    const { container } = render(<PuzzlePieceGrid collectedFragments={2} totalFragments={6} />)
+    expect(container.querySelectorAll('[data-piece-number]')).toHaveLength(6)
+    expect(container.querySelector('.puzzle-piece-grid')).toHaveAccessibleName('2 из 6 фрагментов собрано')
+  })
 })

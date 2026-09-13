@@ -7,6 +7,10 @@ type UseSkySoundsOptions = {
 
 const MIN_BIRD_DELAY = 1800
 const MAX_BIRD_DELAY = 5000
+const AMBIENT_GAIN = 0.036
+const BIRD_SYNTH_GAIN = 0.042
+const BIRD_RECORDING_GAIN = 0.023
+const FLIGHT_WIND_GAIN = 0.15
 
 function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min)
@@ -60,7 +64,7 @@ export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOpti
     const callGain = context.createGain()
 
     callGain.gain.setValueAtTime(0.0001, startAt)
-    callGain.gain.exponentialRampToValueAtTime(0.035, startAt + 0.025)
+    callGain.gain.exponentialRampToValueAtTime(BIRD_SYNTH_GAIN, startAt + 0.025)
     callGain.gain.exponentialRampToValueAtTime(0.0001, startAt + callLength)
     callGain.connect(output)
 
@@ -91,7 +95,7 @@ export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOpti
     const callGain = context.createGain()
 
     source.buffer = buffer
-    callGain.gain.value = 0.018
+    callGain.gain.value = BIRD_RECORDING_GAIN
     source.connect(callGain).connect(output)
     source.addEventListener('ended', () => {
       source.disconnect()
@@ -157,7 +161,7 @@ export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOpti
     source.loop = true
     filter.type = 'lowpass'
     filter.frequency.value = 720
-    ambientGain.gain.value = 0.045
+    ambientGain.gain.value = AMBIENT_GAIN
     source.connect(filter).connect(ambientGain).connect(output)
     source.start()
     ambientSourceRef.current = source
@@ -191,7 +195,7 @@ export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOpti
     source.start()
     windSourceRef.current = source
     windGainRef.current = windGain
-    windGain.gain.setTargetAtTime(flightActiveRef.current ? 0.11 : 0.0001, context.currentTime, 0.22)
+    windGain.gain.setTargetAtTime(flightActiveRef.current ? FLIGHT_WIND_GAIN : 0.0001, context.currentTime, 0.22)
   }, [])
 
   const unlockSkySounds = useCallback(async () => {
@@ -243,7 +247,7 @@ export function useSkySounds({ enabled, flightActive = false }: UseSkySoundsOpti
     if (!context || !windGain) return
 
     windGain.gain.setTargetAtTime(
-      enabled && flightActive ? 0.11 : 0.0001,
+      enabled && flightActive ? FLIGHT_WIND_GAIN : 0.0001,
       context.currentTime,
       flightActive ? 0.28 : 0.45,
     )

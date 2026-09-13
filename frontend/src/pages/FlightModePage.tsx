@@ -1,10 +1,19 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { AnimatedSkyBackground } from '../components/sky/AnimatedSkyBackground'
 import type { User } from '../api/types'
+import { playWaterDrop } from '../audio/uiSounds'
 type FlightUser = User | { userId: string; displayName: string }
 
 export type FlightMode = 'RED' | 'GREEN'
 type TutorialStep = 1 | 2 | 3 | 4 | 5
+
+function playAudioSafely(audio: HTMLAudioElement) {
+  try {
+    void Promise.resolve(audio.play()).catch(() => {})
+  } catch {
+    // Media playback is optional and can be unavailable in tests/older browsers.
+  }
+}
 
 const ONBOARDING_KEY_PREFIX = 'air-balloon:flight-mode-onboarding:v2:'
 const THEME_KEY_PREFIX = 'air-balloon-theme:'
@@ -71,9 +80,16 @@ type ModeCardProps = {
 
 function ModeCard({ mode, title, levels, description, balloon, selected, tutorialStep, onChoose }: ModeCardProps) {
   const activeTutorial = tutorialStep === (mode === 'RED' ? 2 : 3)
+  const [floatStyle] = useState<CSSProperties>(() => ({
+    // Keep a small per-balloon offset in addition to the random component so
+    // the two animations remain independent even with a deterministic RNG in
+    // tests or a restored page snapshot.
+    animationDuration: `${4.6 + (mode === 'GREEN' ? 0.75 : 0) + Math.random() * 1.8}s`,
+    animationDelay: `${-(mode === 'GREEN' ? 1.35 : 0.2) - Math.random() * 2.1}s`,
+  }))
   return (
     <article className={`mode-card surface-card mode-card--${mode.toLowerCase()} ${activeTutorial ? 'is-tutorial-target' : ''}`}>
-      <img className="mode-card__balloon" src={balloon} alt="" draggable="false" />
+      <img className="mode-card__balloon" src={balloon} alt="" draggable="false" style={floatStyle} />
       <div className="mode-card__copy">
         <h2>{title}</h2>
         <div className="mode-card__levels"><SignalIcon /><strong>{levels} уровней</strong></div>
@@ -104,6 +120,7 @@ export default function FlightModePage({
   onOpenRating,
   onProfile,
   onUnlockAudio,
+  soundOn = true,
 }: {
   currentUser: FlightUser
   onLogout: () => void
@@ -111,7 +128,9 @@ export default function FlightModePage({
   onOpenRating: () => void
   onProfile: () => void
   onUnlockAudio?: () => void
+  soundOn?: boolean
 }) {
+  const greetingAudioRef = useRef<HTMLAudioElement>(null)
   const [tutorialVisible, setTutorialVisible] = useState(
     () => readStorage(onboardingKey('id' in currentUser ? currentUser.id : currentUser.userId)) !== 'true',
   )
@@ -127,6 +146,26 @@ export default function FlightModePage({
     setTutorialStep(1)
     setShowChooseGameMessage(false)
   }, [currentUser])
+
+  useEffect(() => {
+    if (!tutorialVisible || !soundOn) return
+    const audio = greetingAudioRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    playAudioSafely(audio)
+    return () => {
+      audio.pause()
+      audio.currentTime = 0
+    }
+  }, [soundOn, tutorialVisible])
+
+  const unlockPageAudio = () => {
+    onUnlockAudio?.()
+    const greeting = greetingAudioRef.current
+    // Retry only a blocked initial autoplay (currentTime stays at zero); an
+    // already-finished greeting must not replay on every tutorial step.
+    if (soundOn && greeting && greeting.paused && greeting.currentTime === 0 && !greeting.ended) playAudioSafely(greeting)
+  }
 
 
   const completeTutorial = () => {
@@ -162,6 +201,7 @@ export default function FlightModePage({
   const chooseMode = (mode: FlightMode) => {
     if (tutorialVisible) return
 
+    playWaterDrop(soundOn)
     writeStorage(themeKey('id' in currentUser ? currentUser.id : currentUser.userId), mode)
     setSelectedMode(mode)
     setShowChooseGameMessage(false)
@@ -173,8 +213,8 @@ export default function FlightModePage({
       className={`flight-mode-page ${tutorialVisible ? 'is-tutorial' : ''}`}
       tabIndex={tutorialVisible ? 0 : undefined}
       onClick={tutorialVisible ? advanceTutorial : undefined}
-      onKeyDownCapture={onUnlockAudio}
-      onPointerDownCapture={onUnlockAudio}
+      onKeyDownCapture={unlockPageAudio}
+      onPointerDownCapture={unlockPageAudio}
       onKeyDown={tutorialVisible ? (event) => {
         if (event.target !== event.currentTarget) return
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -182,6 +222,7 @@ export default function FlightModePage({
         advanceTutorial()
       } : undefined}
     >
+      {tutorialVisible && <audio ref={greetingAudioRef} aria-hidden="true" className="chinchilla-greeting" preload="auto" src="/assets/audio/hi.mp3" />}
       <div className="scene-background" aria-hidden="true" />
       <AnimatedSkyBackground />
       <img className="birds birds--standard" src="/assets/flight-mode/birds-3.png" alt="" draggable="false" />

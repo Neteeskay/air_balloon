@@ -1,6 +1,6 @@
 import { getBoosterIconByMultiplier } from '../../betting/lib/getBoosterIconByMultiplier'
 import type { BetOption, Theme } from '../../betting/types'
-import { getLevelMarkerProgress } from '../lib/flightProgress'
+import { getTrackLevelPosition } from '../lib/flightProgress'
 
 type LevelProgressTrackProps = {
   boosterLevel: number
@@ -20,17 +20,18 @@ export function LevelProgressTrack({
   theme,
 }: LevelProgressTrackProps) {
   const boosterIcon = getBoosterIconByMultiplier(boosterMultiplier)
-  const firstMarker = getLevelMarkerProgress(0, levels.length)
+  const spacing = 92
+  const leadingOffset = 0.6
+  const trackPosition = (getTrackLevelPosition(progress, levels.length) + leadingOffset) * spacing
 
   return (
     <aside className={`crash-levels theme-${theme}`} aria-label="Прогресс по уровням">
       <div
         className="crash-levels__world"
         style={{
-          // Keep the rail exactly between the first and last marker centers.
-          // This prevents a dangling line beyond the final level.
-          '--track-height': `${(1 - firstMarker) * 100}%`,
-          '--track-bottom': `${firstMarker * 100}%`,
+          '--track-height': `${Math.max(0, levels.length - 1) * spacing}px`,
+          '--track-bottom': `${leadingOffset * spacing}px`,
+          '--track-position': `${trackPosition}px`,
         } as React.CSSProperties}
       >
         <span className="crash-levels__rail" />
@@ -42,10 +43,9 @@ export function LevelProgressTrack({
           return (
             <div
               className={`crash-level${isReached ? ' is-reached' : ''}${isBooster ? ' is-booster' : ''}`}
-              data-level-progress={getLevelMarkerProgress(index, levels.length).toFixed(6)}
               data-testid="flight-level"
               key={level}
-              style={{ '--level-y': `${getLevelMarkerProgress(index, levels.length) * 100}%` } as React.CSSProperties}
+              style={{ '--level-y': `${(index + leadingOffset) * spacing}px` } as React.CSSProperties}
             >
               <span className="crash-level__dot" />
               <b>{level}</b>
@@ -60,12 +60,13 @@ export function LevelProgressTrack({
           )
         })}
       </div>
-      <span
-        className="crash-levels__marker"
-        data-flight-progress={progress.toFixed(6)}
-        data-testid="level-progress-marker"
-        style={{ '--flight-y': `${progress * 100}%` } as React.CSSProperties}
-      />
+      <span className="crash-levels__marker-anchor">
+        <span
+          className="crash-levels__marker"
+          data-flight-progress={progress.toFixed(6)}
+          data-testid="level-progress-marker"
+        />
+      </span>
     </aside>
   )
 }

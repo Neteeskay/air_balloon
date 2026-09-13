@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AnimatedSkyBackground } from '../../../components/sky/AnimatedSkyBackground'
 import { Toast } from '../../../components/ui/Toast'
 import { BetSelectionHeader } from '../../betting/components/BetSelectionHeader'
@@ -12,8 +12,14 @@ import { CrashRoundPanel } from '../components/CrashRoundPanel'
 import { DynamicFlightBackground } from '../components/DynamicFlightBackground'
 import { LevelProgressTrack } from '../components/LevelProgressTrack'
 import { useCrashRound } from '../hooks/useCrashRound'
-import { getLevelFlightProgress } from '../lib/flightProgress'
+import {
+  getFlightBottomPercent,
+  getLevelFlightProgress,
+  getVisualFlightCoefficient,
+  getVisualReachedLevels,
+} from '../lib/flightProgress'
 import type { CrashGameFinish } from '../types'
+import type { Api } from '../../../api/types'
 
 type CrashGamePageProps = {
   balance: number
@@ -29,6 +35,7 @@ type CrashGamePageProps = {
   theme: Theme
   onBack?: () => void
   onProfile?: () => void
+  api?: Api
 }
 
 export function CrashGamePage({
@@ -45,6 +52,7 @@ export function CrashGamePage({
   theme,
   onBack,
   onProfile,
+  api,
 }: CrashGamePageProps) {
   const [modal, setModal] = useState<BetSelectionModal>(null)
   const round = useCrashRound({ bet, boosterMultiplier, onFinish, roundId, soundOn, theme })
@@ -72,15 +80,32 @@ export function CrashGamePage({
     }
     return undefined
   }, [round.boosterActivated, round.boosterLevel, round.connection, roundId])
+  const visualCoefficient = getVisualFlightCoefficient(
+    round.rawCoefficient,
+    round.boosterActivated,
+    boosterMultiplier,
+  )
   const authoritativeProgress = useMemo(
-    () => getLevelFlightProgress(round.rawCoefficient, round.levels),
-    [round.levels, round.rawCoefficient],
+    () => getLevelFlightProgress(visualCoefficient, round.levels),
+    [round.levels, visualCoefficient],
   )
   const lastFlyingProgress = useRef(authoritativeProgress)
-  const progress = round.status === 'crashed' ? lastFlyingProgress.current : authoritativeProgress
+  const targetProgress = round.status === 'crashed' ? lastFlyingProgress.current : authoritativeProgress
+  const progress = targetProgress
+  const targetReachedLevels = getVisualReachedLevels(progress, round.levels.length)
+  const [visualReachedLevels, setVisualReachedLevels] = useState(targetReachedLevels)
+  const flightPosition = `${getFlightBottomPercent(progress)}%`
   useEffect(() => {
     if (round.status !== 'crashed') lastFlyingProgress.current = authoritativeProgress
   }, [authoritativeProgress, round.status])
+  useEffect(() => {
+    if (targetReachedLevels <= visualReachedLevels) {
+      setVisualReachedLevels(targetReachedLevels)
+      return undefined
+    }
+    const timer = window.setTimeout(() => setVisualReachedLevels(targetReachedLevels), 140)
+    return () => window.clearTimeout(timer)
+  }, [targetReachedLevels, visualReachedLevels])
 
   return (
     <main
@@ -100,6 +125,7 @@ export function CrashGamePage({
         soundOn={soundOn}
         onBack={onBack}
         onProfile={onProfile}
+        api={api}
       />
 
       <section className={`crash-stage${round.boosterActivated ? ' has-booster' : ''}${boosterPulse ? ' booster-activated' : ''}`} aria-label="Полёт воздушного шара" data-round-id={roundId}>
@@ -110,19 +136,22 @@ export function CrashGamePage({
           level={round.reachedLevels}
           status={round.status}
         />
-        <div className="crash-flight-area">
+        <div
+          className="crash-flight-area"
+          style={{ '--flight-y': flightPosition } as CSSProperties}
+        >
           <LevelProgressTrack
             boosterLevel={round.mock.boosterLevel}
             boosterMultiplier={boosterMultiplier}
             levels={round.levels}
             progress={progress}
-            reachedLevels={round.reachedLevels}
+            reachedLevels={visualReachedLevels}
             theme={theme}
           />
           <BalloonFlight
             pointsPerLine={round.mock.pointsPerLine}
             progress={progress}
-            reachedLevels={round.reachedLevels}
+            reachedLevels={visualReachedLevels}
             status={round.status}
             theme={theme}
           />
@@ -143,7 +172,7 @@ export function CrashGamePage({
 
       <Toast message={round.cashoutPayout > 0 && round.status !== 'crashed' ? 'Могли бы забрать больше' : ''} />
       {modal === 'rules' && <RulesModal onClose={() => setModal(null)} />}
-      {modal === 'tournament' && <TournamentModal onClose={() => setModal(null)} />}
+      {modal === 'tournament' && <TournamentModal api={api} onClose={() => setModal(null)} />}
     </main>
   )
 }

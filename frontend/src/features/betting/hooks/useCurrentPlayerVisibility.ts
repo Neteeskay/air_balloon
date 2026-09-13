@@ -9,7 +9,7 @@ export function useCurrentPlayerVisibility(
   useEffect(() => {
     const scrollElement = scrollRef.current
     const playerRowElement = playerRowRef.current
-    if (!scrollElement || !playerRowElement) return
+    if (!scrollElement || !playerRowElement || typeof IntersectionObserver === 'undefined') return
 
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting && entry.intersectionRatio >= 0.85),

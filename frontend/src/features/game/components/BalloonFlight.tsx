@@ -19,22 +19,23 @@ export function BalloonFlight({
   theme,
 }: BalloonFlightProps) {
   return (
-    <div
-      className={`crash-balloon crash-balloon--${status}`}
+    <div className="crash-balloon-anchor">
+      <div
+        className={`crash-balloon crash-balloon--${status}`}
       data-flight-progress={progress.toFixed(6)}
       data-testid="flight-balloon"
-      style={{ '--flight-y': `${progress * 100}%` } as React.CSSProperties}
-    >
-      {status === 'crashed' ? (
-        <CrashExplosionEffect theme={theme} />
-      ) : (
-        <div className="crash-balloon__float">
-          <BalloonImage theme={theme} />
-        </div>
-      )}
-      {reachedLevels > 0 && status !== 'crashed' && (
-        <span className="points-popup" key={reachedLevels}>+{pointsPerLine}</span>
-      )}
+      >
+        {status === 'crashed' ? (
+          <CrashExplosionEffect theme={theme} />
+        ) : (
+          <div className="crash-balloon__float">
+            <BalloonImage theme={theme} />
+          </div>
+        )}
+        {reachedLevels > 0 && status !== 'crashed' && (
+          <span className="points-popup" key={reachedLevels}>+{pointsPerLine}</span>
+        )}
+      </div>
     </div>
   )
 }
