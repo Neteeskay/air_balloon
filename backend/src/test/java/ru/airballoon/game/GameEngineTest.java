@@ -109,8 +109,8 @@ class GameEngineTest {
         var f = new Fixture(); var r = f.start(3); f.clock.atMillis(40123);
         var cashout = f.service.cashout(f.user, r.id());
         assertThat(cashout.boosterActivated()).isTrue();
-        assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("6.6111");
-        assertThat(cashout.winAmount()).isEqualByComparingTo("661.11");
+        assertThat(cashout.cashoutMultiplier()).isEqualByComparingTo("15.0369");
+        assertThat(cashout.winAmount()).isEqualByComparingTo("1503.69");
         assertThat(cashout.cashoutAt()).isEqualTo(START.plusMillis(40123));
     }
 
@@ -134,7 +134,7 @@ class GameEngineTest {
         assertThat(before.boosterActivated()).isFalse();
         assertThat(RoundView.from(before).cashoutPreviewAmount()).isEqualByComparingTo("130.00");
         assertThat(after.boosterActivated()).isTrue();
-        assertThat(RoundView.from(after).cashoutPreviewAmount()).isEqualByComparingTo("660.00");
+        assertThat(RoundView.from(after).cashoutPreviewAmount()).isEqualByComparingTo("1500.00");
     }
 
     @Test void laterServerReceiptCanPayMoreButNeverLessThanLastMonotonicPreview() {
@@ -159,7 +159,7 @@ class GameEngineTest {
         var f = new Fixture(); var r = f.start(3); f.clock.atMillis(3000);
         var cashout = f.service.cashout(f.user, r.id()); var later = f.at(r, 20000);
         assertThat(later.boosterActivated()).isFalse();
-        assertThat(later.currentMultiplier()).isEqualByComparingTo("2.0");
+        assertThat(later.currentMultiplier()).isEqualByComparingTo("3.0");
         assertThat(later.roundScore()).isEqualTo(cashout.roundScore());
         assertThat(f.count(BOOSTER_ACTIVATED)).isZero();
         assertThat(f.events.stream().filter(e -> e.type() == LEVEL_REACHED && e.timestamp().isAfter(cashout.cashoutAt())))

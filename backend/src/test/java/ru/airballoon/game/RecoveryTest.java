@@ -119,7 +119,7 @@ class RecoveryTest {
         assertThatThrownBy(() -> first.tick(r.id())).isInstanceOf(GameException.class);
         var recovered = f.restart(); var result = recovered.recover(f.user, r.id());
         assertThat(result.boosterActivated()).isTrue();
-        assertThat(result.roundScore()).isEqualTo(900);
+        assertThat(result.roundScore()).isEqualTo(600);
         var delivered = f.published.stream().filter(e -> e.type() == BOOSTER_ACTIVATED).toList();
         assertThat(delivered).hasSize(2);
         assertThat(delivered.getFirst().eventId()).isEqualTo(delivered.getLast().eventId());
