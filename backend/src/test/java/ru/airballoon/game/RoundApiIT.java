@@ -47,7 +47,8 @@ class RoundApiIT extends IntegrationSupport {
         mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("status").value("FINISHED"))
-                .andExpect(jsonPath("crashMultiplier").value(1.4356));
+                // V2 truncated-Pareto result for the fixed seed; 1.4356 was the retired V1 piecewise result.
+                .andExpect(jsonPath("crashMultiplier").value(1.4568));
     }
 
     @Test void fullHttpScenarioFixesPayoutAndFinishesAfterCrash() throws Exception {
@@ -77,7 +78,7 @@ class RoundApiIT extends IntegrationSupport {
                 .andExpect(jsonPath("currentMultiplier").value(6.3)).andExpect(jsonPath("finishedAt").doesNotExist());
         mvc.perform(post("/api/rounds/" + id + "/cashout").principal(() -> user.toString()))
                 .andExpect(status().isConflict()).andExpect(jsonPath("code").value("ALREADY_CASHED_OUT"));
-        clock.atMillis(20000);
+        clock.atMillis(100000);
         JsonNode finished = json(mvc.perform(get("/api/rounds/" + id).principal(() -> user.toString()))
                 .andExpect(jsonPath("status").value("FINISHED")).andExpect(jsonPath("outcome").value("CASHED_OUT"))
                 .andExpect(jsonPath("crashMultiplier").value(8.42)).andExpect(jsonPath("finishedAt").exists()).andReturn());

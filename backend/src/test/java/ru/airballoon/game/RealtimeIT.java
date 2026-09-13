@@ -38,7 +38,7 @@ class RealtimeIT extends IntegrationSupport {
                 clock.atMillis(10000); service.tick(r.id());
                 clock.atMillis(10100); var payout = service.cashout(user, r.id());
                 clock.atMillis(11000); service.tick(r.id());
-                clock.atMillis(20000); service.tick(r.id());
+                clock.atMillis(100000); service.tick(r.id());
                 List<JsonNode> events = new ArrayList<>();
                 while (events.isEmpty() || !events.getLast().path("type").asText().equals("ROUND_FINISHED")) events.add(ownerEvents.next());
                 assertThat(events.stream().map(e -> e.path("type").asText())).containsSubsequence("ROUND_STARTED", "MULTIPLIER_UPDATE",
