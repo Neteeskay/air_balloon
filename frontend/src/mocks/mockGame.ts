@@ -14,6 +14,7 @@ export type MockPuzzle = {
   rewardClothingId: string
   rewardName?: string
   completed: boolean
+  locked?: boolean
 }
 
 export type MockEquippedClothing = {
@@ -82,6 +83,7 @@ function createDemoPuzzles(): MockPuzzle[] {
     rewardClothingId: definition.rewardClothingId ?? '',
     rewardName: definition.rewardName,
     completed: false,
+    locked: definition.locked,
   }))
 }
 
@@ -127,6 +129,7 @@ function normalizePuzzle(value: unknown): MockPuzzle {
     rewardClothingId: definition.rewardClothingId ?? '',
     rewardName: definition.rewardName,
     completed: collectedFragments === totalFragments,
+    locked: definition.locked,
   }
 }
 

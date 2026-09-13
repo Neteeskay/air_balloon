@@ -219,7 +219,7 @@ button:focus-visible {
   font-size: .82rem;
   font-weight: 900;
 }
-.history-list .is-high { color: #4e3b12; background: linear-gradient(#ffe57b, #ffca3f); box-shadow: 0 0 17px rgba(255, 225, 81, .7); }
+.history-list .is-high, .history-list .is-current-player { color: #4e3b12; background: linear-gradient(#ffe57b, #ffca3f); box-shadow: 0 0 17px rgba(255, 225, 81, .7); }
 
 .levels {
   position: absolute;

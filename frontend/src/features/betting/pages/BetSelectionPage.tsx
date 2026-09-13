@@ -13,7 +13,7 @@ import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { TournamentModal } from '../components/TournamentModal'
 import { TournamentMobileBadge } from '../components/TournamentMobileBadge'
 import type { BetOption, Theme } from '../types'
-import type { Api } from '../../../api/types'
+import type { Api, User } from '../../../api/types'
 
 type BetSelectionPageProps = {
   balance: number
@@ -29,6 +29,7 @@ type BetSelectionPageProps = {
   onProfile?: () => void
   onOpenDetailedRules?: () => void
   api?: Api
+  currentUser?: User | null
 }
 
 export function BetSelectionPage({
@@ -45,6 +46,7 @@ export function BetSelectionPage({
   onProfile,
   onOpenDetailedRules,
   api,
+  currentUser,
 }: BetSelectionPageProps) {
   const {
     activatingId,
@@ -81,7 +83,7 @@ export function BetSelectionPage({
         api={api}
       />
 
-      <GameHistoryStrip />
+      <GameHistoryStrip api={api} currentUser={currentUser} />
       <LevelsIndicator
         theme={theme}
       />

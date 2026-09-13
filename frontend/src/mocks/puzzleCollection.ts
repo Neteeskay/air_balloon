@@ -27,7 +27,7 @@ export const PUZZLE_COLLECTION_MOCKS: PuzzleCollectionMock[] = [
   {
     id: 'puzzle-2',
     name: 'Космическая экспедиция',
-    locked: false,
+    locked: true,
     rewardClothingId: 'space-hat',
     rewardName: 'Космическая шапка',
     totalFragments: 8,
@@ -35,9 +35,13 @@ export const PUZZLE_COLLECTION_MOCKS: PuzzleCollectionMock[] = [
   {
     id: 'puzzle-3',
     name: 'Небесное путешествие',
-    locked: false,
+    locked: true,
     rewardClothingId: 'traveler-costume',
     rewardName: 'Костюм путешественника',
     totalFragments: 6,
   },
 ]
+
+const UPCOMING_PUZZLE_IDS = new Set(PUZZLE_COLLECTION_MOCKS.filter((puzzle) => puzzle.locked).map((puzzle) => puzzle.id))
+
+export const isPuzzleLocked = (id: string) => UPCOMING_PUZZLE_IDS.has(id)

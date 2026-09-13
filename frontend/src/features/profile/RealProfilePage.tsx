@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Api, User } from '../../api/types'
 import type { MockEquippedClothing, MockPuzzle, MockTheme } from '../../mocks/mockGame'
-import { PUZZLE_COLLECTION_MOCKS } from '../../mocks/puzzleCollection'
+import { isPuzzleLocked, PUZZLE_COLLECTION_MOCKS } from '../../mocks/puzzleCollection'
 import { AvatarProfile } from '../avatar/AvatarProfile'
-import type { OutfitRewardsState } from './OutfitRewardsPanel'
 
 type ProfileDto = {
   user?: { displayName?: string; username?: string; gameScore?: number; bonusBalance?: number }
@@ -14,6 +13,7 @@ type ProfileDto = {
     totalFragments?: number
     collectedFragments?: number
     completed?: boolean
+    locked?: boolean
     rewardClothingId?: string
     active?: boolean
   }>
@@ -108,9 +108,10 @@ function buildViewModel(
       rewardClothingId,
       rewardName: rewardNames.get(rewardClothingId) || fallback.rewardName,
       completed: sourcePuzzle?.completed === true || collectedFragments === totalFragments,
+      locked: sourcePuzzle?.locked === true || isPuzzleLocked(sourceId || fallback.id),
     }
   })
-  const puzzle = puzzles.find(value => !value.completed) ?? puzzles[0]
+  const puzzle = puzzles.find(value => !value.completed && !value.locked) ?? puzzles[0]
   const unlocked = wardrobe
     .filter((item) => item.active !== false && item.unlocked === true)
     .map((item) => visualId(item.id))
@@ -168,20 +169,9 @@ export function RealProfilePage({
   const [view, setView] = useState<ProfileViewModel | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentBalance, setCurrentBalance] = useState(balance)
-  const [outfitRewards, setOutfitRewards] = useState<OutfitRewardsState>({ status: 'loading', items: [] })
   const fallback = useMemo(() => fallbackView(user), [user])
 
   useEffect(() => { setCurrentBalance(balance) }, [balance])
-
-  const refreshOutfitRewards = useCallback(async () => {
-    setOutfitRewards((current) => ({ status: 'loading', items: current.items }))
-    try {
-      const items = await api.profile.getOutfitRewards()
-      setOutfitRewards({ status: 'ready', items: Array.isArray(items) ? items : [] })
-    } catch {
-      setOutfitRewards((current) => ({ status: 'error', items: current.items }))
-    }
-  }, [api])
 
   useEffect(() => {
     let live = true
@@ -198,21 +188,19 @@ export function RealProfilePage({
     }).finally(() => {
       if (live) setLoading(false)
     })
-    void refreshOutfitRewards()
     return () => { live = false }
-  }, [api, fallback, refreshOutfitRewards, user])
+  }, [api, fallback, user])
 
   const save = useCallback(async (_petName: string, equipped: MockEquippedClothing) => {
     const result = await api.profile.equip(serverId(equipped.headId), serverId(equipped.neckId))
     setView((current) => current ? { ...current, equippedClothing: equipped } : current)
-    await refreshOutfitRewards()
     const wallet = await api.economy.getBalance().catch(() => null)
     if (wallet) setCurrentBalance(wallet.bonusBalance)
     else {
       const balanceAfter = record(result).balanceAfter
       if (typeof balanceAfter === 'number' && Number.isFinite(balanceAfter)) setCurrentBalance(balanceAfter)
     }
-  }, [api, refreshOutfitRewards])
+  }, [api])
 
   if (loading || !view) {
     return <main className="av-world av-profile-loading" role="status"><p>Загружаем профиль…</p></main>
@@ -229,8 +217,6 @@ export function RealProfilePage({
     onLogout={onLogout}
     onSave={save}
     onToggleSound={onToggleSound}
-    outfitRewards={outfitRewards}
-    onRetryOutfitRewards={() => { void refreshOutfitRewards() }}
     petName="Пушок"
     puzzle={view.puzzle}
     puzzles={view.puzzles}

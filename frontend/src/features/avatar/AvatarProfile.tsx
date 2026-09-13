@@ -10,10 +10,9 @@ import { TopMenuActions } from '../betting/components/TopMenuActions'
 import { TournamentModal } from '../betting/components/TournamentModal'
 import { api as defaultApi } from '../../api'
 import type { Api } from '../../api/types'
-import type { OutfitRewardsState } from '../profile/OutfitRewardsPanel'
-import { OutfitRewardsPanel } from '../profile/OutfitRewardsPanel'
 import { ProfileHistoryModal } from '../history/ProfileHistoryModal'
 import { asset, categories, findItem, items, normalizeOutfit, outfitImage, renderAssets, type Category, type Item, type Outfit } from './catalog'
+import { isPuzzleLocked } from '../../mocks/puzzleCollection'
 import { ItemArt } from './ItemArt'
 import './avatar.css'
 
@@ -56,8 +55,6 @@ type Props = {
   api?: Api
   onLogout?: () => void | Promise<void>
   onClose: () => void
-  outfitRewards?: OutfitRewardsState
-  onRetryOutfitRewards?: () => void
 }
 
 export function AvatarProfile({
@@ -81,8 +78,6 @@ export function AvatarProfile({
   api,
   onLogout,
   onClose,
-  outfitRewards,
-  onRetryOutfitRewards,
 }: Props) {
   const initial: Outfit = normalizeOutfit({ name: petName, head: equippedClothing.headId, neck: equippedClothing.neckId })
   const [saved, setSaved] = useState<Outfit>(initial)
@@ -208,7 +203,7 @@ export function AvatarProfile({
                 {!unlocked && <small>{item.reward ? 'Собери пазл' : 'Откроется позже'}</small>}
               </button>
             })}{[1, 2].map((value) => <div className="av-item av-coming" key={`coming-${category}-${value}`} role="img" aria-label="Скоро"><span aria-hidden="true">✦</span><Lock /><strong>Скоро</strong><small>Новый предмет</small></div>)}</div>
-            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Меняет внешний вид</span></div><div className="av-equip">
+            <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p>{selected.id === 'cloud-scarf' ? <span className="av-cosmetic">✦ Буст ×2 один раз</span> : <span className="av-cosmetic">✦ Меняет внешний вид</span>}</div><div className="av-equip">
               <button disabled={!selectedUnlocked || equipped} onClick={equipSelected}>{!selectedUnlocked ? <><Lock /> Закрыто</> : equipped ? 'Надето ✓' : 'Надеть'}</button>
             </div>{!selectedUnlocked && <p className="av-locked-reason">Собери пазл «{selectedRewardPuzzle.name}»: {selectedRewardPuzzle.collectedFragments} / {selectedRewardPuzzle.totalFragments}</p>}</div>
           </section>
@@ -229,16 +224,16 @@ export function AvatarProfile({
           </div>
           <div className="av-collection-grid">
             {collectionPuzzles.map(item => {
-              const itemProgress = Math.round((item.collectedFragments / item.totalFragments) * 100)
+              const locked = item.locked === true || isPuzzleLocked(item.id)
+              const itemProgress = locked ? 0 : Math.round((item.collectedFragments / item.totalFragments) * 100)
               const rewardItem = findItem(item.rewardClothingId)
-              return <article key={item.id}>
-                <PuzzlePieceGrid collectedFragments={item.collectedFragments} totalFragments={item.totalFragments} compact />
-                <div><h3>{item.name}</h3><span className="av-progress"><i style={{ width: `${itemProgress}%` }} /></span><small className="av-progress-label">🧩 {item.collectedFragments} / {item.totalFragments}</small><p>🎁 Награда: {item.rewardName ?? rewardItem?.name ?? item.rewardClothingId}</p></div>
+              return <article className={locked ? 'is-locked' : ''} key={item.id}>
+                <PuzzlePieceGrid collectedFragments={item.collectedFragments} totalFragments={item.totalFragments} compact locked={locked} />
+                <div><h3>{item.name}</h3><span className="av-progress"><i style={{ width: `${itemProgress}%` }} /></span><small className="av-progress-label">{locked ? '🔒 Скоро' : `🧩 ${item.collectedFragments} / ${item.totalFragments}`}</small><p>🎁 Награда: {item.rewardName ?? rewardItem?.name ?? item.rewardClothingId}</p></div>
               </article>
             })}
           </div>
         </section>
-        <OutfitRewardsPanel state={outfitRewards} onRetry={onRetryOutfitRewards} />
       </>}
       </div>
       {confirmLeave && <div className="av-confirm-shade"><section ref={confirmPanel} className="av-confirm" role="alertdialog" aria-modal="true" aria-labelledby="av-confirm-title"><h2 id="av-confirm-title">Оставить изменения?</h2><p>Ты ещё не сохранил новый образ.</p><button className="av-gold" onClick={() => { setConfirmLeave(false); save() }}>Сохранить и вернуться</button><button onClick={() => { setDraft(saved); setConfirmLeave(false); setEditing(false); setError(''); setInfo(''); setRenaming(false) }}>Выйти без сохранения</button><button onClick={() => setConfirmLeave(false)}>Продолжить примерку</button></section></div>}

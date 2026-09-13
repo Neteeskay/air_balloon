@@ -1,4 +1,5 @@
 import type { MockPuzzle } from '../../../mocks/mockGame'
+import { isPuzzleLocked } from '../../../mocks/puzzleCollection'
 import { findItem } from '../../avatar/catalog'
 import { ItemArt } from '../../avatar/ItemArt'
 import { PuzzlePieceGrid } from './PuzzlePieceGrid'
@@ -10,19 +11,20 @@ type PuzzleCollectionCardProps = {
 export function PuzzleCollectionCard({ puzzle }: PuzzleCollectionCardProps) {
   const totalFragments = puzzle.totalFragments
   const collected = Math.min(totalFragments, puzzle.collectedFragments)
-  const progress = Math.round((collected / totalFragments) * 100)
-  const completed = collected === totalFragments
+  const locked = puzzle.locked === true || isPuzzleLocked(puzzle.id)
+  const progress = locked ? 0 : Math.round((collected / totalFragments) * 100)
+  const completed = !locked && collected === totalFragments
   const rewardItem = findItem(puzzle.rewardClothingId)
 
   return (
-    <article className="puzzle-collection-card">
-      <PuzzlePieceGrid collectedFragments={collected} totalFragments={totalFragments} />
+    <article className={`puzzle-collection-card${locked ? ' is-locked' : ''}`}>
+      <PuzzlePieceGrid collectedFragments={collected} totalFragments={totalFragments} locked={locked} />
       <div className="puzzle-collection-card__info">
         <h3>{puzzle.name}</h3>
-        <strong>{collected} / {totalFragments} фрагментов</strong>
+        <strong>{locked ? 'Скоро будет доступен' : `${collected} / ${totalFragments} фрагментов`}</strong>
         <span className="puzzle-collection-card__progress"><i style={{ width: `${progress}%` }} /></span>
-        <span className={`puzzle-collection-card__status${completed ? ' is-complete' : ''}`}>
-          {completed ? '✓ Собрано' : progress >= 60 ? 'Почти готов' : 'Собирается'}
+        <span className={`puzzle-collection-card__status${completed ? ' is-complete' : ''}${locked ? ' is-upcoming' : ''}`}>
+          {locked ? '🔒 Скоро' : completed ? '✓ Собрано' : progress >= 60 ? 'Почти готов' : 'Собирается'}
         </span>
       </div>
       <div className="puzzle-collection-card__reward">
