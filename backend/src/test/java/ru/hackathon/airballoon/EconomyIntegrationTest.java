@@ -690,43 +690,65 @@ class EconomyIntegrationTest extends PostgresSupport {
         var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
         assertThat(puzzleRewards.findByRound(win.id())).get().satisfies(reward -> {
             assertThat(reward.type()).isEqualTo("PUZZLE_FRAGMENT");
-            assertThat(reward.puzzleId()).isEqualTo("SKY_JOURNEY");
+            assertThat(reward.puzzleId()).isEqualTo("PUZZLE_1");
             assertThat(reward.fragments()).isEqualTo(1);
-            assertThat(reward.totalFragments()).isEqualTo(6);
+            assertThat(reward.totalFragments()).isEqualTo(12);
             assertThat(reward.puzzleCompleted()).isFalse();
         });
         http.perform(get("/api/rounds/" + win.id() + "/result").principal(() -> anna.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reward.type").value("PUZZLE_FRAGMENT"))
-                .andExpect(jsonPath("$.reward.puzzleId").value("SKY_JOURNEY"))
+                .andExpect(jsonPath("$.reward.puzzleId").value("PUZZLE_1"))
+                .andExpect(jsonPath("$.reward.puzzleName").value("Вокруг света"))
                 .andExpect(jsonPath("$.reward.fragments").value(1))
+                .andExpect(jsonPath("$.reward.totalFragments").value(12))
                 .andExpect(jsonPath("$.playerCharacter.code").value("COLD_BLOODED"));
     }
 
-    @Test void fiveOfSixWinCompletesPuzzleAndUnlocksCloudScarfOnlyOnce() {
+    @Test void configuredPuzzleBoundariesCompleteAndUnlockTheirOwnRewards() {
         jdbc.update("""
                 INSERT INTO user_puzzle_progress(user_id,puzzle_id,total_fragments,collected_fragments,completed)
-                SELECT ?,id,total_fragments,5,false FROM puzzle_definitions WHERE code='SKY_JOURNEY'
+                SELECT ?,id,total_fragments,total_fragments-1,false FROM puzzle_definitions
                 """, anna);
-        var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
-        var reward = puzzleRewards.findByRound(win.id()).orElseThrow();
-        assertThat(reward.fragments()).isEqualTo(6);
-        assertThat(reward.puzzleCompleted()).isTrue();
-        assertThat(reward.unlockedClothing()).extracting(PuzzleRewardService.ClothingReward::id).isEqualTo("CLOUD_SCARF");
-        rewards.generateReward(win);
-        assertThat(jdbc.queryForObject("""
-                SELECT count(*) FROM user_clothing_items uci JOIN clothing_items c ON c.id=uci.clothing_id
-                WHERE uci.user_id=? AND c.code='CLOUD_SCARF'
-                """, Long.class, anna)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM puzzle_reward_grants WHERE round_id=?", Long.class, win.id())).isEqualTo(1);
+
+        record Boundary(String code, int before, int total, String rewardCode) {}
+        var expected = List.of(
+                new Boundary("PUZZLE_1", 11, 12, "CLOUD_SCARF"),
+                new Boundary("PUZZLE_2", 7, 8, "SPACE_HAT"),
+                new Boundary("PUZZLE_3", 5, 6, "TRAVELER_COSTUME"));
+        for (var boundary : expected) {
+            String code = boundary.code();
+            int before = boundary.before();
+            int total = boundary.total();
+            String rewardCode = boundary.rewardCode();
+            var incomplete = profiles.get(anna).puzzles().stream()
+                    .filter(p -> p.id().equals(code)).findFirst().orElseThrow();
+            assertThat(incomplete.collectedFragments()).isEqualTo(before);
+            assertThat(incomplete.totalFragments()).isEqualTo(total);
+            assertThat(incomplete.completed()).isFalse();
+
+            var win = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+            var reward = puzzleRewards.findByRound(win.id()).orElseThrow();
+            assertThat(reward.puzzleId()).isEqualTo(code);
+            assertThat(reward.fragments()).isEqualTo(total);
+            assertThat(reward.totalFragments()).isEqualTo(total);
+            assertThat(reward.puzzleCompleted()).isTrue();
+            assertThat(reward.unlockedClothing()).extracting(PuzzleRewardService.ClothingReward::id)
+                    .isEqualTo(rewardCode);
+            rewards.generateReward(win);
+            assertThat(jdbc.queryForObject("""
+                    SELECT count(*) FROM user_clothing_items uci JOIN clothing_items c ON c.id=uci.clothing_id
+                    WHERE uci.user_id=? AND c.code=?
+                    """, Long.class, anna, rewardCode)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM puzzle_reward_grants WHERE round_id=?", Long.class, win.id()))
+                    .isEqualTo(1);
+        }
     }
 
-    @Test void completedOnlyPuzzleDoesNotAdvanceOrGrantAgain() {
-        for (int i=0;i<6;i++) transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
+    @Test void completedPuzzleSequenceDoesNotAdvanceOrGrantAgain() {
+        for (int i=0;i<26;i++) transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
         var extra = transactions.finishAndReward(finish(winReady(start(anna,100,1),600)));
-        var puzzle = profiles.get(anna).puzzles().getFirst();
-        assertThat(puzzle.collectedFragments()).isEqualTo(6);
-        assertThat(puzzle.completed()).isTrue();
+        assertThat(profiles.get(anna).puzzles()).allSatisfy(puzzle -> assertThat(puzzle.completed()).isTrue());
         assertThat(puzzleRewards.findByRound(extra.id())).isEmpty();
     }
 
@@ -750,8 +772,20 @@ class EconomyIntegrationTest extends PostgresSupport {
         http.perform(get("/api/current-user/profile").principal(() -> anna.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.userId").value(anna.toString()))
-                .andExpect(jsonPath("$.puzzles[0].id").value("SKY_JOURNEY"))
+                .andExpect(jsonPath("$.puzzles.length()").value(3))
+                .andExpect(jsonPath("$.puzzles[0].id").value("PUZZLE_1"))
+                .andExpect(jsonPath("$.puzzles[0].name").value("Вокруг света"))
+                .andExpect(jsonPath("$.puzzles[0].totalFragments").value(12))
+                .andExpect(jsonPath("$.puzzles[0].rewardClothingId").value("CLOUD_SCARF"))
                 .andExpect(jsonPath("$.puzzles[0].collectedFragments").value(0))
+                .andExpect(jsonPath("$.puzzles[1].id").value("PUZZLE_2"))
+                .andExpect(jsonPath("$.puzzles[1].name").value("Космическая экспедиция"))
+                .andExpect(jsonPath("$.puzzles[1].totalFragments").value(8))
+                .andExpect(jsonPath("$.puzzles[1].rewardClothingId").value("SPACE_HAT"))
+                .andExpect(jsonPath("$.puzzles[2].id").value("PUZZLE_3"))
+                .andExpect(jsonPath("$.puzzles[2].name").value("Небесное путешествие"))
+                .andExpect(jsonPath("$.puzzles[2].totalFragments").value(6))
+                .andExpect(jsonPath("$.puzzles[2].rewardClothingId").value("TRAVELER_COSTUME"))
                 .andExpect(jsonPath("$.avatar.equipped.headId").value("AVIATOR"))
                 .andExpect(jsonPath("$.avatar.equipped.neckId").value("BOW"))
                 .andExpect(jsonPath("$.wardrobe[3].id").value("CLOUD_SCARF"))
@@ -785,7 +819,7 @@ class EconomyIntegrationTest extends PostgresSupport {
     @Test void databaseProtectsProgressInventoryGrantAndEquipmentOwnership() {
         assertThatThrownBy(() -> jdbc.update("""
                 INSERT INTO user_puzzle_progress(user_id,puzzle_id,total_fragments,collected_fragments,completed)
-                SELECT ?,id,total_fragments,7,true FROM puzzle_definitions WHERE code='SKY_JOURNEY'
+                SELECT ?,id,total_fragments,11,true FROM puzzle_definitions WHERE code='PUZZLE_1'
                 """, anna)).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.update("""
                 UPDATE user_avatar_equipment SET neck_clothing_id=(SELECT id FROM clothing_items WHERE code='CLOUD_SCARF')

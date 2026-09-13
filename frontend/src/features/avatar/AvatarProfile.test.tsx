@@ -4,13 +4,19 @@ import { AvatarProfile, PetPreview } from './AvatarProfile'
 import { renderAssets } from './catalog'
 
 const puzzle = {
-  id: 'high-flight',
-  name: 'Высокий полёт',
+  id: 'puzzle-1',
+  name: 'Вокруг света',
   totalFragments: 12,
   collectedFragments: 8,
   rewardClothingId: 'cloud-scarf',
+  rewardName: 'Облачный шарфик',
   completed: false,
 }
+const puzzles = [
+  puzzle,
+  { id: 'puzzle-2', name: 'Космическая экспедиция', totalFragments: 8, collectedFragments: 0, rewardClothingId: 'space-hat', rewardName: 'Космическая шапка', completed: false },
+  { id: 'puzzle-3', name: 'Небесное путешествие', totalFragments: 6, collectedFragments: 0, rewardClothingId: 'traveler-costume', rewardName: 'Костюм путешественника', completed: false },
+]
 const onSave = vi.fn()
 const onClose = vi.fn()
 const onToggleSound = vi.fn()
@@ -24,6 +30,7 @@ const props = {
   wins: 31,
   petName: 'Пушок',
   puzzle,
+  puzzles,
   unlockedClothingIds: ['aviator', 'sunhat', 'bow'],
   equippedClothing: { headId: 'aviator', neckId: 'bow' },
   onFortunePrize: vi.fn(),
@@ -145,8 +152,9 @@ describe('profile wardrobe', () => {
     render(<AvatarProfile {...props} />)
     fireEvent.click(screen.getByRole('button', { name: /Вся коллекция/ }))
     const collection = screen.getByRole('dialog', { name: 'Коллекция пазлов' })
-    expect(within(collection).getByRole('heading', { name: 'Высокий полёт' })).toBeInTheDocument()
-    expect(within(collection).getByRole('heading', { name: 'Скоро' })).toBeInTheDocument()
+    expect(within(collection).getByRole('heading', { name: 'Вокруг света' })).toBeInTheDocument()
+    expect(within(collection).getByRole('heading', { name: 'Космическая экспедиция' })).toBeInTheDocument()
+    expect(within(collection).getByRole('heading', { name: 'Небесное путешествие' })).toBeInTheDocument()
     expect(within(collection).getByText('8 / 12 фрагментов')).toBeInTheDocument()
   })
 })

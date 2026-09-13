@@ -236,7 +236,7 @@ export function ResultScreen({ data, actions, autoReturnSeconds = 10 }: ResultSc
 
         {data.reward.puzzleCompleted && data.reward.clothingReward && (
           <div className="result-unlock" role="status">
-            <img src="/assets/avatar/rendered-aviator-cloud-scarf-v3.png" alt={data.reward.clothingReward.name} />
+            <img src={data.reward.clothingReward.id === 'CLOUD_SCARF' ? '/assets/avatar/rendered-aviator-cloud-scarf-v3.png' : resultAssets.puzzle} alt={data.reward.clothingReward.name} />
             <div><strong>Пазл собран!</strong><span>Открыт новый предмет: {data.reward.clothingReward.name}</span></div>
             <button type="button" onClick={() => { markInteraction(); actions.onProfile?.(); }}>В профиль</button>
           </div>

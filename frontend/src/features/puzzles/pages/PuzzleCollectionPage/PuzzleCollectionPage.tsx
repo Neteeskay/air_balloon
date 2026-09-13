@@ -1,15 +1,16 @@
 import { useEffect } from 'react'
 import type { MockPuzzle } from '../../../../mocks/mockGame'
-import { PUZZLE_COLLECTION_MOCKS } from '../../../../mocks/puzzleCollection'
 import { PuzzleCollectionCard } from '../../components/PuzzleCollectionCard'
 import './PuzzleCollectionPage.css'
 
 type PuzzleCollectionPageProps = {
   onClose: () => void
-  puzzle: MockPuzzle
+  puzzles: MockPuzzle[]
 }
 
-export function PuzzleCollectionPage({ onClose, puzzle }: PuzzleCollectionPageProps) {
+export function PuzzleCollectionPage({ onClose, puzzles }: PuzzleCollectionPageProps) {
+  const collectedFragments = puzzles.reduce((sum, puzzle) => sum + puzzle.collectedFragments, 0)
+  const totalFragments = puzzles.reduce((sum, puzzle) => sum + puzzle.totalFragments, 0)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -37,13 +38,13 @@ export function PuzzleCollectionPage({ onClose, puzzle }: PuzzleCollectionPagePr
             <h2 id="puzzle-collection-title">Коллекция пазлов</h2>
             <p>Собирайте фрагменты и получайте награды</p>
           </div>
-          <span className="puzzle-collection-page__total">🧩 {puzzle.collectedFragments} / {puzzle.totalFragments} фрагментов</span>
+          <span className="puzzle-collection-page__total">🧩 {collectedFragments} / {totalFragments} фрагментов</span>
           <button type="button" onClick={onClose} aria-label="Закрыть коллекцию пазлов">×</button>
         </header>
 
         <section className="puzzle-collection-page__list" aria-label="Список пазлов">
-          {PUZZLE_COLLECTION_MOCKS.map((item) => (
-            <PuzzleCollectionCard item={item} key={item.id} puzzle={item.locked ? undefined : puzzle} />
+          {puzzles.map((puzzle) => (
+            <PuzzleCollectionCard key={puzzle.id} puzzle={puzzle} />
           ))}
         </section>
       </main>

@@ -36,8 +36,9 @@ The seeded production definition is:
 |---|---|---:|
 | `SKY_TRAVELER` | `HEAD=SUNHAT`, `NECK=CLOUD_SCARF` | 500 bonus units |
 
-Both item codes are defined by migration `V306`; `CLOUD_SCARF` remains locked until the existing
-`SKY_JOURNEY` puzzle unlocks it.
+Both outfit requirement item codes are defined by migration `V306`; `CLOUD_SCARF` remains locked
+until `PUZZLE_1` («Вокруг света», 12 fragments) unlocks it. Migration `V309` preserves that reward
+binding while replacing the legacy `SKY_JOURNEY` puzzle code.
 
 ## Matching and grant semantics
 

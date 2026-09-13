@@ -62,6 +62,32 @@ describe('result puzzle reward', () => {
     expect(reward).not.toHaveClass('is-unearned')
     expect(reward).toHaveTextContent('6 / 6')
   })
+
+  it('renders the backend reward name without using Cloud Scarf artwork for another reward', () => {
+    render(
+      <ResultScreen
+        actions={actions}
+        autoReturnSeconds={30}
+        data={{
+          ...baseData,
+          result: 'win',
+          reward: {
+            count: 1,
+            label: 'Небесное путешествие',
+            puzzleName: 'Небесное путешествие',
+            collectedFragments: 6,
+            totalFragments: 6,
+            puzzleCompleted: true,
+            clothingReward: { id: 'TRAVELER_COSTUME', name: 'Костюм путешественника' },
+          },
+        }}
+      />,
+    )
+
+    const rewardImage = screen.getByRole('img', { name: 'Костюм путешественника' })
+    expect(rewardImage).toHaveAttribute('src', expect.stringContaining('puzzle'))
+    expect(screen.getByRole('status')).toHaveTextContent('Открыт новый предмет: Костюм путешественника')
+  })
 })
 
 describe('player character', () => {

@@ -106,10 +106,9 @@ unlocks clothing; wardrobe/equip/unequip, locked/wrong-slot/foreign ownership,
 restart and concurrency are covered by backend tests.
 
 Runtime puzzle code reads `puzzle_definitions.total_fragments`; reward and
-progress queries are keyed by puzzle id and do not assume six. Literal `6`
-appears only in seed/test data for `SKY_JOURNEY`. Therefore A=6, B=8, C=12 are
-supported without core service changes; only data/migrations and valid reward
-clothing rows are needed.
+progress queries are keyed by puzzle id and do not assume a fixed threshold.
+`PUZZLE_1/2/3` are configured as 12/8/6 through V309, including stable reward
+bindings and migration of existing progress without rewriting historical grants.
 
 Outfit reward audit (current state):
 

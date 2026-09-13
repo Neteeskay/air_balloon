@@ -11,7 +11,7 @@
 - Booster: уровни ×1–×4; позиция и уровень доступны с начала раунда, активация и бонус считаются сервером.
 - Cashout: `cashoutPreviewAmount` вычисляется backend-ом; preview и settlement используют общий `PayoutCalculator`.
 - Scenario 8: WIN-only offer, атомарная покупка с идемпотентностью; отказ не меняет экономику.
-- Puzzle/Profile: WIN даёт один фрагмент, LOSS — нет; `SKY_JOURNEY` (6 фрагментов) открывает `CLOUD_SCARF`; wardrobe/equipment хранятся на сервере.
+- Puzzle/Profile: WIN даёт один фрагмент следующему незавершённому пазлу, LOSS — нет; `PUZZLE_1/2/3` требуют 12/8/6 фрагментов и открывают `CLOUD_SCARF`/`SPACE_HAT`/`TRAVELER_COSTUME`; wardrobe/equipment хранятся на сервере.
 - Global Rating: все зарегистрированные пользователи, источник `users.game_score`, включая нулевые значения; пагинация и revision.
 - Tournament: leaderboard содержит только явно зарегистрированных участников; score event не создаёт membership.
 - Player Character: детерминированная post-round классификация в Result DTO. Приоритет: `BOOSTER_HUNTER` → `CLOSE_CALL` → `COLD_BLOODED` → `CAUTIOUS` → `GREEDY` → `ADVENTURER`.
@@ -59,7 +59,7 @@ authoritative `ConfigValidator`.
 
 ## Database and tests
 
-Миграции Flyway: `V1`–`V307`; `V306__puzzle_avatar_rewards.sql` остаётся authoritative Puzzle/Profile migration,
+Миграции Flyway: `V1`–`V309`; `V306__puzzle_avatar_rewards.sql` остаётся неизменённой, а authoritative mapping обновляется через `V309__puzzle_definition_mapping.sql`,
 а Admin Panel добавлена как `V307__admin_panel.sql`. Player Character и Global Rating отдельных
 миграций не требуют. Integration/acceptance tests по умолчанию используют изолированный PostgreSQL
 Testcontainer; внешний test DB подключается только через `TEST_DATABASE_URL`,

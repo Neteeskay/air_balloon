@@ -4,6 +4,20 @@ export type Connection = 'connecting' | 'connected' | 'disconnected' | 'recoveri
 export type User = { id: string; name: string; login: string; initials: string; color: string }
 export type Wallet = { bonusBalance: number; gameScore: number; lotteryTicketCount?: number }
 export type OutfitRewardStatus = { code: string; title: string; rewardAmount: number; completed: boolean; claimed: boolean; claimedAt?: string | null }
+export type ProfilePuzzle = {
+  id: string; name: string; totalFragments: number; collectedFragments: number; completed: boolean
+  completedAt?: string | null; rewardClothingId: string; active: boolean
+}
+export type WardrobeItem = {
+  id: string; displayName: string; slot: string; assetKey?: string; active: boolean; unlocked: boolean
+  unlockedAt?: string | null; unlockSource?: string | null
+}
+export type Profile = {
+  user: { displayName?: string; username?: string; gameScore?: number; bonusBalance?: number }
+  avatar: { equipped?: { headId?: string | null; neckId?: string | null } }
+  puzzles: ProfilePuzzle[]
+  wardrobe: WardrobeItem[]
+}
 export type Scenario8Offer = { offerId: string; roundId: string; price: number; ticketCount: number; minWinAmount: number; expiresAt: string; status: 'AVAILABLE' | 'EXPIRED' | 'CONSUMED' }
 export type Scenario8Purchase = { offerId: string; roundId: string; price: number; ticketCount: number; bonusBalance: number; lotteryTicketCount: number; replayed: boolean }
 export type Catalog = {
@@ -67,6 +81,6 @@ export interface Api {
     connect(id: string, update: (value: TournamentUpdate) => void, connection: (state: Connection) => void): Promise<() => void>
   }
   rating: { get(page?: number, size?: number): Promise<GlobalRating> }
-  profile: { get(): Promise<unknown>; wardrobe(): Promise<unknown>; getOutfitRewards(): Promise<OutfitRewardStatus[]>; equip(headId: string | null, neckId: string | null): Promise<unknown> }
+  profile: { get(): Promise<Profile>; wardrobe(): Promise<WardrobeItem[]>; getOutfitRewards(): Promise<OutfitRewardStatus[]>; equip(headId: string | null, neckId: string | null): Promise<unknown> }
   dev?: { setPreset(p: Preset): void; disconnect(): void; setBalance(id: string, balance: number): void }
 }

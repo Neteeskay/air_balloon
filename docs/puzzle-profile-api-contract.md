@@ -10,15 +10,16 @@ There is no public API for granting fragments, completing a puzzle, or unlocking
 changes are produced only by round settlement. `app.puzzle-rewards-enabled` (environment variable
 `PUZZLE_REWARDS_ENABLED`) can disable new grants without changing already persisted progress.
 
-The first active puzzle is:
+The active puzzles, in progression order, are:
 
-- `id`: `SKY_JOURNEY`
-- name: `Небесное путешествие`
-- total fragments: `6`
-- reward clothing: `CLOUD_SCARF`
+| ID | Name | Total fragments | Reward clothing |
+|---|---|---:|---|
+| `PUZZLE_1` | `Вокруг света` | 12 | `CLOUD_SCARF` |
+| `PUZZLE_2` | `Космическая экспедиция` | 8 | `SPACE_HAT` |
+| `PUZZLE_3` | `Небесное путешествие` | 6 | `TRAVELER_COSTUME` |
 
-`CLOUD_SCARF` is a `NECK` item with asset key `avatar/cloud-scarf`. It is locked until puzzle
-completion. No second puzzle is started after `SKY_JOURNEY` reaches 6/6.
+The next incomplete puzzle in this order receives the fragment. Puzzle metadata and reward bindings
+come from `puzzle_definitions`; clients must not redefine them.
 
 ## Authentication and ownership
 
@@ -39,11 +40,11 @@ The endpoint remains owner-only. A new winning round returns its immutable grant
   "result": "WIN",
   "reward": {
     "type": "PUZZLE_FRAGMENT",
-    "puzzleId": "SKY_JOURNEY",
-    "puzzleName": "Небесное путешествие",
+    "puzzleId": "PUZZLE_1",
+    "puzzleName": "Вокруг света",
     "fragmentGranted": 1,
-    "fragments": 6,
-    "totalFragments": 6,
+    "fragments": 12,
+    "totalFragments": 12,
     "puzzleCompleted": true,
     "unlockedClothing": {
       "id": "CLOUD_SCARF",
@@ -86,12 +87,30 @@ equipped-avatar data in three bounded database queries (no per-item queries):
   },
   "puzzles": [
     {
-      "id": "SKY_JOURNEY",
+      "id": "PUZZLE_1",
+      "name": "Вокруг света",
+      "totalFragments": 12,
+      "collectedFragments": 0,
+      "completed": false,
+      "rewardClothingId": "CLOUD_SCARF",
+      "active": true
+    },
+    {
+      "id": "PUZZLE_2",
+      "name": "Космическая экспедиция",
+      "totalFragments": 8,
+      "collectedFragments": 0,
+      "completed": false,
+      "rewardClothingId": "SPACE_HAT",
+      "active": true
+    },
+    {
+      "id": "PUZZLE_3",
       "name": "Небесное путешествие",
       "totalFragments": 6,
       "collectedFragments": 0,
       "completed": false,
-      "rewardClothingId": "CLOUD_SCARF",
+      "rewardClothingId": "TRAVELER_COSTUME",
       "active": true
     }
   ],
@@ -174,9 +193,10 @@ Replace the mock store fields as follows:
 | `saveMockAvatar(... equipped ...)` | `PUT /api/current-user/avatar/equipment` |
 | result `reward` | `GET /api/rounds/{roundId}/result` → `reward` |
 
-The mock uses lowercase UI IDs (`sky-journey`, `cloud-scarf`, `aviator`, `sunhat`, `bow`); the real
-contract uses stable catalog codes (`SKY_JOURNEY`, `CLOUD_SCARF`, `AVIATOR`, `SUNHAT`, `BOW`). The
-future frontend adapter should map these codes or adopt them directly.
+The mock uses lowercase UI IDs (`puzzle-1`, `puzzle-2`, `puzzle-3`, `cloud-scarf`, `space-hat`,
+`traveler-costume`); the real contract uses stable catalog codes (`PUZZLE_1`, `PUZZLE_2`,
+`PUZZLE_3`, `CLOUD_SCARF`, `SPACE_HAT`, `TRAVELER_COSTUME`). The frontend adapter normalizes
+these codes for display assets while retaining backend-owned metadata.
 
 Important semantic mismatch: the current mock grants a fragment after both WIN and LOSS. The backend
 product policy is **WIN only**. Update frontend rules copy and mock/result handling during real API

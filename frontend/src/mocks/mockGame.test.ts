@@ -44,6 +44,29 @@ describe('mock game adapter', () => {
     expect(loss.mockResult?.reward).toMatchObject({ count: 0, collectedFragments: 2, totalFragments: 12 })
   })
 
+  it.each([
+    [0, 'puzzle-1', 'Вокруг света', 11, 12, 'cloud-scarf', 'Облачный шарфик'],
+    [1, 'puzzle-2', 'Космическая экспедиция', 7, 8, 'space-hat', 'Космическая шапка'],
+    [2, 'puzzle-3', 'Небесное путешествие', 5, 6, 'traveler-costume', 'Костюм путешественника'],
+  ] as const)('completes configured puzzle %s only at its boundary', (index, id, name, before, total, rewardId, rewardName) => {
+    const state = readyState()
+    state.currentUser!.puzzles.forEach((puzzle, puzzleIndex) => {
+      puzzle.collectedFragments = puzzleIndex < index ? puzzle.totalFragments : puzzleIndex === index ? before : 0
+      puzzle.completed = puzzleIndex < index
+    })
+    expect(state.currentUser!.puzzles[index]).toMatchObject({ collectedFragments: before, totalFragments: total, completed: false })
+    const completed = finishMockRound(beginMockRound(state, 15, 2), 'win')
+
+    expect(completed.currentUser?.puzzles[index]).toMatchObject({ id, name, collectedFragments: total, totalFragments: total, completed: true })
+    expect(completed.mockResult?.reward).toMatchObject({
+      puzzleName: name,
+      collectedFragments: total,
+      totalFragments: total,
+      puzzleCompleted: true,
+      clothingReward: { id: rewardId, name: rewardName },
+    })
+  })
+
   it('creates a WIN result, credits payout and keeps lottery tickets separate', () => {
     const result = finishMockRound(beginMockRound(readyState(), 15, 2), 'win')
     expect(result.mockResult).toMatchObject({ result: 'win', betAmount: 15, payoutAmount: 33 })

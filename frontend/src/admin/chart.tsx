@@ -168,7 +168,7 @@ export function LineTip({ active, payload, label, total }: any) {
       return <div key={p.name} className="admin-chart-tip-row">
         <span className="admin-chart-tip-swatch" style={{ background: p.color || p.stroke }} />
         <span className="admin-chart-tip-name">{p.name}</span>
-        <span className="admin-chart-tip-val">{formatY(p.value)}{count !== undefined ? ` · ${count.toLocaleString('ru-RU')} игр` : ''}</span>
+        <span className="admin-chart-tip-val">{formatY(p.value)}{count !== undefined ? ` · ${count.toLocaleString('ru-RU')} из ${total.toLocaleString('ru-RU')} игр` : ''}</span>
       </div>
     })}
   </div>

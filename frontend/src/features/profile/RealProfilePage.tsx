@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Api, User } from '../../api/types'
 import type { MockEquippedClothing, MockPuzzle, MockTheme } from '../../mocks/mockGame'
+import { PUZZLE_COLLECTION_MOCKS } from '../../mocks/puzzleCollection'
 import { AvatarProfile } from '../avatar/AvatarProfile'
 import type { OutfitRewardsState } from './OutfitRewardsPanel'
 
@@ -34,6 +35,7 @@ type ProfileViewModel = {
   wins: number
   favoriteTheme: MockTheme
   puzzle: MockPuzzle
+  puzzles: MockPuzzle[]
   unlockedClothingIds: string[]
   equippedClothing: MockEquippedClothing
 }
@@ -58,15 +60,16 @@ function serverId(value: string) {
   return value.replaceAll('-', '_').toUpperCase()
 }
 
-function fallbackPuzzle(): MockPuzzle {
-  return {
-    id: 'high-flight',
-    name: 'Высокий полёт',
-    totalFragments: 12,
-    collectedFragments: 8,
-    rewardClothingId: 'cloud-scarf',
+function fallbackPuzzles(): MockPuzzle[] {
+  return PUZZLE_COLLECTION_MOCKS.map((definition, index) => ({
+    id: definition.id,
+    name: definition.name,
+    totalFragments: definition.totalFragments,
+    collectedFragments: index === 0 ? 8 : 0,
+    rewardClothingId: definition.rewardClothingId ?? '',
+    rewardName: definition.rewardName,
     completed: false,
-  }
+  }))
 }
 
 function historyItems(value: unknown) {
@@ -84,23 +87,30 @@ function buildViewModel(
   const profileUser = record(profile.user)
   const avatar = record(profile.avatar)
   const equipped = record(avatar.equipped)
-  const puzzles = Array.isArray(profile.puzzles) ? profile.puzzles : []
-  const sourcePuzzle = puzzles.find((value) => value?.active !== false) ?? puzzles[0]
-  const fallback = fallbackPuzzle()
-  const totalFragments = Math.max(1, Math.floor(numberOr(sourcePuzzle?.totalFragments, fallback.totalFragments)))
-  const collectedFragments = Math.max(0, Math.min(totalFragments, Math.floor(numberOr(sourcePuzzle?.collectedFragments, 0))))
-  const puzzle: MockPuzzle = {
-    id: typeof sourcePuzzle?.id === 'string' ? sourcePuzzle.id.toLowerCase() : fallback.id,
-    name: typeof sourcePuzzle?.name === 'string' && sourcePuzzle.name.trim() ? sourcePuzzle.name : fallback.name,
-    totalFragments,
-    collectedFragments,
-    rewardClothingId: visualId(sourcePuzzle?.rewardClothingId) || fallback.rewardClothingId,
-    completed: sourcePuzzle?.completed === true || collectedFragments === totalFragments,
-  }
-
   const wardrobe = Array.isArray(wardrobeValue)
     ? wardrobeValue.map(record) as WardrobeDto[]
     : Array.isArray(profile.wardrobe) ? profile.wardrobe : []
+  const rewardNames = new Map(wardrobe.map(item => [visualId(item.id), item.displayName ?? '']))
+  const fallbacks = fallbackPuzzles()
+  const sourcePuzzles = (Array.isArray(profile.puzzles) ? profile.puzzles : [])
+    .filter(value => value?.active !== false)
+  const puzzles = (sourcePuzzles.length > 0 ? sourcePuzzles : fallbacks).map((sourcePuzzle, index): MockPuzzle => {
+    const sourceId = visualId(sourcePuzzle?.id)
+    const fallback = fallbacks.find(item => item.id === sourceId) ?? fallbacks[index] ?? fallbacks[0]
+    const totalFragments = Math.max(1, Math.floor(numberOr(sourcePuzzle?.totalFragments, fallback.totalFragments)))
+    const collectedFragments = Math.max(0, Math.min(totalFragments, Math.floor(numberOr(sourcePuzzle?.collectedFragments, 0))))
+    const rewardClothingId = visualId(sourcePuzzle?.rewardClothingId) || fallback.rewardClothingId
+    return {
+      id: sourceId || fallback.id,
+      name: typeof sourcePuzzle?.name === 'string' && sourcePuzzle.name.trim() ? sourcePuzzle.name : fallback.name,
+      totalFragments,
+      collectedFragments,
+      rewardClothingId,
+      rewardName: rewardNames.get(rewardClothingId) || fallback.rewardName,
+      completed: sourcePuzzle?.completed === true || collectedFragments === totalFragments,
+    }
+  })
+  const puzzle = puzzles.find(value => !value.completed) ?? puzzles[0]
   const unlocked = wardrobe
     .filter((item) => item.active !== false && item.unlocked === true)
     .map((item) => visualId(item.id))
@@ -123,6 +133,7 @@ function buildViewModel(
     wins: items.filter((item) => item.result === 'WIN').length,
     favoriteTheme: themes.green > themes.red ? 'green' : 'red',
     puzzle,
+    puzzles,
     unlockedClothingIds,
     equippedClothing: {
       headId: headId === 'sunhat' ? 'sunhat' : 'aviator',
@@ -222,6 +233,7 @@ export function RealProfilePage({
     onRetryOutfitRewards={() => { void refreshOutfitRewards() }}
     petName="Пушок"
     puzzle={view.puzzle}
+    puzzles={view.puzzles}
     score={view.score}
     soundOn={soundOn}
     unlockedClothingIds={view.unlockedClothingIds}

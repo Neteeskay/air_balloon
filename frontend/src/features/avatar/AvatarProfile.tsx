@@ -45,6 +45,7 @@ type Props = {
   wins: number
   petName: string
   puzzle: MockPuzzle
+  puzzles?: MockPuzzle[]
   unlockedClothingIds: string[]
   equippedClothing: MockEquippedClothing
   onFortunePrize: (prize: FortuneWheelPrize) => void
@@ -69,6 +70,7 @@ export function AvatarProfile({
   wins,
   petName,
   puzzle,
+  puzzles,
   unlockedClothingIds,
   equippedClothing,
   onFortunePrize,
@@ -107,8 +109,8 @@ export function AvatarProfile({
   const selectedUnlocked = unlockedClothingIds.includes(selected.id)
   const equipped = draft[category] === selected.id
   const dirty = JSON.stringify(saved) !== JSON.stringify(draft)
-  const rewardItem = findItem(puzzle.rewardClothingId)
-  const progress = Math.round((puzzle.collectedFragments / puzzle.totalFragments) * 100)
+  const collectionPuzzles = puzzles?.length ? puzzles : [puzzle]
+  const selectedRewardPuzzle = collectionPuzzles.find(value => value.rewardClothingId === selected.id) ?? puzzle
   const fortune = useFortuneWheel({ onPrize: onFortunePrize, userId })
   const tournamentApi = api ?? defaultApi
   const profileStats = [
@@ -208,7 +210,7 @@ export function AvatarProfile({
             })}{[1, 2].map((value) => <div className="av-item av-coming" key={`coming-${category}-${value}`} role="img" aria-label="Скоро"><span aria-hidden="true">✦</span><Lock /><strong>Скоро</strong><small>Новый предмет</small></div>)}</div>
             <div className="av-detail" aria-live="polite"><div className="av-detail-art"><ItemArt item={selected} /></div><div className="av-detail-copy"><h3>{selected.name}</h3><p>{selected.description}</p><span className="av-cosmetic">✦ Меняет внешний вид</span></div><div className="av-equip">
               <button disabled={!selectedUnlocked || equipped} onClick={equipSelected}>{!selectedUnlocked ? <><Lock /> Закрыто</> : equipped ? 'Надето ✓' : 'Надеть'}</button>
-            </div>{!selectedUnlocked && <p className="av-locked-reason">Собери пазл «{puzzle.name}»: {puzzle.collectedFragments} / {puzzle.totalFragments}</p>}</div>
+            </div>{!selectedUnlocked && <p className="av-locked-reason">Собери пазл «{selectedRewardPuzzle.name}»: {selectedRewardPuzzle.collectedFragments} / {selectedRewardPuzzle.totalFragments}</p>}</div>
           </section>
         </div>
         <footer className="av-savebar">{error && <p className="av-error" role="alert">{error}</p>}<button className="av-gold av-save" onClick={save}>Сохранить образ</button></footer>
@@ -226,14 +228,14 @@ export function AvatarProfile({
             <button type="button" onClick={() => setCollectionOpen(true)}>Вся коллекция <span aria-hidden="true">→</span></button>
           </div>
           <div className="av-collection-grid">
-            <article>
-              <PuzzlePieceGrid collectedFragments={puzzle.collectedFragments} totalFragments={puzzle.totalFragments} compact />
-              <div><h3>{puzzle.name}</h3><span className="av-progress"><i style={{ width: `${progress}%` }} /></span><small className="av-progress-label">🧩 {puzzle.collectedFragments} / {puzzle.totalFragments}</small><p>🎁 Награда: {rewardItem?.name ?? 'Облачный шарфик'}</p></div>
-            </article>
-            <article className="is-locked">
-              <PuzzlePieceGrid collectedFragments={0} compact locked />
-              <div><h3>Скоро</h3><span className="av-progress"><i style={{ width: '0%' }} /></span><small className="av-progress-label">🔒 Недоступно</small><p>🎁 Новая награда</p></div>
-            </article>
+            {collectionPuzzles.map(item => {
+              const itemProgress = Math.round((item.collectedFragments / item.totalFragments) * 100)
+              const rewardItem = findItem(item.rewardClothingId)
+              return <article key={item.id}>
+                <PuzzlePieceGrid collectedFragments={item.collectedFragments} totalFragments={item.totalFragments} compact />
+                <div><h3>{item.name}</h3><span className="av-progress"><i style={{ width: `${itemProgress}%` }} /></span><small className="av-progress-label">🧩 {item.collectedFragments} / {item.totalFragments}</small><p>🎁 Награда: {item.rewardName ?? rewardItem?.name ?? item.rewardClothingId}</p></div>
+              </article>
+            })}
           </div>
         </section>
         <OutfitRewardsPanel state={outfitRewards} onRetry={onRetryOutfitRewards} />
@@ -254,7 +256,7 @@ export function AvatarProfile({
       />
       {tournamentOpen && <TournamentModal api={tournamentApi} onClose={() => setTournamentOpen(false)} />}
       {historyOpen && <ProfileHistoryModal api={tournamentApi} onClose={() => setHistoryOpen(false)} />}
-      {collectionOpen && <PuzzleCollectionPage onClose={() => setCollectionOpen(false)} puzzle={puzzle} />}
+      {collectionOpen && <PuzzleCollectionPage onClose={() => setCollectionOpen(false)} puzzles={collectionPuzzles} />}
     </div>
   </dialog>
 }
